@@ -4,6 +4,12 @@ Money4Options is a cross-platform stock options evaluation tool.
 
 ## Building
 
+### Windows
+
+A Qt solution file is provided in the `src` folder. Simply open it up in Qt Creator and build.
+
+I use Visual Studio 2019 (the free one) and it works fine.
+
 ### Linux
 
 You will need the following packages:
@@ -16,7 +22,7 @@ This project uses Qt5 for the user interface. There are a number of development 
 $ sudo apt-get install libqt5networkauth5-dev
 ~~~~
 
-Then run the following to build:
+You can open the Qt solution file up in creator (as per above) or use autotools:
 ~~~~
 $ autoreconf -vfi
 $ ./configure
@@ -38,11 +44,20 @@ Then you can build a dpkg directly:
 $ dpkg-buildpackage -uc -us
 ~~~~
 
-### Windows
+## Usage
 
-A Qt solution file is provided in the `src` folder. Simply open it up and build.
+If you did not install from the debian package or run make install you will need to copy over the config files manually. Copy the following files to `/etc/mofo` (Linux) or your build folder (Windows):
+~~~~
+endpoints.config
+logging.config
+~~~~
 
-I use Visual Studio 2019 (the free one) and it works fine.
+For TDA api access you need to create a development account. Signup and add your app here:
+https://developer.tdameritrade.com/user/me/apps/add
+
+Then, after running the application, update the `credentials.json` file with your app information. On Linux this is in `~/.config/mofo` or in your build folder on Windows.
+
+There is a bug with Qt Network Auth where after TDA OAuth you will get redirected to an https URL. Because https is not supported by Qt it will fail. Simply change the URL you get redirected to http versus https to workaround this issue.
 
 ## Documentation
 
@@ -65,6 +80,4 @@ If you only want HTML output instead run the following:
 ~~~~
 $ make doxygen-html
 ~~~~
-
-
 
