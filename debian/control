@@ -1,0 +1,13 @@
+Source: mofo
+Section: unknown
+Priority: optional
+Maintainer: Randy Blankley <rblankley@woh.rr.com>
+Build-Depends: debhelper (>= 8.0.0), libqt5networkauth5-dev, qtbase5-dev, pandoc
+Standards-Version: 3.9.3
+
+Package: mofo
+Architecture: any
+Section: unknown
+Depends: ${shlibs:Depends}, ${misc:Depends}, libqt5core5a, libqt5gui5, libqt5network5, libqt5networkauth5, libqt5sql5-sqlite, libqt5widgets5, libqt5xml5, libqt5concurrent5
+Description: A stock options evaluation tool.
+

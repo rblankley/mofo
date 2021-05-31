@@ -1,0 +1,235 @@
+/**
+ * @file usdotapi.cpp
+ *
+ * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
+ *
+ * @section LICENSE
+ *
+ * This file is part of mofo.
+ *
+ * Money4Options is free software: you can redistribute it and/or modify it under the terms of the
+ * GNU General Public License as published by the Free Software Foundation, either version 3 of the
+ * License, or (at your option) any later version.
+ *
+ * This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY;
+ * without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See
+ * the GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License along with this program. If
+ * not, see <http://www.gnu.org/licenses/>.
+ */
+
+#include "common.h"
+#include "stringsxml.h"
+#include "usdotapi.h"
+
+#include <QDomDocument>
+#include <QDomElement>
+#include <QSettings>
+#include <QUrl>
+#include <QUrlQuery>
+
+static const QString INI_FILE( SYS_CONF_DIR "endpoints.config" );
+
+static const QString TREAS_BILL_RATE_DATA( "DailyTreasuryBillRateData" );
+static const QString TREAS_YIELD_CURVE_DATA( "DailyTreasuryYieldCurveRateData" );
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+DeptOfTheTreasury::DeptOfTheTreasury( QObject *parent ) :
+    _Mybase( parent )
+{
+    endpointNames_[GET_DAILY_TREASURY_BILL_RATES] = "getDailyTreasuryBillRates";
+    endpointNames_[GET_DAILY_TREASURY_YIELD_CURVE_RATES] = "getDailyTreasuryYieldCurveRates";
+
+    loadEndpoints();
+
+    connect( this, &_Myt::processDocumentXml, this, &_Myt::onProcessDocumentXml );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+DeptOfTheTreasury::~DeptOfTheTreasury()
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void DeptOfTheTreasury::getDailyTreasuryBillRates( int year, int month )
+{
+    const QDate now( QDate::currentDate() );
+
+    if ( year <= 0 )
+        year = now.year();
+
+    if ( month <= 0 )
+        month = now.month();
+
+    QString filter( QString( "year(INDEX_DATE) eq %1 and month(INDEX_DATE) eq %2" ).arg( year ).arg( month ) );
+
+    QUrlQuery urlQuery;
+    urlQuery.addQueryItem( "$filter", QUrl::toPercentEncoding( filter ) );
+
+    QUrl url( endpoints_[GET_DAILY_TREASURY_BILL_RATES] );
+    url.setQuery( urlQuery );
+
+    const QUuid uuid( QUuid::createUuid() );
+
+    pendingRequests_[uuid] = GET_DAILY_TREASURY_BILL_RATES;
+    send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void DeptOfTheTreasury::getDailyTreasuryYieldCurveRates( int year, int month )
+{
+    const QDate now( QDate::currentDate() );
+
+    if ( year <= 0 )
+        year = now.year();
+
+    if ( month <= 0 )
+        month = now.month();
+
+    QString filter( QString( "year(NEW_DATE) eq %1 and month(NEW_DATE) eq %2" ).arg( year ).arg( month ) );
+
+    QUrlQuery urlQuery;
+    urlQuery.addQueryItem( "$filter", QUrl::toPercentEncoding( filter ) );
+
+    QUrl url( endpoints_[GET_DAILY_TREASURY_YIELD_CURVE_RATES] );
+    url.setQuery( urlQuery );
+
+    const QUuid uuid( QUuid::createUuid() );
+
+    pendingRequests_[uuid] = GET_DAILY_TREASURY_YIELD_CURVE_RATES;
+    send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined( QT_DEBUG )
+void DeptOfTheTreasury::simulateDailyTreasuryBillRates( const QDomDocument& doc )
+{
+    parseDailyTreasuryBillRatesDoc( doc );
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined( QT_DEBUG )
+void DeptOfTheTreasury::simulateDailyTreasuryYieldCurveRates( const QDomDocument& doc )
+{
+    parseDailyTreasuryBillYieldCurveDoc( doc );
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void DeptOfTheTreasury::onProcessDocumentXml( const QUuid& uuid, const QByteArray& request, const QString& requestType, int status, const QDomDocument& response )
+{
+    Q_UNUSED( request )
+    Q_UNUSED( requestType )
+
+    if ( !pendingRequests_.contains( uuid ) )
+        return;
+
+    const Endpoint type( pendingRequests_[uuid] );
+
+    pendingRequests_.remove( uuid );
+
+    if ( 200 != status )
+    {
+        LOG_WARN << "bad response " << qPrintable( uuid.toString() ) << " " << status;
+        return;
+    }
+
+    switch ( type )
+    {
+    case GET_DAILY_TREASURY_BILL_RATES:
+        parseDailyTreasuryBillRatesDoc( response );
+        break;
+    case GET_DAILY_TREASURY_YIELD_CURVE_RATES:
+        parseDailyTreasuryBillYieldCurveDoc( response );
+        break;
+    default:
+        LOG_WARN << "unhandled endpoint type " << type;
+        break;
+    }
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void DeptOfTheTreasury::loadEndpoints()
+{
+    static const QString prefix( "DeptOfTheTreasury/" );
+
+    QSettings settings( INI_FILE, QSettings::IniFormat );
+
+    for ( EndpointMap::const_iterator i( endpointNames_.constBegin() ); i != endpointNames_.constEnd(); ++i )
+    {
+        const QVariant value( settings.value( prefix + i.value() ) );
+
+        if ( !value.isValid() )
+            LOG_WARN << "bad endpoint " << qPrintable( i.value() );
+        else
+        {
+            const QString v( value.toString() );
+
+            LOG_DEBUG << "endpoint " << qPrintable( i.value() ) << " " << qPrintable( v );
+            endpoints_[i.key()] = v;
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void DeptOfTheTreasury::parseDailyTreasuryBillRatesDoc( const QDomDocument& doc )
+{
+    if ( doc.isNull() )
+    {
+        LOG_WARN << "bad document";
+        return;
+    }
+
+    const QDomElement feed = doc.documentElement();
+
+    if ( XML_FEED != feed.tagName() )
+        LOG_WARN << "bad or missing root";
+    else
+    {
+        // validate document title
+        const QDomElement title = feed.firstChildElement( XML_TITLE );
+
+        if ( title.isNull() )
+            LOG_WARN << "bad or missing xml title tag";
+        else if ( TREAS_BILL_RATE_DATA != title.text() )
+            LOG_WARN << "bad or missing title";
+        else
+        {
+            // emit
+            emit dailyTreasuryBillRatesReceived( doc );
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void DeptOfTheTreasury::parseDailyTreasuryBillYieldCurveDoc( const QDomDocument& doc )
+{
+    if ( doc.isNull() )
+    {
+        LOG_WARN << "bad document";
+        return;
+    }
+
+    const QDomElement feed = doc.documentElement();
+
+    if ( XML_FEED != feed.tagName() )
+        LOG_WARN << "bad or missing root";
+    else
+    {
+        // validate document title
+        const QDomElement title = feed.firstChildElement( XML_TITLE );
+
+        if ( title.isNull() )
+            LOG_WARN << "bad or missing xml title tag";
+        else if ( TREAS_YIELD_CURVE_DATA != title.text() )
+            LOG_WARN << "bad or missing title";
+        else
+        {
+            // emit
+            emit dailyTreasuryYieldCurveRatesReceived( doc );
+        }
+    }
+}
