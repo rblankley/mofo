@@ -55,6 +55,14 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve historical volatility.
+    /**
+     * @param[in] dt  date to retrieve
+     * @param[in] depth  depth in days
+     * @return  historical volatility
+     */
+    virtual double historicalVolatility( const QDateTime& dt, int depth ) const;
+
     /// Retrieve last quote history processed stamp.
     /**
      * @return  stamp of last quote history processed

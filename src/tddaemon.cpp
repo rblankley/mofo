@@ -34,6 +34,7 @@ TDAmeritradeDaemon::TDAmeritradeDaemon( TDAmeritrade *api, DeptOfTheTreasury *us
     _Mybase( parent ),
     api_( api ),
     usdot_( usdot ),
+    init_( false ),
     state_( INACTIVE ),
     apiPending_( 0 ),
     usdotPending_( 0 )
@@ -71,6 +72,12 @@ AbstractDaemon::ConnectedState TDAmeritradeDaemon::connectedState() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QString TDAmeritradeDaemon::name() const
+{
+    return tr( "T&DA API" );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDaemon::getAccounts()
 {
     api_->getAccounts();
@@ -79,6 +86,10 @@ void TDAmeritradeDaemon::getAccounts()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDaemon::getOptionChain( const QString& symbol )
 {
+    // fetch price history
+    retrievePriceHistory( symbol, db_->currentDateTime() );
+
+    // fetch chain
     api_->getOptionChain( symbol );
 }
 
@@ -139,7 +150,7 @@ void TDAmeritradeDaemon::dequeue()
 {
     if ( Online != connectedState() )
         return;
-    else if ( INACTIVE == currentState() )
+    else if (( !isActive() ) && ( init_ ))
         return;
 
     const QDateTime now( db_->currentDateTime() );
@@ -147,233 +158,42 @@ void TDAmeritradeDaemon::dequeue()
     // check for date change... refresh data on date change
     if ( today_ != now.date() )
     {
+        LOG_INFO << "entering startup due to new date " << qPrintable( today_.toString() );
+
         setCurrentState( STARTUP );
         today_ = now.date();
 
-        LOG_INFO << "entering startup due to new date " << qPrintable( today_.toString() );
+        // fetch TREAS_TIME years worth of historical data
+        fetchTreas_ = now.date().addYears( -TREAS_YIELD_HIST );
+
+        // fetch MARKET_HOURS_TIME days worth of market hours
+        fetchMarketHours_ = now.date();
     }
 
     // ------------------------------------------------------------------------
     // Startup / Init
     // ------------------------------------------------------------------------
 
-    // fetch treasury yield curve
-    if ( FETCH_TREAS_YIELDS == currentState() )
-    {
-        QDate start;
-        QDate end;
-
-        db_->treasuryYieldCurveDateRange( start, end );
-
-        while ( fetchTreas_ <= now.date() )
-        {
-            if (( start.isValid() ) && ( end.isValid() ))
-            {
-                // force fetch this month and last month
-                if ( now.date().addMonths( -1 ) <= fetchTreas_ )
-                    ;
-                // fetch missing months
-                else if (( start <= fetchTreas_ ) && ( fetchTreas_ <= end ))
-                {
-                    // proceed to next month
-                    fetchTreas_ = fetchTreas_.addMonths( 1 );
-                    continue;
-                }
-            }
-
-            LOG_DEBUG << "feching treasury yield curve rates for " << qPrintable( fetchTreas_.toString() );
-            usdot_->getDailyTreasuryYieldCurveRates( fetchTreas_.year(), fetchTreas_.month() );
-
-            fetchTreasStamp_ = QDateTime::currentDateTime();
-            setCurrentState( WAIT_TREAS_YIELDS );
-
-            return;
-        }
-
-        setCurrentState( FETCH_MARKET_HOURS );
-    }
-
-    // wait for treasury yield curve
-    if ( WAIT_TREAS_YIELDS == currentState() )
-    {
-        if ( fetchTreasStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
-        {
-            LOG_WARN << "timeout waiting for treasury yield curve data";
-            setActive( false );
-
-            emit statusMessageChanged( tr( "ERROR: Timeout waiting for treasury yield curve data." ) );
-        }
-
+    if ( !processTreasYieldsState( now ) )
         return;
-    }
 
-    // fetch market hours
-    if ( FETCH_MARKET_HOURS == currentState() )
-    {
-        const QStringList marketTypes( db_->marketTypes() );
-
-        while ( fetchMarketHours_ <= now.date().addDays( MARKET_HOURS_HIST ) )
-        {
-            bool fetch( false );
-
-            // check we have hours for every market type
-            foreach ( const QString& marketType, marketTypes )
-                if ( !db_->marketHoursExist( fetchMarketHours_, marketType ) )
-                {
-                    fetch = true;
-                    break;
-                }
-
-            if ( !fetch )
-            {
-                fetchMarketHours_ = fetchMarketHours_.addDays( 1 );
-                continue;
-            }
-
-            LOG_DEBUG << "feching market hours for " << qPrintable( fetchMarketHours_.toString() );
-            api_->getMarketHours( fetchMarketHours_, marketTypes );
-
-            fetchMarketHoursStamp_ = QDateTime::currentDateTime();
-            setCurrentState( WAIT_MARKET_HOURS );
-
-            return;
-        }
-
-        setCurrentState( FETCH_ACCOUNTS );
-    }
-
-    // wait for market hours
-    if ( WAIT_MARKET_HOURS == currentState() )
-    {
-        if ( fetchMarketHoursStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
-        {
-            LOG_WARN << "timeout waiting for market hours";
-            setActive( false );
-
-            emit statusMessageChanged( tr( "ERROR: Timeout waiting for market hours." ) );
-        }
-
+    if ( !processMarketHoursState( now ) )
         return;
-    }
 
-    // fetch accounts
-    if ( FETCH_ACCOUNTS == currentState() )
-    {
-        LOG_DEBUG << "feching accounts";
-        api_->getAccounts();
-
-        fetchAccountsStamp_ = QDateTime::currentDateTime();
-        setCurrentState( WAIT_ACCOUNTS );
-
+    if ( !processAccountsState() )
         return;
-    }
 
-    // wait for accounts
-    if ( WAIT_ACCOUNTS == currentState() )
-    {
-        if ( fetchAccountsStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
-        {
-            LOG_WARN << "timeout waiting for accounts";
-            setActive( false );
+    init_ = true;
 
-            emit statusMessageChanged( tr( "ERROR: Timeout waiting for account and balance information." ) );
-        }
-
+    if ( !isActive() )
         return;
-    }
 
     // ------------------------------------------------------------------------
     // Active
     // ------------------------------------------------------------------------
 
-    // request equity quotes
-    if ( equityQueue_.size() )
-    {
-        QStringList symbols;
-
-        while (( equityQueue_.size() ) && ( symbols.size() < EQUITY_DEQUEUE_SIZE ))
-        {
-            symbols.push_back( equityQueue_.front() );
-            equityQueue_.pop_front();
-        }
-
-        LOG_DEBUG << "requesting " << symbols.size() << " equity quotes";
-        api_->getQuotes( symbols );
-
-        setCurrentState( ACTIVE_BACKGROUND );
+    if ( !processActiveState( now ) )
         return;
-    }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for equity";
-        return;
-    }
-
-    // request quote history
-    if ( quoteHistoryQueue_.size() )
-    {
-        const QString symbol( quoteHistoryQueue_.front() );
-        quoteHistoryQueue_.pop_front();
-
-        QDate start;
-        QDate end;
-
-        db_->quoteHistoryDateRange( symbol, start, end );
-
-        // no history
-        //   -or-
-        // not enough history
-        if (( !start.isValid() ) || ( !end.isValid() ) || ( now.addYears( -QUOTE_HIST ).date() < start ))
-        {
-            LOG_DEBUG << "request " << QUOTE_HIST << " year history for " << qPrintable( symbol );
-            api_->getPriceHistory( symbol, QUOTE_HIST, "year", 1, "daily", QDateTime(), now );
-        }
-
-        // retrieve missing data
-        else
-        {
-            // how much history do we need
-            int numMonths( 0 );
-
-            do
-            {
-                end = end.addMonths( 1 );
-                ++numMonths;
-
-            } while ( end < now.date() );
-
-            LOG_DEBUG << "request " << numMonths << " months daily history for " << qPrintable( symbol );
-            api_->getPriceHistory( symbol, numMonths, "month", 1, "daily", QDateTime(), now );
-        }
-
-        setCurrentState( ACTIVE_BACKGROUND );
-        return;
-    }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for quote history";
-        return;
-    }
-
-    // request option chain
-    if ( optionChainQueue_.size() )
-    {
-        const QString symbol( optionChainQueue_.front() );
-        optionChainQueue_.pop_front();
-
-        const int numExpiryDays( optionChainExpiryEndDate() );
-
-        LOG_DEBUG << "request " << numExpiryDays << " days of option contracts for " << qPrintable( symbol );
-        api_->getOptionChain( symbol, "SINGLE", "ALL", true, now.date(), now.addDays( numExpiryDays ).date() );
-
-        setCurrentState( ACTIVE_BACKGROUND );
-        return;
-    }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for option chain";
-        return;
-    }
 
     // clear background processing flag
     setCurrentState( ACTIVE );
@@ -400,6 +220,48 @@ void TDAmeritradeDaemon::queueEquityRequests()
 
     // retrieve list
     equityQueue_ = equityWatchlist();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritradeDaemon::retrieveOptionChain( const QString& symbol, const QDateTime& fromDate, int numExpiryDays ) const
+{
+    LOG_DEBUG << "request " << numExpiryDays << " days of option contracts for " << qPrintable( symbol );
+    api_->getOptionChain( symbol, "SINGLE", "ALL", true, fromDate.date(), fromDate.addDays( numExpiryDays ).date() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritradeDaemon::retrievePriceHistory( const QString& symbol, const QDateTime& toDate ) const
+{
+    QDate start;
+    QDate end;
+
+    db_->quoteHistoryDateRange( symbol, start, end );
+
+    // no history
+    //   -or-
+    // not enough history
+    if (( !start.isValid() ) || ( !end.isValid() ) || ( toDate.addYears( -QUOTE_HIST_CHECK ).date() < start ))
+    {
+        LOG_DEBUG << "request " << QUOTE_HIST << " year history for " << qPrintable( symbol );
+        api_->getPriceHistory( symbol, QUOTE_HIST, "year", 1, "daily", QDateTime(), toDate );
+    }
+
+    // retrieve missing data
+    else
+    {
+        // how much history do we need
+        int numMonths( 0 );
+
+        do
+        {
+            end = end.addMonths( 1 );
+            ++numMonths;
+
+        } while ( end < toDate.date() );
+
+        LOG_DEBUG << "request " << numMonths << " months daily history for " << qPrintable( symbol );
+        api_->getPriceHistory( symbol, numMonths, "month", 1, "daily", QDateTime(), toDate );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -442,6 +304,10 @@ void TDAmeritradeDaemon::onAccountsChanged()
 
     LOG_DEBUG << "have accounts";
     setCurrentState( ACTIVE );
+
+    // process next state manually when not initialized
+    if ( !init_ )
+        dequeue();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -449,16 +315,7 @@ void TDAmeritradeDaemon::onActiveChanged( bool newValue )
 {
     if ( newValue )
     {
-        const QDateTime now( db_->currentDateTime() );
-
         setCurrentState( STARTUP );
-        today_ = now.date();
-
-        // fetch TREAS_TIME years worth of historical data
-        fetchTreas_ = now.date().addYears( -TREAS_YIELD_HIST );
-
-        // fetch MARKET_HOURS_TIME days worth of market hours
-        fetchMarketHours_ = now.date();
 
         // queue
         queueEquityRequests();
@@ -479,6 +336,10 @@ void TDAmeritradeDaemon::onActiveChanged( bool newValue )
 void TDAmeritradeDaemon::onConnectedStateChanged( TDAmeritrade::ConnectedState newState )
 {
     emit connectedStateChanged( connectedStates_[newState] );
+
+    // process next state manually when not initialized
+    if ( !init_ )
+        dequeue();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -492,6 +353,10 @@ void TDAmeritradeDaemon::onMarketHoursChanged()
     // fetch next market hours
     fetchMarketHours_ = fetchMarketHours_.addDays( 1 );
     setCurrentState( FETCH_MARKET_HOURS );
+
+    // process next state manually when not initialized
+    if ( !init_ )
+        dequeue();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -528,4 +393,216 @@ void TDAmeritradeDaemon::onTreasuryYieldCurveRatesChanged()
     // fetch next set of treasury yield curve rates
     fetchTreas_ = fetchTreas_.addMonths( 1 );
     setCurrentState( FETCH_TREAS_YIELDS );
+
+    // process next state manually when not initialized
+    if ( !init_ )
+        dequeue();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TDAmeritradeDaemon::processTreasYieldsState( const QDateTime& now )
+{
+    // fetch treasury yield curve
+    if ( FETCH_TREAS_YIELDS == currentState() )
+    {
+        QDate start;
+        QDate end;
+
+        db_->treasuryYieldCurveDateRange( start, end );
+
+        while ( fetchTreas_ <= now.date() )
+        {
+            if (( start.isValid() ) && ( end.isValid() ))
+            {
+                // force fetch this month and last month
+                if ( now.date().addMonths( -1 ) <= fetchTreas_ )
+                    ;
+                // fetch missing months
+                else if (( start <= fetchTreas_ ) && ( fetchTreas_ <= end ))
+                {
+                    // proceed to next month
+                    fetchTreas_ = fetchTreas_.addMonths( 1 );
+                    continue;
+                }
+            }
+
+            LOG_DEBUG << "feching treasury yield curve rates for " << qPrintable( fetchTreas_.toString() );
+            usdot_->getDailyTreasuryYieldCurveRates( fetchTreas_.year(), fetchTreas_.month() );
+
+            fetchTreasStamp_ = QDateTime::currentDateTime();
+            setCurrentState( WAIT_TREAS_YIELDS );
+
+            return false;
+        }
+
+        setCurrentState( FETCH_MARKET_HOURS );
+    }
+
+    // wait for treasury yield curve
+    if ( WAIT_TREAS_YIELDS == currentState() )
+    {
+        if ( fetchTreasStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
+        {
+            LOG_WARN << "timeout waiting for treasury yield curve data";
+            setActive( false );
+
+            emit statusMessageChanged( tr( "ERROR: Timeout waiting for treasury yield curve data." ) );
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TDAmeritradeDaemon::processMarketHoursState( const QDateTime& now )
+{
+    // fetch market hours
+    if ( FETCH_MARKET_HOURS == currentState() )
+    {
+        const QStringList marketTypes( db_->marketTypes() );
+
+        while ( fetchMarketHours_ <= now.date().addDays( MARKET_HOURS_HIST ) )
+        {
+            bool fetch( false );
+
+            // check we have hours for every market type
+            foreach ( const QString& marketType, marketTypes )
+                if ( !db_->marketHoursExist( fetchMarketHours_, marketType ) )
+                {
+                    fetch = true;
+                    break;
+                }
+
+            if ( !fetch )
+            {
+                fetchMarketHours_ = fetchMarketHours_.addDays( 1 );
+                continue;
+            }
+
+            LOG_DEBUG << "feching market hours for " << qPrintable( fetchMarketHours_.toString() );
+            api_->getMarketHours( fetchMarketHours_, marketTypes );
+
+            fetchMarketHoursStamp_ = QDateTime::currentDateTime();
+            setCurrentState( WAIT_MARKET_HOURS );
+
+            return false;
+        }
+
+        setCurrentState( FETCH_ACCOUNTS );
+    }
+
+    // wait for market hours
+    if ( WAIT_MARKET_HOURS == currentState() )
+    {
+        if ( fetchMarketHoursStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
+        {
+            LOG_WARN << "timeout waiting for market hours";
+            setActive( false );
+
+            emit statusMessageChanged( tr( "ERROR: Timeout waiting for market hours." ) );
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TDAmeritradeDaemon::processAccountsState()
+{
+    // fetch accounts
+    if ( FETCH_ACCOUNTS == currentState() )
+    {
+        LOG_DEBUG << "feching accounts";
+        api_->getAccounts();
+
+        fetchAccountsStamp_ = QDateTime::currentDateTime();
+        setCurrentState( WAIT_ACCOUNTS );
+
+        return false;
+    }
+
+    // wait for accounts
+    if ( WAIT_ACCOUNTS == currentState() )
+    {
+        if ( fetchAccountsStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
+        {
+            LOG_WARN << "timeout waiting for accounts";
+            setActive( false );
+
+            emit statusMessageChanged( tr( "ERROR: Timeout waiting for account and balance information." ) );
+        }
+
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TDAmeritradeDaemon::processActiveState( const QDateTime& now )
+{
+    // request equity quotes
+    if ( equityQueue_.size() )
+    {
+        QStringList symbols;
+
+        while (( equityQueue_.size() ) && ( symbols.size() < EQUITY_DEQUEUE_SIZE ))
+        {
+            symbols.push_back( equityQueue_.front() );
+            equityQueue_.pop_front();
+        }
+
+        LOG_DEBUG << "requesting " << symbols.size() << " equity quotes";
+        api_->getQuotes( symbols );
+
+        setCurrentState( ACTIVE_BACKGROUND );
+        return false;
+    }
+    else if ( requestsPending() )
+    {
+        LOG_TRACE << "waiting for equity";
+        return false;
+    }
+
+    // request quote history
+    if ( quoteHistoryQueue_.size() )
+    {
+        const QString symbol( quoteHistoryQueue_.front() );
+        quoteHistoryQueue_.pop_front();
+
+        // fetch price history
+        retrievePriceHistory( symbol, now );
+
+        setCurrentState( ACTIVE_BACKGROUND );
+        return false;
+    }
+    else if ( requestsPending() )
+    {
+        LOG_TRACE << "waiting for quote history";
+        return false;
+    }
+
+    // request option chain
+    if ( optionChainQueue_.size() )
+    {
+        const QString symbol( optionChainQueue_.front() );
+        optionChainQueue_.pop_front();
+
+        // fetch option chain
+        retrieveOptionChain( symbol, now, optionChainExpiryEndDate() );
+
+        setCurrentState( ACTIVE_BACKGROUND );
+        return false;
+    }
+    else if ( requestsPending() )
+    {
+        LOG_TRACE << "waiting for option chain";
+        return false;
+    }
+
+    return true;
 }

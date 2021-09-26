@@ -42,7 +42,7 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.1" );
+static const QString applicationVersion( "0.0.2" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -95,7 +95,7 @@ void MainWindow::translate()
     config_->setText( tr( "&Configuration..." ) );
     watchlists_->setText( tr( "&Watchlists..." ) );
 
-    marketDaemonMenu_->setTitle( tr( "Market &Daemon" ) );
+    marketDaemonMenu_->setTitle( daemon_->name() );
     authenticate_->setText( tr( "&Authenticate (Login)" ) );
     refreshAccountData_->setText( tr( "&Refresh Account" ) );
     singleOptionChain_->setText( tr( "View &Option Chain" ) );
@@ -107,6 +107,8 @@ void MainWindow::translate()
     helpMenu_->setTitle( tr( "&Help" ) );
     about_->setText( tr( "&About" ) );
     validate_->setText( tr( "&Validate" ) );
+    testPerf_->setText( tr( "Test &Performance" ) );
+    testGreeks_->setText( tr( "Test &Option Pricing Methods" ) );
 
     accountsLabel_->setText( tr( "Account:" ) );
 }
@@ -298,6 +300,32 @@ void MainWindow::onActionTriggered()
 
         LOG_TRACE << "validation... complete";
     }
+
+    // test performance
+    else if ( testPerf_ == sender() )
+    {
+        LOG_TRACE << "test performance...";
+
+        QApplication::setOverrideCursor( Qt::WaitCursor );
+        optionPricingPerf( 512 );
+
+        QApplication::restoreOverrideCursor();
+
+        LOG_TRACE << "test performance... complete";
+    }
+
+    // test options pricing
+    else if ( testGreeks_ == sender() )
+    {
+        LOG_TRACE << "test option pricing...";
+
+        QApplication::setOverrideCursor( Qt::WaitCursor );
+        calculatePartials();
+
+        QApplication::restoreOverrideCursor();
+
+        LOG_TRACE << "test option pricing... complete";
+    }
 #endif
 }
 
@@ -438,9 +466,13 @@ void MainWindow::initialize()
     about_ = new QAction( style()->standardIcon( QStyle::SP_MessageBoxInformation ), QString(), this );
 
     validate_ = new QAction( QIcon(), QString(), this );
+    testPerf_ = new QAction( QIcon(), QString(), this );
+    testGreeks_ = new QAction( QIcon(), QString(), this );
 
     connect( about_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( validate_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( testPerf_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( testGreeks_, &QAction::triggered, this, &_Myt::onActionTriggered );
 
     helpMenu_ = menuBar()->addMenu( QString() );
     helpMenu_->addAction( about_ );
@@ -448,9 +480,16 @@ void MainWindow::initialize()
 #if defined( QT_DEBUG )
     helpMenu_->addSeparator();
     helpMenu_->addAction( validate_ );
+    helpMenu_->addAction( testPerf_ );
+    helpMenu_->addAction( testGreeks_ );
 #else
     helpMenu_->addAction( validate_ );
+    helpMenu_->addAction( testPerf_ );
+    helpMenu_->addAction( testGreeks_ );
+
     validate_->setVisible( false );
+    testPerf_->setVisible( false );
+    testGreeks_->setVisible( false );
 #endif
 
     // status bar

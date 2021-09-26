@@ -110,6 +110,15 @@ public:
      */
     virtual QByteArray headerState( const QString& name ) const;
 
+    /// Retrieve historical volatility.
+    /**
+     * @param[in] symbol  symbol to retrieve
+     * @param[in] dt  date to retrieve
+     * @param[in] depth  depth in days
+     * @return  historical volatility
+     */
+    virtual double historicalVolatility( const QString& symbol, const QDateTime& dt, int depth ) const;
+
     /// Check if market is open.
     /**
      * @param[in] dt  datetime
@@ -141,6 +150,12 @@ public:
      * @return  list of market types
      */
     virtual QStringList marketTypes( bool hasHours = true ) const;
+
+    /// Retrieve number of regular days in a year.
+    /**
+     * @return  num days
+     */
+    virtual double numDays() const {return numDays_;}
 
     /// Retrieve number of trading days in a year.
     /**

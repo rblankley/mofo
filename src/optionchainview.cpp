@@ -472,7 +472,7 @@ QString OptionChainView::columnHeaderText( int column ) const
         return tr( "Days to Exp." );
     case model_type::CALL_LAST_TRADING_DAY:
     case model_type::PUT_LAST_TRADING_DAY:
-        return tr( "Is Quarterly" );
+        return tr( "Last Tr. Day" );
     case model_type::CALL_MULTIPLIER:
     case model_type::PUT_MULTIPLIER:
         return tr( "Multiplier" );

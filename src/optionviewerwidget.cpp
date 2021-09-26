@@ -22,18 +22,28 @@
 #include "abstractdaemon.h"
 #include "common.h"
 #include "optionchainview.h"
+#include "optionprofitcalc.h"
+#include "optiontradingview.h"
 #include "optionviewerwidget.h"
 
+#include "calc/blackscholescalc.h"
+
+#include "db/appdb.h"
 #include "db/optionchaintablemodel.h"
+#include "db/optiontradingitemmodel.h"
 #include "db/quotetablemodel.h"
 
+#include <QApplication>
 #include <QHBoxLayout>
 #include <QLabel>
 #include <QModelIndex>
+#include <QSplitter>
 #include <QSqlError>
 #include <QTabWidget>
 #include <QToolButton>
 #include <QVBoxLayout>
+
+static const QString SPLITTER_STATE( "optionViewerSplitterState" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionViewerWidget::OptionViewerWidget( const QString& symbol, QWidget *parent ) :
@@ -45,6 +55,8 @@ OptionViewerWidget::OptionViewerWidget( const QString& symbol, QWidget *parent )
 
     connect( model_, &QuoteTableModel::dataChanged, this, &_Myt::refreshData );
     connect( model_, &QuoteTableModel::modelReset, this, &_Myt::refreshData );
+
+    tradingModel_ = new OptionTradingItemModel( this );
 
     // init
     initialize();
@@ -92,21 +104,31 @@ void OptionViewerWidget::onButtonPressed()
     // analysis
     else if ( analysis_ == sender() )
     {
-/*
         const OptionChainView *view( qobject_cast<const OptionChainView*>( expiryDates_->currentWidget() ) );
 
         if ( view )
         {
+            // show analysis results
             tradeAnalysis_->show();
 
-            OptionProfitCalculator calc( view->model(), tradingModel_ );
-            calc.setOptionTradeCost( TDAmeritradeDaemon::instance()->optionTradeCost() );
+            // this could take a while...
+            QApplication::setOverrideCursor( Qt::WaitCursor );
 
-            calc.analyze( OptionTradingModel::SINGLE );
+            // create a calculator
+            OptionProfitCalculator *calc = new BlackScholesCalculator( model_->tableData( QuoteTableModel::MARK ).toDouble(), view->model(), tradingModel_ );
+            calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+
+            // analyze
+            calc->analyze( OptionTradingItemModel::SINGLE );
+/*
             calc.analyze( OptionTradingModel::VERT_BEAR_CALL );
             calc.analyze( OptionTradingModel::VERT_BULL_PUT );
-        }
 */
+            delete calc;
+
+            // done
+            QApplication::restoreOverrideCursor();
+        }
     }
 }
 
@@ -256,6 +278,15 @@ void OptionViewerWidget::onQuotesUpdated( const QStringList& symbols, bool backg
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionViewerWidget::onSplitterMoved( int pos, int index )
+{
+    Q_UNUSED( pos );
+    Q_UNUSED( index );
+
+    AppDatabase::instance()->setHeaderState( SPLITTER_STATE, splitter_->saveState() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionViewerWidget::initialize()
 {
     description_ = new QLabel( this );
@@ -330,9 +361,29 @@ void OptionViewerWidget::initialize()
 
     connect( refresh_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
 
-    expiryDates_ = new QTabWidget( this );
+    // ---- //
+
+    splitter_ = new QSplitter( this );
+    splitter_->setOrientation( Qt::Vertical );
+
+    connect( splitter_, &QSplitter::splitterMoved, this, &_Myt::onSplitterMoved );
+
+    expiryDates_ = new QTabWidget( splitter_ );
     expiryDates_->setTabShape( QTabWidget::Triangular );
     expiryDates_->setTabPosition( QTabWidget::North );
+
+    tradeAnalysis_ = new OptionTradingView( tradingModel_, splitter_ );
+    tradeAnalysis_->setVisible( false );
+
+    splitter_->addWidget( expiryDates_ );
+    splitter_->addWidget( tradeAnalysis_ );
+
+    // ---- //
+
+    const QByteArray a( AppDatabase::instance()->headerState( SPLITTER_STATE ) );
+
+    if ( !a.isNull() )
+        splitter_->restoreState( a );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -455,5 +506,5 @@ void OptionViewerWidget::createLayout()
     form->setContentsMargins( QMargins() );
     form->addLayout( desc );
     form->addLayout( underlying );
-    form->addWidget( expiryDates_, 1 );
+    form->addWidget( splitter_ );
 }

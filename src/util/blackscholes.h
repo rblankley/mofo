@@ -45,7 +45,7 @@ public:
     /**
      * @note
      * when b = r           gives the Black-Scholes (1973) stock option model
-     * when b = r - q       gives the Merton (1973) stock option model
+     * when b = r - q       gives the Merton (1973) stock option model (where q is dividend yield)
      * when b = 0           gives the Black (1976) futures option model
      * when b = r - rf      gives the Garman-Kohlhangen (1983) currency option model (where rf is risk-free rate of foreign currency)
      * @param[in] S  underlying price
@@ -114,7 +114,7 @@ public:
      * @param[out] vega  partial with respect to sigma
      * @param[out] rho  partial with respect to rate
      */
-    virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const;
+    virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const override;
 
     /// Set new volatility.
     /**
@@ -128,7 +128,7 @@ public:
      * @param[in] X  strike price
      * @return  partial with respect to sigma
      */
-    virtual double vega( OptionType type, double X ) const;
+    virtual double vega( OptionType type, double X ) const override;
 
     // ========================================================================
     // Static Methods

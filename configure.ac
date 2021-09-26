@@ -100,6 +100,7 @@ AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
 	src/apibase/Makefile
+	src/calc/Makefile
 	src/db/Makefile
 	src/tda/Makefile
 	src/usdot/Makefile

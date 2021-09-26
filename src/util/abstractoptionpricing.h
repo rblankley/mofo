@@ -39,6 +39,13 @@ class AbstractOptionPricing
 public:
 
     // ========================================================================
+    // DTOR
+    // ========================================================================
+
+    /// Destructor.
+    virtual ~AbstractOptionPricing() {}
+
+    // ========================================================================
     // Properties
     // ========================================================================
 
@@ -74,6 +81,14 @@ public:
      */
     virtual double sigma() const {return sigma_;}
 
+    /// Compute vega greek.
+    /**
+     * @param[in] type  option type
+     * @param[in] X  strike price
+     * @return  partial with respect to sigma
+     */
+    virtual double vega( OptionType type, double X ) const = 0;
+
     // ========================================================================
     // Methods
     // ========================================================================
@@ -85,6 +100,18 @@ public:
      */
     virtual double calcImplVolSeedValue( double X ) const;
 
+    /// Compute partials.
+    /**
+     * @param[in] type  option type
+     * @param[in] X  strike price
+     * @param[out] delta  partial with respect to underlying price
+     * @param[out] gamma  second partial with respect to underlying price
+     * @param[out] theta  partial with respect to time
+     * @param[out] vega  partial with respect to sigma
+     * @param[out] rho  partial with respect to rate
+     */
+    virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const = 0;
+
 protected:
 
     double S_;                                      ///< underlying price
@@ -94,7 +121,7 @@ protected:
     double T_;                                      ///< time to expiration (years)
 
     // ========================================================================
-    // CTOR / DTOR
+    // CTOR
     // ========================================================================
 
     /// Constructor.
@@ -121,9 +148,6 @@ protected:
      * @param[in] other  object to move
      */
     AbstractOptionPricing( const _Myt&& other ) {move( std::move( other ) );}
-
-    /// Destructor.
-    virtual ~AbstractOptionPricing() {}
 
     // ========================================================================
     // Methods

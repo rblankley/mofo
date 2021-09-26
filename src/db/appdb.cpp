@@ -140,6 +140,21 @@ QByteArray AppDatabase::headerState( const QString& name ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+double AppDatabase::historicalVolatility( const QString& symbol, const QDateTime& dt, int depth ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        return child->historicalVolatility( dt, depth );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+
+    return 0.0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, const QString& product, bool *isExtended ) const
 {
     QString sql( "SELECT isOpen, product FROM marketHours WHERE DATE(date)=DATE(:date) AND marketType=:marketType" );

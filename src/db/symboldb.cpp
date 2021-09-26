@@ -65,6 +65,73 @@ SymbolDatabase::~SymbolDatabase()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) const
+{
+    static const QString sql( "SELECT date,depth,volatility FROM historicalVolatility "
+        "WHERE DATE(date)=DATE(:date) "
+        "ORDER BY depth ASC" );
+
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+
+    query.bindValue( ":" + DB_DATE, dt.date().toString( Qt::ISODate ) );
+
+     if ( !query.exec() )
+     {
+         const QSqlError e( query.lastError() );
+
+         LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+     }
+     else
+     {
+         double min( 0.0 );
+         int min_depth( 0 );
+
+         double max( 0.0 );
+         int max_depth( 0 );
+
+         // find bounding volatility
+         QSqlQueryModel model;
+         model.setQuery( query );
+
+         for ( int row( 0 ); row < model.rowCount(); ++row )
+         {
+             const QSqlRecord rec( model.record( row ) );
+
+             const double v( rec.value( "volatility" ).toDouble() );
+             const int v_depth( rec.value( "depth" ).toInt() );
+
+             if ( v_depth == depth )
+                 return v;
+             else if ( v_depth < depth )
+             {
+                 min = v;
+                 min_depth = v_depth;
+             }
+             else
+             {
+                 max = v;
+                 max_depth = v_depth;
+                 break;
+             }
+         }
+
+        // requested depth BELOW table values
+        if (( !min_depth ) && ( max_depth ))
+            return max;
+
+        // requested depth ABOVE table values
+        if (( min_depth ) && ( !max_depth ))
+            return min;
+
+        // interpolate
+        return min + ((double)(depth - min_depth) / (double)(max_depth - min_depth)) * (max - min);
+     }
+
+    return 0.0;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QDateTime SymbolDatabase::lastQuoteHistoryProcessed() const
 {
     QDateTime stamp;

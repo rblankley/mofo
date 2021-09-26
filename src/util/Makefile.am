@@ -13,6 +13,7 @@ lib_mofo_util_a_SOURCES = \
 	cnd.cpp \
 	coxrossrubinstein.cpp \
 	equalprobbinomial.cpp \
+	fitpoly.cpp \
 	montecarlo.cpp \
 	newtonraphson.cpp \
 	phelimboyle.cpp \

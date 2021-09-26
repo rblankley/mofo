@@ -28,9 +28,12 @@
 #include <QMap>
 #include <QWidget>
 
+class OptionTradingItemModel;
+class OptionTradingView;
 class QuoteTableModel;
 
 class QLabel;
+class QSplitter;
 class QTabWidget;
 class QToolButton;
 
@@ -93,11 +96,15 @@ private slots:
     /// Slot for quotes updated.
     void onQuotesUpdated( const QStringList& symbols, bool background );
 
+    /// Slot for splitter moved.
+    void onSplitterMoved( int pos, int index );
+
 private:
 
     QString symbol_;
 
     QuoteTableModel *model_;
+    OptionTradingItemModel *tradingModel_;
 
     // ---- //
 
@@ -150,7 +157,11 @@ private:
     QToolButton *analysis_;
     QToolButton *refresh_;
 
+    QSplitter *splitter_;
+
     QTabWidget *expiryDates_;
+
+    OptionTradingView *tradeAnalysis_;
 
     /// Initialize.
     void initialize();

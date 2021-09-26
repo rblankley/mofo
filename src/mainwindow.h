@@ -20,7 +20,6 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-
 #ifndef MAINWINDOW_H
 #define MAINWINDOW_H
 
@@ -123,6 +122,8 @@ private:
     QMenu *helpMenu_;
     QAction *about_;
     QAction *validate_;
+    QAction *testPerf_;
+    QAction *testGreeks_;
 
     QStatusBar *statusBar_;
     QLabel *connectionState_;

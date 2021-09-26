@@ -81,6 +81,12 @@ public:
      */
     virtual bool isPaused() const {return paused_;}
 
+    /// Retrieve daemon name.
+    /**
+     * @return  name
+     */
+    virtual QString name() const;
+
     /// Check processing equity and option chains outside market hours.
     /**
      * @return  @c true if processing when market close, @c false otherwise

@@ -68,6 +68,12 @@ public:
      */
     virtual ConnectedState connectedState() const override;
 
+    /// Retrieve daemon name.
+    /**
+     * @return  name
+     */
+    virtual QString name() const override;
+
     /// Retrieve number of pending requests.
     /**
      * @return  number of pending requests
@@ -160,6 +166,21 @@ protected:
     /// Queue option chain requests.
     virtual void queueOptionChainRequests() override;
 
+    /// Fetch option chain.
+    /**
+     * @param[in] symbol  symbol to fetch
+     * @param[in] fromDate  date to fetch from
+     * @param[in] numExpiryDays  how many days to fetch
+     */
+    virtual void retrieveOptionChain( const QString& symbol, const QDateTime& fromDate, int numExpiryDays ) const;
+
+    /// Fetch price history.
+    /**
+     * @param[in] symbol  symbol to fetch
+     * @param[in] toDate  date to fetch to
+     */
+    virtual void retrievePriceHistory( const QString& symbol, const QDateTime& toDate ) const;
+
 private slots:
 
     /// Slot for accounts changed.
@@ -198,10 +219,14 @@ private:
     enum {QUOTE_HIST = 5}; // years
     enum {TREAS_YIELD_HIST = 5}; // years
 
+    enum {QUOTE_HIST_CHECK = 3}; // years
+
     using ConnectedStateMap = QMap<TDAmeritrade::ConnectedState, ConnectedState>;
 
     TDAmeritrade *api_;
     DeptOfTheTreasury *usdot_;
+
+    bool init_;
 
     ConnectedStateMap connectedStates_;
 
@@ -221,6 +246,18 @@ private:
     QDateTime fetchAccountsStamp_;
     QDateTime fetchEquityStamp_;
     QDateTime fetchOptionChainStamp_;
+
+    /// Process treasury yields state.
+    bool processTreasYieldsState( const QDateTime& now );
+
+    /// Process market hours state.
+    bool processMarketHoursState( const QDateTime& now );
+
+    /// Process accounts state.
+    bool processAccountsState();
+
+    /// Process active state.
+    bool processActiveState( const QDateTime& now );
 
     // not implemented
     TDAmeritradeDaemon( const _Myt& ) = delete;

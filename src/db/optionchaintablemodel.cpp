@@ -60,7 +60,6 @@ OptionChainTableModel::OptionChainTableModel( const QString& symbol, const QDate
     columnIsCurrency_[CALL_CLOSE_PRICE] = true;
 
     columnIsCurrency_[CALL_CHANGE] = true;
-    columnIsCurrency_[CALL_PERCENT_CHANGE] = true;
 
     columnIsCurrency_[CALL_MARK] = true;
     columnIsCurrency_[CALL_MARK_CHANGE] = true;

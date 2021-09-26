@@ -27,9 +27,14 @@ SOURCES += \
     apibase/serializedapi.cpp \
     apibase/serializedjsonapi.cpp \
     apibase/serializedxmlapi.cpp \
+    calc/binomialcalc.cpp \
+    calc/blackscholescalc.cpp \
+    calc/expectedvaluecalc.cpp \
     configdialog.cpp \
     db/appdb.cpp \
+    db/itemmodel.cpp \
     db/optionchaintablemodel.cpp \
+    db/optiontradingitemmodel.cpp \
     db/quotetablemodel.cpp \
     db/sqldb.cpp \
     db/sqltablemodel.cpp \
@@ -40,6 +45,8 @@ SOURCES += \
     hoveritemdelegate.cpp \
     mainwindow.cpp \
     optionchainview.cpp \
+    optionprofitcalc.cpp \
+    optiontradingview.cpp \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
     tableheaderitem.cpp \
@@ -60,6 +67,7 @@ SOURCES += \
     util/cnd.cpp \
     util/coxrossrubinstein.cpp \
     util/equalprobbinomial.cpp \
+    util/fitpoly.cpp \
     util/montecarlo.cpp \
     util/newtonraphson.cpp \
     util/phelimboyle.cpp \
@@ -74,9 +82,14 @@ HEADERS += \
     apibase/serializedapi.h \
     apibase/serializedjsonapi.h \
     apibase/serializedxmlapi.h \
+    calc/binomialcalc.h \
+    calc/blackscholescalc.h \
+    calc/expectedvaluecalc.h \
     configdialog.h \
     db/appdb.h \
+    db/itemmodel.h \
     db/optionchaintablemodel.h \
+    db/optiontradingitemmodel.h \
     db/quotetablemodel.h \
     db/sqldb.h \
     db/sqltablemodel.h \
@@ -88,6 +101,8 @@ HEADERS += \
     hoveritemdelegate.h \
     mainwindow.h \
     optionchainview.h \
+    optionprofitcalc.h \
+    optiontradingview.h \
     optionviewertabwidget.h \
     optionviewerwidget.h \
     tableheaderitem.h \
@@ -111,6 +126,7 @@ HEADERS += \
     util/coxrossrubinstein.h \
     util/dualmodeoptionpricing.h \
     util/equalprobbinomial.h \
+    util/fitpoly.h \
     util/montecarlo.h \
     util/newtonraphson.h \
     util/optiontype.h \

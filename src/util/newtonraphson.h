@@ -96,7 +96,7 @@ inline double NewtonRaphson::calcImplVol( T& pricing, OptionType type, double X,
     {
         vi -= (ci - price) / vegai;
 
-        if (( vi < VOLATILITY_MIN ) || ( vi > VOLATILITY_MAX ))
+        if (( std::isinf( vi ) ) || ( std::isnan( vi ) ) || ( vi < VOLATILITY_MIN ) || ( vi > VOLATILITY_MAX ))
         {
             if ( okay )
                 *okay = false;
