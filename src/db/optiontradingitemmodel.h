@@ -81,6 +81,7 @@ public:
         TIME_VALUE,
         OPEN_INTEREST,
         IS_IN_THE_MONEY,
+        IS_OUT_OF_THE_MONEY,
         THEO_OPTION_VALUE,
         THEO_VOLATILITY,
         IS_MINI,
@@ -107,7 +108,7 @@ public:
         CALC_ASK_PRICE_VI,
         CALC_MARK_VI,
 
-        CALC_THEO_OPTION_VALUE,
+        CALC_THEO_OPTION_VALUE,                     ///< Theoretical Option Value.
         CALC_THEO_VOLATILITY,
         CALC_DELTA,
         CALC_GAMMA,
@@ -120,15 +121,20 @@ public:
 
         PROBABILITY_ITM,
         PROBABILITY_OTM,
-/*
+
+        INVESTMENT_OPTION_PRICE,                    ///< Calculated buy/sell price based on adjusted bid/ask.
+        INVESTMENT_OPTION_PRICE_VS_THEO,
+
         INVESTMENT_VALUE,
         MAX_GAIN,
         MAX_LOSS,
+        ROI,
+        ROI_TIME,
 
         EXPECTED_VALUE,
-        EXPECTED_ROI,
-        EXPECTED_ROI_TIME,
-*/
+        EXPECTED_VALUE_ROI,
+        EXPECTED_VALUE_ROI_TIME,
+
         _NUM_COLUMNS,
     };
 
@@ -156,6 +162,15 @@ public:
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Retrieve table data.
+    /**
+     * @param[in] row  row
+     * @param[in] col  column
+     * @param[in] role  role
+     * @return  data
+     */
+    virtual QVariant data( int row, int col, int role = Qt::DisplayRole ) const override {return _Mybase::data( row, col, role );}
 
     /// Retrieve data for role.
     /**
@@ -187,8 +202,15 @@ public slots:
 private:
 
     QColor inTheMoneyColor_;
+    QColor mixedMoneyColor_;
 
     QColor textColor_;
+
+    /// Calculate percent error.
+    double calcError( int row, ColumnIndex col0, ColumnIndex col1, bool &valid ) const;
+
+    /// Calculate error color.
+    QColor calcErrorColor( int row, ColumnIndex col0, ColumnIndex col1, const QColor& orig ) const;
 
     /// Format value.
     static QString formatValue( const QVariant& value, bool isCurrency = false );

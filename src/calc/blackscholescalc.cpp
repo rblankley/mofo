@@ -49,3 +49,10 @@ AbstractOptionPricing *BlackScholesCalculator::createPricingMethod( double S, do
 
     return new BlackScholes( S, r, b, sigma, T );
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void BlackScholesCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
+{
+    if ( doomed )
+        delete doomed;
+}

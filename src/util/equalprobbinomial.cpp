@@ -42,18 +42,10 @@ EqualProbBinomialTree::EqualProbBinomialTree( double S, double r, double b, doub
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double EqualProbBinomialTree::optionPrice( OptionType type, double X ) const
 {
-    double S = S_;
-
     double r = r_;
     double q = r_ - b_;
 
-    // MacDonald Schroeder
-    if ( OptionType::Call == type )
-    {
-        std::swap( S, X );
-        std::swap( r, q );
-    }
-
+    // quantities for the tree
     const double dt = T_ / N_;
 
     const double bv2dt = ((r - q) - 0.5 * pow2( sigma_ )) * dt;
@@ -62,21 +54,10 @@ double EqualProbBinomialTree::optionPrice( OptionType type, double X ) const
     const double u = exp( bv2dt + vsdt );
     const double d = exp( bv2dt - vsdt );
 
-    const double pu = 0.5;
-    const double pd = 1.0 - pu;
-
     const double Df = exp( -r * dt );
 
     // calc!
-    const double price = calcOptionPricePut( S, X, u, d, pu, pd, Df );
-
-    if ( OptionType::Call == type )
-    {
-        std::swap( f_[2][2], f_[2][0] );
-        std::swap( f_[1][1], f_[1][0] );
-    }
-
-    return price;
+    return calcOptionPrice( (OptionType::Call == type), S_, X, u, d, 0.5, 0.5, Df );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

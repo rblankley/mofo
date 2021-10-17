@@ -21,6 +21,8 @@
 
 #include "optiontradingitemmodel.h"
 
+#include <cmath>
+
 #include <QDate>
 #include <QLocale>
 #include <QPalette>
@@ -50,11 +52,27 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     columnIsCurrency_[TIME_VALUE] = true;
     columnIsCurrency_[THEO_OPTION_VALUE] = true;
 
+    columnIsCurrency_[CALC_THEO_OPTION_VALUE] = true;
+
+    columnIsCurrency_[BID_ASK_SPREAD] = true;
+
+    columnIsCurrency_[INVESTMENT_OPTION_PRICE] = true;
+    columnIsCurrency_[INVESTMENT_OPTION_PRICE_VS_THEO] = true;
+
+    columnIsCurrency_[INVESTMENT_VALUE] = true;
+    columnIsCurrency_[MAX_GAIN] = true;
+    columnIsCurrency_[MAX_LOSS] = true;
+
+    columnIsCurrency_[EXPECTED_VALUE] = true;
+
     columnIsCurrency_[STRIKE_PRICE] = true;
 
     // color of money!!!!
     inTheMoneyColor_ = Qt::green;
     inTheMoneyColor_.setAlpha( 32 );
+
+    mixedMoneyColor_ = Qt::yellow;
+    mixedMoneyColor_.setAlpha( 32 );
 
     const QPalette p;
 
@@ -96,10 +114,63 @@ QVariant OptionTradingItemModel::data( const QModelIndex& index, int role ) cons
     else if ( Qt::BackgroundRole == role )
     {
         if ( _Mybase::data( index.row(), IS_IN_THE_MONEY ).toBool() )
+        {
+            if ( _Mybase::data( index.row(), IS_OUT_OF_THE_MONEY ).toBool() )
+                return QVariant( mixedMoneyColor_ );
+
             return QVariant( inTheMoneyColor_ );
+        }
     }
     else if ( Qt::ForegroundRole == role )
     {
+        switch ( index.column() )
+        {
+        case CALC_THEO_OPTION_VALUE:
+            return calcErrorColor( index.row(), THEO_OPTION_VALUE, CALC_THEO_OPTION_VALUE, textColor_ );
+
+        case CALC_THEO_VOLATILITY:
+            return calcErrorColor( index.row(), VOLATILITY, CALC_THEO_VOLATILITY, textColor_ );
+
+        case CALC_DELTA:
+            return calcErrorColor( index.row(), DELTA, CALC_DELTA, textColor_ );
+
+        case CALC_GAMMA:
+            return calcErrorColor( index.row(), GAMMA, CALC_GAMMA, textColor_ );
+
+        case CALC_THETA:
+            return calcErrorColor( index.row(), THETA, CALC_THETA, textColor_ );
+
+        case CALC_VEGA:
+            return calcErrorColor( index.row(), VEGA, CALC_VEGA, textColor_ );
+
+        case CALC_RHO:
+            return calcErrorColor( index.row(), RHO, CALC_RHO, textColor_ );
+
+        case INVESTMENT_OPTION_PRICE:
+            if ( 0.0 < _Mybase::data( index.row(), INVESTMENT_OPTION_PRICE_VS_THEO ).toDouble() )
+                return QVariant( QColor( Qt::green ) );
+            else if ( _Mybase::data( index.row(), INVESTMENT_OPTION_PRICE_VS_THEO ).toDouble() < 0.0 )
+                return QVariant( QColor( Qt::red ) );
+
+            break;
+
+        case INVESTMENT_OPTION_PRICE_VS_THEO:
+        case ROI:
+        case ROI_TIME:
+        case EXPECTED_VALUE:
+        case EXPECTED_VALUE_ROI:
+        case EXPECTED_VALUE_ROI_TIME:
+            if ( 0.0 < _Mybase::data( index.row(), index.column() ).toDouble() )
+                return QVariant( QColor( Qt::green ) );
+            else if ( _Mybase::data( index.row(), index.column() ).toDouble() < 0.0 )
+                return QVariant( QColor( Qt::red ) );
+
+            break;
+
+        default:
+            break;
+        }
+
         return QVariant( textColor_ );
     }
 
@@ -186,6 +257,34 @@ QString OptionTradingItemModel::formatValue( const QVariant& v, bool isCurrency 
     }
 
     return QString::number( doubleValue );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double OptionTradingItemModel::calcError( int row, ColumnIndex col0, ColumnIndex col1, bool &valid ) const
+{
+    const QVariant v0( data( row, col0 ) );
+    const QVariant v1( data( row, col1 ) );
+
+    if ( !(valid = (( v0.isValid() ) && ( v1.isValid() ))) )
+        return 0.0;
+
+    return std::fabs( (v1.toDouble() - v0.toDouble()) / v0.toDouble() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QColor OptionTradingItemModel::calcErrorColor( int row, ColumnIndex col0, ColumnIndex col1, const QColor& orig ) const
+{
+    bool valid;
+    const double e( calcError( row, col0, col1, valid ) );
+
+    if ( 0.50 < e )
+        return Qt::darkRed;
+    else if ( 0.20 < e )
+        return Qt::red;
+    else if ( 0.10 < e )
+        return QColor( 255, 165, 0 ); // orange
+
+    return orig;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

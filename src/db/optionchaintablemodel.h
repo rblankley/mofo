@@ -174,6 +174,15 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve table data.
+    /**
+     * @param[in] row  row
+     * @param[in] col  column
+     * @param[in] role  role
+     * @return  data
+     */
+    virtual QVariant data( int row, int col, int role = Qt::DisplayRole ) const override {return _Mybase::data( row, col, role );}
+
     /// Retrieve data for role.
     /**
      * @param[in] index  index

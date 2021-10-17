@@ -1,5 +1,5 @@
 /**
- * @file binomialcalc.cpp
+ * @file montecarlocalc.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,36 +20,38 @@
  */
 
 #include "common.h"
-#include "binomialcalc.h"
+#include "montecarlocalc.h"
 
-#include "util/coxrossrubinstein.h"
+#include "util/montecarlo.h"
 #include "util/newtonraphson.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-BinomialCalculator::BinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
+MonteCarloCalculator::MonteCarloCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     _Mybase( underlying, chains, results )
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-BinomialCalculator::~BinomialCalculator()
+MonteCarloCalculator::~MonteCarloCalculator()
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double BinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
+double MonteCarloCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
 {
     return NewtonRaphson::calcImplVol( (*pricing), type, X, price, okay );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
+AbstractOptionPricing *MonteCarloCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
 {
-    return new CoxRossRubinstein( S, r, b, sigma, T, BINOM_DEPTH, european );
+    Q_UNUSED( european )
+
+    return new MonteCarlo( S, r, b, sigma, T, NUM_SIMULATIONS );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void BinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
+void MonteCarloCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )
         delete doomed;

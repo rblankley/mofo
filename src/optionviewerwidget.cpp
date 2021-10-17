@@ -21,12 +21,11 @@
 
 #include "abstractdaemon.h"
 #include "common.h"
+#include "filterselectiondialog.h"
 #include "optionchainview.h"
 #include "optionprofitcalc.h"
 #include "optiontradingview.h"
 #include "optionviewerwidget.h"
-
-#include "calc/blackscholescalc.h"
 
 #include "db/appdb.h"
 #include "db/optionchaintablemodel.h"
@@ -90,6 +89,7 @@ void OptionViewerWidget::translate()
     divLabel_->setText( tr( "Dividend" ) );
     divDateLabel_->setText( tr( "Div Date" ) );
 
+    clear_->setText( tr( "Clear" ) );
     analysis_->setText( tr( "Analysis" ) );
     refresh_->setText( tr( "Refresh" ) );
 }
@@ -101,33 +101,72 @@ void OptionViewerWidget::onButtonPressed()
     if ( refresh_ == sender() )
         AbstractDaemon::instance()->getOptionChain( symbol_ );
 
+    // clear
+    else if ( clear_ == sender() )
+    {
+        // clear model
+        tradingModel_->removeAllRows();
+
+        // hide analysis results
+        tradeAnalysis_->hide();
+
+        clear_->setVisible( false );
+    }
+
     // analysis
     else if ( analysis_ == sender() )
     {
+        OptionProfitCalculatorFilter calcFilter;
+
+        // select which filter to use
+        FilterSelectionDialog d( this );
+
+        if ( d.filtersExist() )
+        {
+            if ( QDialog::Accepted != d.exec() )
+                return;
+
+            const QString f( d.selected() );
+
+            // load selected filter
+            if ( f.length() )
+                calcFilter.restoreState( AppDatabase::instance()->filter( f ) );
+        }
+
+        // show view
         const OptionChainView *view( qobject_cast<const OptionChainView*>( expiryDates_->currentWidget() ) );
 
         if ( view )
         {
-            // show analysis results
-            tradeAnalysis_->show();
-
-            // this could take a while...
-            QApplication::setOverrideCursor( Qt::WaitCursor );
-
             // create a calculator
-            OptionProfitCalculator *calc = new BlackScholesCalculator( model_->tableData( QuoteTableModel::MARK ).toDouble(), view->model(), tradingModel_ );
-            calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+            OptionProfitCalculator *calc( OptionProfitCalculator::create( model_->tableData( QuoteTableModel::MARK ).toDouble(), view->model(), tradingModel_ ) );
 
-            // analyze
-            calc->analyze( OptionTradingItemModel::SINGLE );
-/*
-            calc.analyze( OptionTradingModel::VERT_BEAR_CALL );
-            calc.analyze( OptionTradingModel::VERT_BULL_PUT );
-*/
-            delete calc;
+            if ( !calc )
+                LOG_WARN << "no calculator";
+            else
+            {
+                // show analysis results
+                tradeAnalysis_->show();
 
-            // done
-            QApplication::restoreOverrideCursor();
+                // this could take a while...
+                QApplication::setOverrideCursor( Qt::WaitCursor );
+
+                // setup calculator
+                calc->setFilter( calcFilter );
+                calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+
+                // analyze
+                calc->analyze( OptionTradingItemModel::SINGLE );
+                calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
+                calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+
+                // done
+                QApplication::restoreOverrideCursor();
+
+                clear_->setVisible( true );
+
+                OptionProfitCalculator::destroy( calc );
+            }
         }
     }
 }
@@ -349,13 +388,23 @@ void OptionViewerWidget::initialize()
     divDateLabel_ = new QLabel( this );
     divDate_ = new QLabel( this );
 
+    clear_ = new QToolButton( this );
+    clear_->setMinimumWidth( 70 );
+    clear_->setIcon( QIcon( ":/res/clear.png" ) );
+    clear_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
+    clear_->setVisible( false );
+
+    connect( clear_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
+
     analysis_ = new QToolButton( this );
+    analysis_->setMinimumWidth( 70 );
     analysis_->setIcon( QIcon( ":/res/analysis.png" ) );
     analysis_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
 
     connect( analysis_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
 
     refresh_ = new QToolButton( this );
+    refresh_->setMinimumWidth( 70 );
     refresh_->setIcon( QIcon( ":/res/refresh.jpg" ) );
     refresh_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
 
@@ -482,6 +531,7 @@ void OptionViewerWidget::createLayout()
 
     QHBoxLayout *buttons( new QHBoxLayout() );
     buttons->setContentsMargins( QMargins() );
+    buttons->addWidget( clear_ );
     buttons->addWidget( analysis_ );
     buttons->addWidget( refresh_ );
 

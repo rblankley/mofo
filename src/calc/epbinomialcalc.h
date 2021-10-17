@@ -1,6 +1,6 @@
 /**
- * @file blackscholescalc.h
- * Black Scholes based option profit calculator.
+ * @file epbinomialcalc.h
+ * Equal Probability Binomial tree based option profit calculator.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,17 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BLACKSCHOLESCALC_H
-#define BLACKSCHOLESCALC_H
+#ifndef EPBINOMIALCALC_H
+#define EPBINOMIALCALC_H
 
 #include "expectedvaluecalc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Black Scholes based option profit calculator.
-class BlackScholesCalculator : public ExpectedValueCalculator
+/// Equal Probability Binomial tree based option profit calculator.
+class EqualProbBinomialCalculator : public ExpectedValueCalculator
 {
-    using _Myt = BlackScholesCalculator;
+    using _Myt = EqualProbBinomialCalculator;
     using _Mybase = ExpectedValueCalculator;
 
 public:
@@ -45,10 +45,10 @@ public:
      * @param[in] chains  chains to evaluate
      * @param[in] results  results
      */
-    BlackScholesCalculator( double underlying, const table_model_type *chains, item_model_type *results );
+    EqualProbBinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results );
 
     /// Destructor.
-    ~BlackScholesCalculator();
+    ~EqualProbBinomialCalculator();
 
 protected:
 
@@ -88,11 +88,13 @@ protected:
 
 private:
 
-    // not implemented
-    BlackScholesCalculator( const _Myt& ) = delete;
+    enum {BINOM_DEPTH = 256};
 
     // not implemented
-    BlackScholesCalculator( const _Myt&& ) = delete;
+    EqualProbBinomialCalculator( const _Myt& ) = delete;
+
+    // not implemented
+    EqualProbBinomialCalculator( const _Myt&& ) = delete;
 
     // not implemented
     _Myt &operator = ( const _Myt& ) = delete;
@@ -104,4 +106,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // BLACKSCHOLESCALC_H
+#endif // EPBINOMIALCALC_H

@@ -111,7 +111,7 @@ inline double Bisection::calcImplVol( T& pricing, OptionType type, double X, dou
 
         const double val( pricing.optionPrice( type, X ) );
 
-        if ( fabs( price - val ) <= EPSILON )
+        if ( std::fabs( price - val ) <= EPSILON )
             break;
         else if ( val < price )
             vLow.setSigma( vi );

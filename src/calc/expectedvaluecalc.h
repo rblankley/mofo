@@ -111,7 +111,7 @@ protected:
      */
     virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay = nullptr ) const = 0;
 
-    /// Option pricing method factory method.
+    /// Factory method for creation of Option Pricing Methods.
     /**
      * @param[in] S  underlying price
      * @param[in] r  risk-free interest rate
@@ -122,6 +122,12 @@ protected:
      * @return  pointer to pricing method
      */
     virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, bool european = false ) const = 0;
+
+    /// Factory method for destruction of Option Pricing Methods.
+    /**
+     * @param[in] doomed  pricing method to destroy
+     */
+    virtual void destroyPricingMethod( AbstractOptionPricing *doomed ) const = 0;
 
     // ========================================================================
     // Static Methods
@@ -144,10 +150,16 @@ private:
     struct Greeks
     {
         double bid;
+        double bidvi;
+
         double ask;
+        double askvi;
 
         double spread;
         double spreadPercent;
+
+        double mark;
+        double markvi;
 
         double timeToExpiry;
         double riskFreeRate;
@@ -161,9 +173,7 @@ private:
         double vega;
         double rho;
 
-        double bidvi;
-        double askvi;
-        double markvi;
+        double marketPrice;
     };
 
     using OptionGreeks = QMap<double, Greeks>;
@@ -190,7 +200,13 @@ private:
     OptionProbCurve probCurveCall_;
     OptionProbCurve probCurvePut_;
 
+    QList<double> asc_;
+    QList<double> desc_;
+
     QMap<double, double> probCurve_;
+
+    double underlyingMin_;
+    double underlyingMax_;
 
     /// Analyze single call.
     void analyzeSingleCall( int row ) const;
@@ -198,8 +214,11 @@ private:
     /// Analyze single put.
     void analyzeSinglePut( int row ) const;
 
+    /// Analyze vertical bear call.
+    void analyzeVertBearCall( int rowLong, int rowShort ) const;
+
     /// Analyze vertical bull put.
-    void analyzeVertBullPut( int row ) const;
+    void analyzeVertBullPut( int rowLong, int rowShort ) const;
 
     /// Generate greeks.
     /**
@@ -225,11 +244,29 @@ private:
      */
     bool generateProbCurve( double strike, bool isCall );
 
+    /// Generate probability curve prom call/put parity.
+    /**
+     * Parse greeks and create probability data.
+     */
+    bool generateProbCurveParity( double strike, bool isCall );
+
     /// Calculate greeks for option.
     bool calcGreeks( AbstractOptionPricing *o, double theoOptionValue, double strike, bool isCall, Greeks& result ) const;
 
+    /// Calculate probability of ITM.
+    double calcProbInTheMoney( double price, bool isCall ) const;
+
+    /// Calculate expected loss.
+    double calcExpectedLossCall( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb ) const;
+
+    /// Calculate expected loss.
+    double calcExpectedLossPut( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb ) const;
+
     /// Populate result model greeks.
     static void populateResultModelGreeks( const Greeks& g, item_model_type::ColumnValueMap &result );
+
+    /// Populate result model greeks.
+    static void populateResultModelGreeksSpread( const Greeks& glong, const Greeks& gshort, item_model_type::ColumnValueMap &result );
 
     // not implemented
     ExpectedValueCalculator( const _Myt& ) = delete;

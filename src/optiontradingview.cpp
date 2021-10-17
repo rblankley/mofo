@@ -340,7 +340,9 @@ QString OptionTradingView::columnHeaderText( int column ) const
     case model_type::OPEN_INTEREST:
         return tr( "Open Int" );
     case model_type::IS_IN_THE_MONEY:
-        return tr( "In The Money" );
+        return tr( "ITM" );
+    case model_type::IS_OUT_OF_THE_MONEY:
+        return tr( "OTM" );
     case model_type::THEO_OPTION_VALUE:
         return tr( "Theo. Value" );
     case model_type::THEO_VOLATILITY:
@@ -413,6 +415,29 @@ QString OptionTradingView::columnHeaderText( int column ) const
         return tr( "Prob. ITM" );
     case model_type::PROBABILITY_OTM:
         return tr( "Prob. OTM" );
+
+    case model_type::INVESTMENT_OPTION_PRICE:
+        return tr( "Price" );
+    case model_type::INVESTMENT_OPTION_PRICE_VS_THEO:
+        return tr( "Price Diff" );
+
+    case model_type::INVESTMENT_VALUE:
+        return tr( "Invest. Value" );
+    case model_type::MAX_GAIN:
+        return tr( "Max Gain" );
+    case model_type::MAX_LOSS:
+        return tr( "Max Loss" );
+    case model_type::ROI:
+        return tr( "ROI %" );
+    case model_type::ROI_TIME:
+        return tr( "ROI %/Wk" );
+
+    case model_type::EXPECTED_VALUE:
+        return tr( "EV" );
+    case model_type::EXPECTED_VALUE_ROI:
+        return tr( "EV-ROI %" );
+    case model_type::EXPECTED_VALUE_ROI_TIME:
+        return tr( "EV-ROI %/Wk" );
 
     default:
         break;

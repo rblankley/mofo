@@ -31,6 +31,9 @@ mofo_LDADD = \
 BUILT_SOURCES = \
 	moc_abstractdaemon.cpp \
 	moc_configdialog.cpp \
+	moc_filtereditordialog.cpp \
+	moc_filtersdialog.cpp \
+	moc_filterselectiondialog.cpp \
 	moc_gridtableheadermodel.cpp \
 	moc_gridtableheaderview.cpp \
 	moc_gridtableview.cpp \
@@ -49,6 +52,9 @@ mofo_SOURCES = \
 	$(BUILT_SOURCES) \
 	abstractdaemon.cpp \
 	configdialog.cpp \
+	filtereditordialog.cpp \
+	filtersdialog.cpp \
+	filterselectiondialog.cpp \
 	gridtableheadermodel.cpp \
 	gridtableheaderview.cpp \
 	gridtableview.cpp \
@@ -58,6 +64,7 @@ mofo_SOURCES = \
 	networkaccess.cpp \
 	optionchainview.cpp \
 	optionprofitcalc.cpp \
+	optionprofitcalcfilter.cpp \
 	optiontradingview.cpp \
 	optionviewertabwidget.cpp \
 	optionviewerwidget.cpp \

@@ -41,8 +41,10 @@ BinomialTree::BinomialTree( double S, double r, double b, double sigma, double T
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double BinomialTree::calcOptionPricePut( double S, double X, double u, double d, double pu, double pd, double Df, const std::vector<double>& div ) const
+double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& div ) const
 {
+    const double z( isCall ? 1 : -1 );
+
     // assert p in interval (0,1)
     //Q_ASSERT( dt < (pow2( sigma_ ) / pow2( b_ )) );
 
@@ -66,32 +68,20 @@ double BinomialTree::calcOptionPricePut( double S, double X, double u, double d,
     std::vector<double> val;
     val.reserve( N_+1 );
 
-    for ( size_t i( 0 ); i <= N_; ++i )
+    for ( size_t i = 0; i <= N_; ++i )
+        val.push_back( fmax( 0.0, z * (spowu[i] * powd[N_ - i] - K) ) );
+
+    // backward recursion through the tree
+    for ( size_t j = N_; j--; )
     {
-        const double v = fmax( 0.0, X - spowu[i] * powd[N_ - i] );
-
-        val.push_back( v );
-
-        if (( 0.0 == v ) && ( 3 <= val.size() ))
-            break;
-    }
-
-    // compute
-    for ( size_t j( N_ ); j--; )
-    {
-        const size_t end = std::min( j, val.size()-2 );
-
-        size_t i( 0 );
-
-        do
+        for ( size_t i = 0; i <= j; ++i )
         {
-            val[i] = (pu * val[i + 1] + pd * val[i]) * Df;
+            val[i] = Df * (pu * val[i + 1] + pd * val[i]);
 
             // check early exercise
             if ( isAmerican() )
-                val[i] = fmax( val[i], X - (spowu[i] * powd[j - i] + div[j]) );
-
-        } while ( i++ < end );
+                val[i] = fmax( val[i], z * (div[j] + spowu[i] * powd[j - i] - K) );
+        }
 
         // track key values for partials calculation
         if ( j <= 2 )
@@ -102,6 +92,7 @@ double BinomialTree::calcOptionPricePut( double S, double X, double u, double d,
         }
     }
 
+    // option price
     return val[0];
 }
 
@@ -162,7 +153,7 @@ void BinomialTree::validate()
 
         const double Df = 0.9917;
 
-        Q_ASSERT_DOUBLE( bt.calcOptionPricePut( S, X, u, d, pu,pd, Df ), 4.4919 );
+        Q_ASSERT_DOUBLE( bt.calcOptionPrice( false, S, X, u, d, pu, pd, Df ), 4.4919 );
 
         // from Hull book, example 21.2
         double delta;

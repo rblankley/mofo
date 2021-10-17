@@ -93,15 +93,25 @@ public:
 
     /// Retrieve configuration.
     /**
-     * @return  map of configs
+     * @return  configs
      */
-    virtual QMap<QString,QString> configs() const;
+    virtual QJsonObject configs() const;
 
     /// Retrieve current date time.
     /**
      * @return  stamp
      */
     virtual QDateTime currentDateTime() const;
+
+    /// Retrieve filter.
+    /**
+     * @param[in] name  filter name
+     * @return  filter
+     */
+    virtual QByteArray filter( const QString& name ) const;
+
+    /// Retrieve filters.
+    virtual QStringList filters() const;
 
     /// Retrieve header state.
     /**
@@ -163,6 +173,12 @@ public:
      */
     virtual double numTradingDays() const {return numTradingDays_;}
 
+    /// Retrieve option calc method.
+    /**
+     * @return  method
+     */
+    virtual QString optionCalcMethod() const {return optionCalcMethod_;}
+
     /// Retrieve option trade cost.
     /**
      * @return  cost
@@ -200,15 +216,22 @@ public:
 
     /// Set configuration.
     /**
-     * @param[in] value  map of configs
+     * @param[in] value  configs
      */
-    virtual void setConfigs( const QMap<QString,QString>& value );
+    virtual void setConfigs( const QJsonObject& value );
 
     /// Set current date time.
     /**
      * @param[in] value  stamp
      */
     virtual void setCurrentDateTime( const QDateTime& value ) {now_ = value;}
+
+    /// Set filter.
+    /**
+     * @param[in] name  filter name
+     * @param[in] value  filter data
+     */
+    virtual void setFilter( const QString& name, const QByteArray& value = QByteArray() );
 
     /// Set header state.
     /**
@@ -262,6 +285,12 @@ public:
      */
     virtual QSqlDatabase openDatabaseConnection( const QString& symbol ) const;
 
+    /// Remove filter.
+    /**
+     * @param[in] name  filter name
+     */
+    virtual void removeFilter( const QString& name );
+
     /// Remove watchlist.
     /**
      * @param[in] name  watchlist name
@@ -293,6 +322,7 @@ public slots:
 
 protected:
 
+    QString optionCalcMethod_;                      ///< Option calc method.
     double optionTradeCost_;                        ///< Option trade cost.
 
     double numTradingDays_;                         ///< Number of trading days.

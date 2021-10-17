@@ -108,6 +108,7 @@ private:
 
     QMenu *viewMenu_;
     QAction *config_;
+    QAction *filters_;
     QAction *watchlists_;
 
     QMenu *marketDaemonMenu_;

@@ -1,6 +1,6 @@
 /**
- * @file configdialog.h
- * Dialog for modifying configuration values.
+ * @file filtersdialog.h
+ * Dialog for adding/removing filters.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,26 +20,26 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONFIGDIALOG_H
-#define CONFIGDIALOG_H
+#ifndef FILTERSDIALOG_H
+#define FILTERSDIALOG_H
 
 #include <QDialog>
-#include <QJsonObject>
-#include <QString>
+#include <QStringList>
 
-class QComboBox;
 class QLabel;
-class QLineEdit;
+class QListWidget;
+class QListWidgetItem;
+class QPlainTextEdit;
 class QPushButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for modifying configuration values.
-class ConfigurationDialog : public QDialog
+/// Dialog for adding/removing filters.
+class FiltersDialog : public QDialog
 {
     Q_OBJECT
 
-    using _Myt = ConfigurationDialog;
+    using _Myt = FiltersDialog;
     using _Mybase = QDialog;
 
 public:
@@ -53,7 +53,7 @@ public:
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    ConfigurationDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    FiltersDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
     // ========================================================================
     // Properties
@@ -74,63 +74,32 @@ public:
 
 protected:
 
-    QLabel *equityRefreshRateLabel_;
-    QLineEdit *equityRefreshRate_;
+    QLabel *filtersLabel_;
+    QListWidget *filters_;
 
-    QLabel *equityTradeCostLabel_;
-    QLineEdit *equityTradeCost_;
-
-    QLabel *equityTradeCostNonExchangeLabel_;
-    QLineEdit *equityTradeCostNonExchange_;
-
-    QLabel *equityWatchListsLabel_;
-    QLineEdit *equityWatchLists_;
-
-    QLabel *historyLabel_;
-    QLineEdit *history_;
-
-    QLabel *marketTypesLabel_;
-    QLineEdit *marketTypes_;
-
-    QLabel *numDaysLabel_;
-    QLineEdit *numDays_;
-
-    QLabel *numTradingDaysLabel_;
-    QLineEdit *numTradingDays_;
-
-    QLabel *optionChainRefreshRateLabel_;
-    QLineEdit *optionChainRefreshRate_;
-
-    QLabel *optionChainExpiryEndDateLabel_;
-    QLineEdit *optionChainExpiryEndDate_;
-
-    QLabel *optionChainWatchListsLabel_;
-    QLineEdit *optionChainWatchLists_;
-
-    QLabel *optionTradeCostLabel_;
-    QLineEdit *optionTradeCost_;
-
-    QLabel *optionCalcMethodLabel_;
-    QComboBox *optionCalcMethod_;
-
-    QLabel *paletteLabel_;
-    QComboBox *palette_;
-
-    QLabel *paletteHighlightLabel_;
-    QLineEdit *paletteHighlight_;
-    QPushButton *paletteHighlightDialog_;
+    QPushButton *createFilter_;
+    QPushButton *editFilter_;
+    QPushButton *removeFilter_;
 
     QPushButton *okay_;
-    QPushButton *cancel_;
 
 private slots:
 
     /// Slot for button clicked.
     void onButtonClicked();
 
+    /// Slot for item changed.
+    void onItemChanged( QListWidgetItem *item );
+
+    /// Slot for item double clicked.
+    void onItemDoubleClicked( QListWidgetItem *item );
+
+    /// Slot for item selection changed.
+    void onItemSelectionChanged();
+
 private:
 
-    QJsonObject configs_;
+    QString currentFilterName_;
 
     /// Initialize.
     void initialize();
@@ -138,17 +107,17 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Save to database.
-    void saveForm();
+    /// Retrieve selected item.
+    QListWidgetItem *selected() const;
 
-    /// Check configuration value changed.
-    void checkConfigChanged( const QString& config, const QString& value );
-
-    // not implemented
-    ConfigurationDialog( const _Myt& ) = delete;
+    /// Select item.
+    void selectItem( int index );
 
     // not implemented
-    ConfigurationDialog( const _Myt&& ) = delete;
+    FiltersDialog( const _Myt& ) = delete;
+
+    // not implemented
+    FiltersDialog( const _Myt&& ) = delete;
 
     // not implemented
     _Myt& operator = ( const _Myt& ) = delete;
@@ -160,4 +129,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // CONFIGDIALOG_H
+#endif // FILTERSDIALOG_H

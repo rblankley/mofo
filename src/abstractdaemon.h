@@ -24,8 +24,8 @@
 #define ABSTRACTDAEMON_H
 
 #include <QDate>
+#include <QJsonObject>
 #include <QList>
-#include <QMap>
 #include <QMutex>
 #include <QObject>
 
@@ -208,7 +208,7 @@ protected:
 
     AppDatabase *db_;                               ///< Database.
 
-    QMap<QString, QString> configs_;                ///< Configuration.
+    QJsonObject configs_;                           ///< Configuration.
 
     bool queueWhenClosed_;                          ///< Queue requests when closed.
     bool paused_;                                   ///< Daemon is paused.

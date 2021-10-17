@@ -59,10 +59,33 @@ OptionChainView::~OptionChainView()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QString OptionChainView::title() const
 {
+    const bool isWeekly( model_->data0( model_type::CALL_IS_WEEKLY ).toBool() );
+    const bool isQuarterly( model_->data0( model_type::CALL_IS_QUARTERLY ).toBool() );
+
+    // scale all rows for non-standard options
+    bool isNonStandard( false );
+
+    for ( int row( 0 ); row < model_->rowCount(); ++row )
+        if ( model_->data( row, model_type::CALL_IS_NON_STANDARD ).toBool() )
+        {
+            isNonStandard = true;
+            break;
+        }
+
     const QDate expiry( model_->expirationDate() );
     const int daysToExpiry( -expiry.daysTo( QDate::currentDate() ) );
 
-    return QString( "%0 (%1)" ).arg( expiry.toString( "dd MMM yy" ).toUpper() ).arg( 0 <= daysToExpiry ? QString::number( daysToExpiry ) : "EXP" );
+    QString result( QString( "%0 (%1)" ).arg( expiry.toString( "dd MMM yy" ).toUpper() ).arg( 0 <= daysToExpiry ? QString::number( daysToExpiry ) : "EXP" ) );
+
+    if ( isWeekly )
+        result.append( " W" );
+    else if ( isQuarterly )
+        result.append( " Q" );
+
+    else if ( isNonStandard )
+        result.append( " NS" );
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -1,5 +1,5 @@
 /**
- * @file binomialcalc.cpp
+ * @file epbinomialcalc.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,36 +20,36 @@
  */
 
 #include "common.h"
-#include "binomialcalc.h"
+#include "epbinomialcalc.h"
 
-#include "util/coxrossrubinstein.h"
+#include "util/equalprobbinomial.h"
 #include "util/newtonraphson.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-BinomialCalculator::BinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
+EqualProbBinomialCalculator::EqualProbBinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     _Mybase( underlying, chains, results )
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-BinomialCalculator::~BinomialCalculator()
+EqualProbBinomialCalculator::~EqualProbBinomialCalculator()
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double BinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
+double EqualProbBinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
 {
     return NewtonRaphson::calcImplVol( (*pricing), type, X, price, okay );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
+AbstractOptionPricing *EqualProbBinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
 {
-    return new CoxRossRubinstein( S, r, b, sigma, T, BINOM_DEPTH, european );
+    return new EqualProbBinomialTree( S, r, b, sigma, T, BINOM_DEPTH, european );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void BinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
+void EqualProbBinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )
         delete doomed;

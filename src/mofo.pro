@@ -18,7 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 # Uncomment this to use clio logging library. You may need to adjust
 # include and lib paths below.
-#DEFINES += HAVE_CLIO_H
+DEFINES += HAVE_CLIO_H
 
 
 SOURCES += \
@@ -29,7 +29,10 @@ SOURCES += \
     apibase/serializedxmlapi.cpp \
     calc/binomialcalc.cpp \
     calc/blackscholescalc.cpp \
+    calc/epbinomialcalc.cpp \
     calc/expectedvaluecalc.cpp \
+    calc/montecarlocalc.cpp \
+    calc/trinomialcalc.cpp \
     configdialog.cpp \
     db/appdb.cpp \
     db/itemmodel.cpp \
@@ -39,6 +42,9 @@ SOURCES += \
     db/sqldb.cpp \
     db/sqltablemodel.cpp \
     db/symboldb.cpp \
+    filtereditordialog.cpp \
+    filtersdialog.cpp \
+    filterselectiondialog.cpp \
     gridtableheadermodel.cpp \
     gridtableheaderview.cpp \
     gridtableview.cpp \
@@ -46,6 +52,7 @@ SOURCES += \
     mainwindow.cpp \
     optionchainview.cpp \
     optionprofitcalc.cpp \
+    optionprofitcalcfilter.cpp \
     optiontradingview.cpp \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
@@ -84,7 +91,10 @@ HEADERS += \
     apibase/serializedxmlapi.h \
     calc/binomialcalc.h \
     calc/blackscholescalc.h \
+    calc/epbinomialcalc.h \
     calc/expectedvaluecalc.h \
+    calc/montecarlocalc.h \
+    calc/trinomialcalc.h \
     configdialog.h \
     db/appdb.h \
     db/itemmodel.h \
@@ -95,6 +105,9 @@ HEADERS += \
     db/sqltablemodel.h \
     db/stringsdb.h \
     db/symboldb.h \
+    filtereditordialog.h \
+    filtersdialog.h \
+    filterselectiondialog.h \
     gridtableheadermodel.h \
     gridtableheaderview.h \
     gridtableview.h \
@@ -102,6 +115,7 @@ HEADERS += \
     mainwindow.h \
     optionchainview.h \
     optionprofitcalc.h \
+    optionprofitcalcfilter.h \
     optiontradingview.h \
     optionviewertabwidget.h \
     optionviewerwidget.h \
@@ -147,11 +161,11 @@ else: unix:!android: target.path = /opt/$${TARGET}/bin
 # libclio
 contains(DEFINES, HAVE_CLIO_H) {
     win32 {
-        CONFIG(release, debug|release): LIBS += -L$$PWD/../libclio/x64/release/ -lclio
-        else:CONFIG(debug, debug|release): LIBS += -L$$PWD/../libclio/x64/debug/ -lclio
+        CONFIG(release, debug|release): LIBS += -L$$PWD/../../libclio/x64/release/ -lclio
+        else:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../libclio/x64/debug/ -lclio
 
-        INCLUDEPATH += $$PWD/../libclio/src
-        DEPENDPATH += $$PWD/../libclio/src
+        INCLUDEPATH += $$PWD/../../libclio/src
+        DEPENDPATH += $$PWD/../../libclio/src
     } else {
         PKGCONFIG += clio
     }

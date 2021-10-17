@@ -41,7 +41,7 @@ public:
 
     /// Constructor.
     /**
-     * @param[in] S  underlying price
+     * @param[in] S  underlying (spot) price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
      * @param[in] sigma  volatility of underlying
@@ -55,7 +55,7 @@ public:
     /**
      * @warning
      * Passed in @c vector classes @p divTimes and @p divAmounts are assumed to have equal sizes.
-     * @param[in] S  underlying price
+     * @param[in] S  underlying (spot) price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
      * @param[in] sigma  volatility of underlying

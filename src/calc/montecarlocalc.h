@@ -1,6 +1,6 @@
 /**
- * @file blackscholescalc.h
- * Black Scholes based option profit calculator.
+ * @file montecarlocalc.h
+ * Monte Carlo simulaions based option profit calculator.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,17 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BLACKSCHOLESCALC_H
-#define BLACKSCHOLESCALC_H
+#ifndef MONTECARLOCALC_H
+#define MONTECARLOCALC_H
 
 #include "expectedvaluecalc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Black Scholes based option profit calculator.
-class BlackScholesCalculator : public ExpectedValueCalculator
+/// Monte Carlo simulaions based option profit calculator.
+class MonteCarloCalculator : public ExpectedValueCalculator
 {
-    using _Myt = BlackScholesCalculator;
+    using _Myt = MonteCarloCalculator;
     using _Mybase = ExpectedValueCalculator;
 
 public:
@@ -45,10 +45,10 @@ public:
      * @param[in] chains  chains to evaluate
      * @param[in] results  results
      */
-    BlackScholesCalculator( double underlying, const table_model_type *chains, item_model_type *results );
+    MonteCarloCalculator( double underlying, const table_model_type *chains, item_model_type *results );
 
     /// Destructor.
-    ~BlackScholesCalculator();
+    ~MonteCarloCalculator();
 
 protected:
 
@@ -88,11 +88,13 @@ protected:
 
 private:
 
-    // not implemented
-    BlackScholesCalculator( const _Myt& ) = delete;
+    enum {NUM_SIMULATIONS = 1024};
 
     // not implemented
-    BlackScholesCalculator( const _Myt&& ) = delete;
+    MonteCarloCalculator( const _Myt& ) = delete;
+
+    // not implemented
+    MonteCarloCalculator( const _Myt&& ) = delete;
 
     // not implemented
     _Myt &operator = ( const _Myt& ) = delete;
@@ -104,4 +106,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // BLACKSCHOLESCALC_H
+#endif // MONTECARLOCALC_H

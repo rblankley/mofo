@@ -23,6 +23,8 @@
 #ifndef OPTIONPROFITCALC_H
 #define OPTIONPROFITCALC_H
 
+#include "optionprofitcalcfilter.h"
+
 #include "db/optiontradingitemmodel.h"
 
 class OptionChainTableModel;
@@ -42,27 +44,8 @@ public:
     /// Item model type.
     using item_model_type = OptionTradingItemModel;
 
-    /// Option types.
-    enum OptionTypeFilter
-    {
-        ITM_CALLS = 0x1,                            ///< In the money calls.
-        OTM_CALLS = 0x2,                            ///< Out of the money calls.
-        ITM_PUTS = 0x4,                             ///< In the money puts.
-        OTM_PUTS = 0x8,                             ///< Out of the money puts.
-
-        ONLY_CALLS = ITM_CALLS | OTM_CALLS,         ///< Only call options.
-        ONLY_PUTS = ITM_PUTS | OTM_PUTS,            ///< Only put options.
-        ALL_OPTION_TYPES = ONLY_CALLS | ONLY_PUTS,  ///< All options.
-    };
-
-    /// Volatility.
-    enum VolatilityFilter
-    {
-        HV_LT_VI = 0x1,                             ///< Historical volatility less than or equal to implied volatility.
-        HV_GT_VI = 0x2,                             ///< Historical volatility greater than implied volatility.
-
-        ALL_VOLATILITY = HV_LT_VI | HV_GT_VI,       ///< All volatilities.
-    };
+    /// Filter type.
+    using filter_type = OptionProfitCalculatorFilter;
 
     // ========================================================================
     // DTOR
@@ -75,59 +58,36 @@ public:
     // Properties
     // ========================================================================
 
-    /// Set maximum investment amount.
+    /// Retrieve filter.
+    /**
+     * @return  filter
+     */
+    virtual filter_type filter() const {return f_;}
+
+    /// Set cost basis.
     /**
      * @param[in] value  amount
      */
-    virtual void setMaxInvestAmount( double value ) {maxInvestAmount_ = value;}
+    virtual void setCostBasis( double value ) {costBasis_ = value;}
 
-    /// Set minimum investment amount.
+    /// Set equity trading cost (i.e. buy or sell underlying).
     /**
-     * @param[in] value  amount
+     * For example, how much it costs to acquire 100 shares of XYZ.
+     * @param[in] value  trade cost
      */
-    virtual void setMinInvestAmount( double value ) {minInvestAmount_ = value;}
+    virtual void setEquityTradeCost( double value ) {equityTradeCost_ = value;}
 
-    /// Set minimum return on investment.
+    /// Set filter.
     /**
-     * @param[in] value  minimum return percentage
+     * @param[in] value  filter
      */
-    virtual void setMinReturnOnInvestment( double value ) {minReturnOnInvestment_ = value;}
-
-    /// Set maximum volatility.
-    /**
-     * @param[in] value  amount
-     */
-    virtual void setMaxVolatility( double value ) {maxVolatility_ = value;}
-
-    /// Set minimum volatility.
-    /**
-     * @param[in] value  amount
-     */
-    virtual void setMinVolatility( double value ) {minVolatility_ = value;}
-
-    /// Set filter for option types.
-    /**
-     * @param[in] value  option types
-     */
-    virtual void setOptionTypeFilter( OptionTypeFilter value ) {optionTypes_ = value;}
-
-    /// Set filter for volatility.
-    /**
-     * @param[in] value  volatility
-     */
-    virtual void setVolatilityFilter( VolatilityFilter value ) {volatility_ = value;}
+    virtual void setFilter( const filter_type& value ) {f_ = value;}
 
     /// Set option trading cost.
     /**
      * @param[in] value  trade cost
      */
     virtual void setOptionTradeCost( double value ) {optionTradeCost_ = value;}
-
-    /// Set depth for verical option analysis.
-    /**
-     * @param[in] value  depth
-     */
-    virtual void setVerticalAnalysisDepth( int value ) {vertDepth_ = value;}
 
     // ========================================================================
     // Methods
@@ -138,6 +98,27 @@ public:
      * @param[out] strat  trading strategy
      */
     virtual void analyze( item_model_type::Strategy strat ) = 0;
+
+    // ========================================================================
+    // Static Methods
+    // ========================================================================
+
+    /// Create option profic calculator.
+    /**
+     * Factory method to create a calculator from configuration settings.
+     * @param[in] underlying  underlying price (i.e. mark)
+     * @param[in] chains  chains to evaluate
+     * @param[in] results  results
+     * @return  calculator
+     */
+    static _Myt *create( double underlying, const table_model_type *chains, item_model_type *results );
+
+    /// Destroy option profic calculator.
+    /**
+     * Factory method to destroy allocated calculator.
+     * @param[in] calc  calculator
+     */
+    static void destroy( _Myt *calc );
 
 protected:
 
@@ -153,25 +134,12 @@ protected:
 
     // ---- //
 
-    double minInvestAmount_;                        ///< Minimum investment amount.
-    double maxInvestAmount_;                        ///< Maximum investment amount.
+    double costBasis_;                              ///< Cost basis (used for call options).
 
-    double maxLossAmount_;                          ///< Maximum loss amount.
-
-    double minReturnOnInvestment_;                  ///< Minimum return on investment.
-    double minSpreadPercent_;                       ///< Minimum spread bid/ask amount.
-
-    double minVolatility_;                          ///< Minimum volatility.
-    double maxVolatility_;                          ///< Maximum volatility.
-
-    OptionTypeFilter optionTypes_;                  ///< Option type filter.
-    VolatilityFilter volatility_;                   ///< Volatility filter.
-
+    double equityTradeCost_;                        ///< Cost to trade a stock (equity).
     double optionTradeCost_;                        ///< Cost to trade an option.
 
-    int vertDepth_;                                 ///< Depth for vertical analysis.
-
-    double spreadFilterCutOff_;                     ///< Max bid and min ask.
+    filter_type f_;                                 ///< Filter.
 
     // ========================================================================
     // CTOR
@@ -186,21 +154,52 @@ protected:
     OptionProfitCalculator( double underlying, const table_model_type *chains, item_model_type *results );
 
     // ========================================================================
+    // Properties
+    // ========================================================================
+
+    /// Check if row is filtered out.
+    /**
+     * @param[in] row  table row
+     * @param[in] isCall  @c true if call option, @c false otherwise
+     * @return  @c true if filtered out, @c false otherwise
+     */
+    virtual bool isFilteredOut( int row, bool isCall ) const;
+
+    /// Check if row is non-standard option.
+    /**
+     * @param[in] row  table row
+     * @return  @c true if non-standard, @c false otherwise
+     */
+    virtual bool isNonStandard( int row ) const;
+
+    // ========================================================================
     // Methods
     // ========================================================================
+
+    /// Add result to item model.
+    /**
+     * @param[in] result
+     */
+    virtual void addRowToItemModel( const item_model_type::ColumnValueMap& result ) const;
 
     /// Populate result model with put/call information.
     /**
      * @param[in] row  row
-     * @param[in] strike  strike price
      * @param[in] isCall  @c true if call option type, @c false otherwise
-     * @param[in] result  result
+     * @param[in,out] result  result
      */
-    virtual void populateResultModel( int row, double strike, bool isCall, item_model_type::ColumnValueMap& result ) const;
+    virtual void populateResultModelSingle( int row, bool isCall, item_model_type::ColumnValueMap& result ) const;
+
+    /// Populate result model with put/call information.
+    /**
+     * @param[in] rowLong  long option row
+     * @param[in] rowShort  short option row
+     * @param[in] isCall  @c true if call option type, @c false otherwise
+     * @param[in,out] result  result
+     */
+    virtual void populateResultModelVertical( int rowLong, int rowShort, bool isCall, item_model_type::ColumnValueMap& result ) const;
 
 private:
-
-    enum {DEFAULT_VERT_DEPTH = 5};
 
     /// Days to expiration.
     double calcDaysToExpiry() const;

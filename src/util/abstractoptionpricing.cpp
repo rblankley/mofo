@@ -36,7 +36,7 @@ AbstractOptionPricing::AbstractOptionPricing( double S, double r, double b, doub
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double AbstractOptionPricing::calcImplVolSeedValue( double X ) const
 {
-    return sqrt( fabs( log( S_ / X ) + r_ * T_ ) * (2.0 / T_) );
+    return sqrt( std::fabs( log( S_ / X ) + r_ * T_ ) * (2.0 / T_) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

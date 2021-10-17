@@ -202,6 +202,9 @@ inline static const QString JSON_IS_PENNY_PILOT                     = "isPennyPi
 inline static const QString JSON_MONEY_INTRINSIC_VALUE              = "moneyIntrinsicValue";
 inline static const QString JSON_UV_EXPIRY_TYPE                     = "uvExpirationType";
 
+inline static const QString JSON_PENNY_PILOT                        = "pennyPilot";
+inline static const QString JSON_INTRINSIC_VALUE                    = "intrinsicValue";
+
 // Option Chain
 inline static const QString JSON_DAYS_TO_EXPIRY                     = "daysToExpiration";
 inline static const QString JSON_INTEREST_RATE                      = "interestRate";

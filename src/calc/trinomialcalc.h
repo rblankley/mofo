@@ -1,6 +1,6 @@
 /**
- * @file blackscholescalc.h
- * Black Scholes based option profit calculator.
+ * @file trinomialcalc.h
+ * Trinomial tree based option profit calculator.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,17 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BLACKSCHOLESCALC_H
-#define BLACKSCHOLESCALC_H
+#ifndef TRINOMIALCALC_H
+#define TRINOMIALCALC_H
 
 #include "expectedvaluecalc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Black Scholes based option profit calculator.
-class BlackScholesCalculator : public ExpectedValueCalculator
+/// Trinomial tree based option profit calculator.
+class TrinomialCalculator : public ExpectedValueCalculator
 {
-    using _Myt = BlackScholesCalculator;
+    using _Myt = TrinomialCalculator;
     using _Mybase = ExpectedValueCalculator;
 
 public:
@@ -45,10 +45,10 @@ public:
      * @param[in] chains  chains to evaluate
      * @param[in] results  results
      */
-    BlackScholesCalculator( double underlying, const table_model_type *chains, item_model_type *results );
+    TrinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results );
 
     /// Destructor.
-    ~BlackScholesCalculator();
+    ~TrinomialCalculator();
 
 protected:
 
@@ -88,11 +88,13 @@ protected:
 
 private:
 
-    // not implemented
-    BlackScholesCalculator( const _Myt& ) = delete;
+    enum {TRINOM_DEPTH = 128};
 
     // not implemented
-    BlackScholesCalculator( const _Myt&& ) = delete;
+    TrinomialCalculator( const _Myt& ) = delete;
+
+    // not implemented
+    TrinomialCalculator( const _Myt&& ) = delete;
 
     // not implemented
     _Myt &operator = ( const _Myt& ) = delete;
@@ -104,4 +106,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // BLACKSCHOLESCALC_H
+#endif // TRINOMIALCALC_H

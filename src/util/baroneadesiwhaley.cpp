@@ -135,7 +135,7 @@ double BaroneAdesiWhaley::calcSeedCall( double X ) const
     double bi = ebrt_ * cndd1 * (1.0 - (1.0 / Q2)) + (1.0 - ebrt_ * cndd1 / vst_) / Q2;
 
     // Newton Raphson algorithm for finding critical price Si
-    while ( epsilon < (fabs( LHS - RHS ) / X) )
+    while ( epsilon < (std::fabs( LHS - RHS ) / X) )
     {
         Si = (X + RHS - bi * Si) / (1.0 - bi);
 
@@ -175,7 +175,7 @@ double BaroneAdesiWhaley::calcSeedPut( double X ) const
     double bi = -ebrt_ * cndd1 * (1.0 - (1.0 / Q1)) - (1.0 + ebrt_ * normdist( -d1 ) / vst_) / Q1;
 
     // Newton Raphson algorithm for finding critical price Si
-    while ( epsilon < (fabs( LHS - RHS ) / X) )
+    while ( epsilon < (std::fabs( LHS - RHS ) / X) )
     {
         Si = (X - RHS + bi * Si) / (1.0 + bi);
 

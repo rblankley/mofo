@@ -19,10 +19,19 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "common.h"
 #include "optionprofitcalc.h"
+
+#include "calc/binomialcalc.h"
+#include "calc/blackscholescalc.h"
+#include "calc/epbinomialcalc.h"
+#include "calc/montecarlocalc.h"
+#include "calc/trinomialcalc.h"
 
 #include "db/appdb.h"
 #include "db/optionchaintablemodel.h"
+
+#include <cmath>
 
 #include <QObject>
 
@@ -32,17 +41,9 @@ OptionProfitCalculator::OptionProfitCalculator( double underlying, const table_m
     underlying_( underlying ),
     chains_( chains ),
     results_( results ),
-    minInvestAmount_( 0.0 ),
-    maxInvestAmount_( 0.0 ),
-    maxLossAmount_( 0.0 ),
-    minReturnOnInvestment_( 0.0 ),
-    minSpreadPercent_( 0.0 ),
-    minVolatility_( 0.0 ),
-    maxVolatility_( 0.0 ),
-    optionTypes_( ALL_OPTION_TYPES ),
-    volatility_( ALL_VOLATILITY ),
-    optionTradeCost_( 0.0 ),
-    vertDepth_( DEFAULT_VERT_DEPTH )
+    costBasis_( 0.0 ),
+    equityTradeCost_( 0.0 ),
+    optionTradeCost_( 0.0 )
 {
     // validate underlying price
     if ( underlying_ <= 0.0 )
@@ -61,6 +62,39 @@ OptionProfitCalculator::~OptionProfitCalculator()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+OptionProfitCalculator *OptionProfitCalculator::create( double underlying, const table_model_type *chains, item_model_type *results )
+{
+    const QString method( AppDatabase::instance()->optionCalcMethod() );
+
+    if ( "BINOM" == method )
+        return new BinomialCalculator( underlying, chains, results );
+    else if ( "BINOM_EQPROB" == method )
+        return new EqualProbBinomialCalculator( underlying, chains, results );
+    else if ( "BLACKSCHOLES" == method )
+        return new BlackScholesCalculator( underlying, chains, results );
+/*
+    // do not use
+    // not consistent enough to calculate implied volatility reliably
+    else if ( "MONTECARLO" == method )
+        return new MonteCarloCalculator( underlying, chains, results );
+*/
+    else if ( "TRINOM" == method )
+        return new TrinomialCalculator( underlying, chains, results );
+
+    LOG_WARN << "unhandled option calc method " << qPrintable( method );
+
+    return nullptr;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionProfitCalculator::destroy( _Myt *calc )
+{
+    if ( calc )
+        delete calc;
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double OptionProfitCalculator::calcDaysToExpiry() const
 {
     const QDateTime now( AppDatabase::instance()->currentDateTime() );
@@ -69,7 +103,104 @@ double OptionProfitCalculator::calcDaysToExpiry() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void OptionProfitCalculator::populateResultModel( int row, double strike, bool isCall, item_model_type::ColumnValueMap& result ) const
+bool OptionProfitCalculator::isFilteredOut( int row, bool isCall ) const
+{
+    if ( isNonStandard( row ) )
+        return true;
+
+    if ( isCall )
+    {
+        const bool itm( OptionProfitCalculatorFilter::ITM_CALLS & f_.optionTypeFilter() );
+        const bool otm( OptionProfitCalculatorFilter::OTM_CALLS & f_.optionTypeFilter() );
+
+        if ((( chains_->tableData( row, table_model_type::CALL_IS_IN_THE_MONEY ).toBool() ) && ( !itm )) ||
+            (( !chains_->tableData( row, table_model_type::CALL_IS_IN_THE_MONEY ).toBool() ) && ( !otm )))
+            return true;
+    }
+    else
+    {
+        const bool itm( OptionProfitCalculatorFilter::ITM_PUTS & f_.optionTypeFilter() );
+        const bool otm( OptionProfitCalculatorFilter::OTM_PUTS & f_.optionTypeFilter() );
+
+        if ((( chains_->tableData( row, table_model_type::PUT_IS_IN_THE_MONEY ).toBool() ) && ( !itm )) ||
+            (( !chains_->tableData( row, table_model_type::PUT_IS_IN_THE_MONEY ).toBool() ) && ( !otm )))
+            return true;
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool OptionProfitCalculator::isNonStandard( int row ) const
+{
+    return (( chains_->tableData( row, table_model_type::CALL_IS_NON_STANDARD ).toBool() ) ||
+            ( chains_->tableData( row, table_model_type::PUT_IS_NON_STANDARD ).toBool() ));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionProfitCalculator::addRowToItemModel( const item_model_type::ColumnValueMap& result ) const
+{
+    if (( 0.0 < f_.minInvestAmount() ) && ( result[item_model_type::INVESTMENT_VALUE].toDouble() < f_.minInvestAmount() ))
+        return;
+    if (( 0.0 < f_.maxInvestAmount() ) && ( f_.maxInvestAmount() < result[item_model_type::INVESTMENT_VALUE].toDouble() ))
+        return;
+
+    if (( 0.0 < f_.maxLossAmount() ) && ( f_.maxLossAmount() < result[item_model_type::MAX_LOSS].toDouble() ))
+        return;
+
+    if (( 0.0 < f_.minReturnOnInvestment() ) && ( result[item_model_type::ROI].toDouble() < f_.minReturnOnInvestment() ))
+        return;
+    if (( 0.0 < f_.maxReturnOnInvestment() ) && ( f_.maxReturnOnInvestment() < result[item_model_type::ROI].toDouble() ))
+        return;
+
+    if (( 0.0 < f_.minReturnOnInvestmentTime() ) && ( result[item_model_type::ROI_TIME].toDouble() < f_.minReturnOnInvestmentTime() ))
+        return;
+    if (( 0.0 < f_.maxReturnOnInvestmentTime() ) && ( f_.maxReturnOnInvestmentTime() < result[item_model_type::ROI_TIME].toDouble() ))
+        return;
+
+    if ( 0.0 < f_.maxSpreadPercent() )
+    {
+        // spread percent is populated
+        if ( result[item_model_type::BID_ASK_SPREAD_PERCENT].isNull() )
+            return;
+
+        const double spreadPercent( result[item_model_type::BID_ASK_SPREAD_PERCENT].toDouble() );
+
+        // spread percent is valid
+        if (( std::isinf( spreadPercent ) ) || ( std::isnan( spreadPercent ) ))
+            return;
+
+        if ( f_.maxSpreadPercent() < spreadPercent )
+            return;
+    }
+
+    if (( 0.0 < f_.minVolatility() ) && ( result[item_model_type::CALC_THEO_VOLATILITY].toDouble() < f_.minVolatility() ))
+        return;
+    if (( 0.0 < f_.maxVolatility() ) && ( f_.maxVolatility() < result[item_model_type::CALC_THEO_VOLATILITY].toDouble() ))
+        return;
+
+    const bool itm( (OptionProfitCalculatorFilter::ITM_CALLS | OptionProfitCalculatorFilter::ITM_PUTS) & f_.optionTypeFilter() );
+    const bool otm( (OptionProfitCalculatorFilter::OTM_CALLS | OptionProfitCalculatorFilter::OTM_PUTS) & f_.optionTypeFilter() );
+
+    if (( result[item_model_type::IS_IN_THE_MONEY].toBool() ) && ( !itm ))
+        return;
+    else if (( !result[item_model_type::IS_IN_THE_MONEY].toBool() ) && ( !otm ))
+        return;
+
+    const bool histLowerThanImplied( OptionProfitCalculatorFilter::HV_LTE_VI & f_.volatilityFilter() );
+    const bool histHigherThanImplied( OptionProfitCalculatorFilter::HV_GT_VI & f_.volatilityFilter() );
+
+    if (( result[item_model_type::HIST_VOLATILITY].toDouble() <= result[item_model_type::CALC_THEO_VOLATILITY].toDouble() ) && ( !histLowerThanImplied ))
+        return;
+    else if (( result[item_model_type::CALC_THEO_VOLATILITY].toDouble() < result[item_model_type::HIST_VOLATILITY].toDouble() ) && ( !histHigherThanImplied ))
+        return;
+
+    // add
+    results_->addRow( result );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionProfitCalculator::populateResultModelSingle( int row, bool isCall, item_model_type::ColumnValueMap& result ) const
 {
     result[item_model_type::STAMP] = AppDatabase::instance()->currentDateTime();
     result[item_model_type::UNDERLYING] = chains_->symbol();
@@ -112,6 +243,7 @@ void OptionProfitCalculator::populateResultModel( int row, double strike, bool i
         result[item_model_type::TIME_VALUE] = chains_->tableData( row, table_model_type::CALL_TIME_VALUE );
         result[item_model_type::OPEN_INTEREST] = chains_->tableData( row, table_model_type::CALL_OPEN_INTEREST );
         result[item_model_type::IS_IN_THE_MONEY] = chains_->tableData( row, table_model_type::CALL_IS_IN_THE_MONEY );
+        result[item_model_type::IS_OUT_OF_THE_MONEY] = !result[item_model_type::IS_IN_THE_MONEY].toBool();
         result[item_model_type::THEO_OPTION_VALUE] = chains_->tableData( row, table_model_type::CALL_THEO_OPTION_VALUE );
         result[item_model_type::THEO_VOLATILITY] = chains_->tableData( row, table_model_type::CALL_THEO_VOLATILITY );
         result[item_model_type::IS_MINI] = chains_->tableData( row, table_model_type::CALL_IS_MINI );
@@ -165,6 +297,7 @@ void OptionProfitCalculator::populateResultModel( int row, double strike, bool i
         result[item_model_type::TIME_VALUE] = chains_->tableData( row, table_model_type::PUT_TIME_VALUE );
         result[item_model_type::OPEN_INTEREST] = chains_->tableData( row, table_model_type::PUT_OPEN_INTEREST );
         result[item_model_type::IS_IN_THE_MONEY] = chains_->tableData( row, table_model_type::PUT_IS_IN_THE_MONEY );
+        result[item_model_type::IS_OUT_OF_THE_MONEY] = !result[item_model_type::IS_IN_THE_MONEY].toBool();
         result[item_model_type::THEO_OPTION_VALUE] = chains_->tableData( row, table_model_type::PUT_THEO_OPTION_VALUE );
         result[item_model_type::THEO_VOLATILITY] = chains_->tableData( row, table_model_type::PUT_THEO_VOLATILITY );
         result[item_model_type::IS_MINI] = chains_->tableData( row, table_model_type::PUT_IS_MINI );
@@ -181,7 +314,7 @@ void OptionProfitCalculator::populateResultModel( int row, double strike, bool i
         result[item_model_type::DELIVERABLE_NOTE] = chains_->tableData( row, table_model_type::PUT_DELIVERABLE_NOTE );
     }
 
-    result[item_model_type::STRIKE_PRICE] = strike;
+    result[item_model_type::STRIKE_PRICE] = chains_->tableData( row, table_model_type::STRIKE_PRICE );
 
     // determine historical volatility
     const QDateTime quoteTime( result[item_model_type::QUOTE_TIME].toDateTime() );
@@ -193,3 +326,183 @@ void OptionProfitCalculator::populateResultModel( int row, double strike, bool i
     result[item_model_type::HIST_VOLATILITY] = 100.0 * AppDatabase::instance()->historicalVolatility( chains_->symbol(), quoteTime, tradingDaysToExpiry );
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowShort, bool isCall, item_model_type::ColumnValueMap& result ) const
+{
+    result[item_model_type::STAMP] = AppDatabase::instance()->currentDateTime();
+    result[item_model_type::UNDERLYING] = chains_->symbol();
+
+    if ( isCall )
+    {
+        result[item_model_type::TYPE] = QObject::tr( "Call Spread" );
+
+        // Option Chain Information
+        result[item_model_type::SYMBOL] = chains_->tableData( rowShort, table_model_type::CALL_SYMBOL ).toString() + "-" + chains_->tableData( rowLong, table_model_type::CALL_SYMBOL ).toString();
+        result[item_model_type::DESC] = chains_->tableData( rowShort, table_model_type::CALL_DESC ).toString() + "-" + chains_->tableData( rowLong, table_model_type::CALL_DESC ).toString();
+
+        result[item_model_type::BID_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_BID_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_ASK_PRICE ).toDouble();
+        result[item_model_type::BID_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_BID_SIZE ), chains_->tableData( rowLong, table_model_type::CALL_BID_SIZE ) );
+        result[item_model_type::ASK_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_ASK_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_BID_PRICE ).toDouble();
+        result[item_model_type::ASK_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_ASK_SIZE ), chains_->tableData( rowLong, table_model_type::CALL_ASK_SIZE ) );
+        result[item_model_type::BID_ASK_SIZE] = result[item_model_type::BID_SIZE].toString() + " x " + result[item_model_type::ASK_SIZE].toString();
+
+        result[item_model_type::LAST_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_LAST_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_LAST_PRICE ).toDouble();
+        result[item_model_type::LAST_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_LAST_SIZE ), chains_->tableData( rowLong, table_model_type::CALL_LAST_SIZE ) );
+
+        double breakEvenPrice = chains_->tableData( rowShort, table_model_type::CALL_MULTIPLIER ).toDouble() * (chains_->tableData( rowShort, table_model_type::CALL_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK ).toDouble());
+        breakEvenPrice -= 2.0 * AppDatabase::instance()->optionTradeCost();
+        breakEvenPrice /= chains_->tableData( rowShort, table_model_type::CALL_MULTIPLIER ).toDouble();
+        breakEvenPrice = chains_->tableData( rowShort, table_model_type::STRIKE_PRICE ).toDouble() + breakEvenPrice;
+
+        result[item_model_type::BREAK_EVEN_PRICE] = breakEvenPrice;
+        result[item_model_type::INTRINSIC_VALUE] = underlying_ - breakEvenPrice;
+
+        result[item_model_type::OPEN_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_OPEN_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_OPEN_PRICE ).toDouble();
+        result[item_model_type::HIGH_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_HIGH_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_LOW_PRICE ).toDouble();
+        result[item_model_type::LOW_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_LOW_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_HIGH_PRICE ).toDouble();
+        result[item_model_type::CLOSE_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_CLOSE_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_CLOSE_PRICE ).toDouble();
+        result[item_model_type::CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_CHANGE ).toDouble();
+        result[item_model_type::PERCENT_CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_PERCENT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_PERCENT_CHANGE ).toDouble();
+
+        result[item_model_type::TOTAL_VOLUME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_TOTAL_VOLUME ), chains_->tableData( rowLong, table_model_type::CALL_TOTAL_VOLUME ) );
+        result[item_model_type::QUOTE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_QUOTE_TIME ), chains_->tableData( rowLong, table_model_type::CALL_QUOTE_TIME ) );
+        result[item_model_type::TRADE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_TRADE_TIME ), chains_->tableData( rowLong, table_model_type::CALL_TRADE_TIME ) );
+
+        result[item_model_type::MARK] = chains_->tableData( rowShort, table_model_type::CALL_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK ).toDouble();
+        result[item_model_type::MARK_CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_MARK_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK_CHANGE ).toDouble();
+        result[item_model_type::MARK_PERCENT_CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_MARK_PERCENT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK_PERCENT_CHANGE ).toDouble();
+        result[item_model_type::EXCHANGE_NAME] = chains_->tableData( rowShort, table_model_type::CALL_EXCHANGE_NAME );
+
+        // net volatility
+        // https://en.wikipedia.org/wiki/Net_volatility#:~:text=Net%20volatility%20refers%20to%20the,implied%20volatility%20of%20the%20spread.
+        double volNet = chains_->tableData( rowLong, table_model_type::CALL_VEGA ).toDouble() * chains_->tableData( rowLong, table_model_type::CALL_VOLATILITY ).toDouble();
+        volNet -= chains_->tableData( rowShort, table_model_type::CALL_VEGA ).toDouble() * chains_->tableData( rowShort, table_model_type::CALL_VOLATILITY ).toDouble();
+        volNet /= chains_->tableData( rowLong, table_model_type::CALL_VEGA ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_VEGA ).toDouble();
+
+        result[item_model_type::VOLATILITY] = volNet;
+        result[item_model_type::DELTA] = chains_->tableData( rowLong, table_model_type::CALL_DELTA ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_DELTA ).toDouble();
+        result[item_model_type::GAMMA] = chains_->tableData( rowLong, table_model_type::CALL_GAMMA ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_GAMMA ).toDouble();
+        result[item_model_type::THETA] = chains_->tableData( rowLong, table_model_type::CALL_THETA ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_THETA ).toDouble();
+        result[item_model_type::VEGA] = chains_->tableData( rowLong, table_model_type::CALL_VEGA ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_VEGA ).toDouble();
+        result[item_model_type::RHO] = chains_->tableData( rowLong, table_model_type::CALL_RHO ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_RHO ).toDouble();
+
+        result[item_model_type::TIME_VALUE] = chains_->tableData( rowShort, table_model_type::CALL_TIME_VALUE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_TIME_VALUE ).toDouble();
+        result[item_model_type::OPEN_INTEREST] = qMin( chains_->tableData( rowShort, table_model_type::CALL_OPEN_INTEREST ), chains_->tableData( rowLong, table_model_type::CALL_OPEN_INTEREST ) );
+        result[item_model_type::IS_IN_THE_MONEY] = (chains_->tableData( rowShort, table_model_type::CALL_IS_IN_THE_MONEY ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_IN_THE_MONEY ).toBool());
+        result[item_model_type::IS_OUT_OF_THE_MONEY] = !(chains_->tableData( rowShort, table_model_type::CALL_IS_IN_THE_MONEY ).toBool() && chains_->tableData( rowLong, table_model_type::CALL_IS_IN_THE_MONEY ).toBool());
+
+        // net volatility
+        // https://en.wikipedia.org/wiki/Net_volatility#:~:text=Net%20volatility%20refers%20to%20the,implied%20volatility%20of%20the%20spread.
+        double theoVolNet = chains_->tableData( rowLong, table_model_type::CALL_VEGA ).toDouble() * chains_->tableData( rowLong, table_model_type::CALL_THEO_VOLATILITY ).toDouble();
+        theoVolNet -= chains_->tableData( rowShort, table_model_type::CALL_VEGA ).toDouble() * chains_->tableData( rowShort, table_model_type::CALL_THEO_VOLATILITY ).toDouble();
+        theoVolNet /= chains_->tableData( rowLong, table_model_type::CALL_VEGA ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_VEGA ).toDouble();
+
+        result[item_model_type::THEO_OPTION_VALUE] = chains_->tableData( rowShort, table_model_type::CALL_THEO_OPTION_VALUE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_THEO_OPTION_VALUE ).toDouble();
+        result[item_model_type::THEO_VOLATILITY] = theoVolNet;
+
+        result[item_model_type::IS_MINI] = (chains_->tableData( rowShort, table_model_type::CALL_IS_MINI ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_MINI ).toBool());
+        result[item_model_type::IS_NON_STANDARD] = (chains_->tableData( rowShort, table_model_type::CALL_IS_NON_STANDARD ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_NON_STANDARD ).toBool());
+        result[item_model_type::IS_INDEX] = (chains_->tableData( rowShort, table_model_type::CALL_IS_INDEX ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_INDEX ).toBool());
+        result[item_model_type::IS_WEEKLY] = (chains_->tableData( rowShort, table_model_type::CALL_IS_WEEKLY ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_WEEKLY ).toBool());
+        result[item_model_type::IS_QUARTERLY] = (chains_->tableData( rowShort, table_model_type::CALL_IS_QUARTERLY ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_QUARTERLY ).toBool());
+        result[item_model_type::EXPIRY_DATE] = chains_->tableData( rowShort, table_model_type::CALL_EXPIRY_DATE );
+        result[item_model_type::EXPIRY_TYPE] = chains_->tableData( rowShort, table_model_type::CALL_EXPIRY_TYPE );
+        result[item_model_type::DAYS_TO_EXPIRY] = chains_->tableData( rowShort, table_model_type::CALL_DAYS_TO_EXPIRY );
+        result[item_model_type::LAST_TRADING_DAY] = chains_->tableData( rowShort, table_model_type::CALL_LAST_TRADING_DAY );
+        result[item_model_type::MULTIPLIER] = chains_->tableData( rowShort, table_model_type::CALL_MULTIPLIER );
+        result[item_model_type::SETTLEMENT_TYPE] = chains_->tableData( rowShort, table_model_type::CALL_SETTLEMENT_TYPE );
+        result[item_model_type::DELIVERABLE_NOTE] = chains_->tableData( rowShort, table_model_type::CALL_DELIVERABLE_NOTE );
+    }
+    else
+    {
+        result[item_model_type::TYPE] = QObject::tr( "Put Spread" );
+
+        // Option Chain Information
+        result[item_model_type::SYMBOL] = chains_->tableData( rowShort, table_model_type::PUT_SYMBOL ).toString() + "-" + chains_->tableData( rowLong, table_model_type::PUT_SYMBOL ).toString();
+        result[item_model_type::DESC] = chains_->tableData( rowShort, table_model_type::PUT_DESC ).toString() + "-" + chains_->tableData( rowLong, table_model_type::PUT_DESC ).toString();
+
+        result[item_model_type::BID_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_BID_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_ASK_PRICE ).toDouble();
+        result[item_model_type::BID_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_BID_SIZE ), chains_->tableData( rowLong, table_model_type::PUT_BID_SIZE ) );
+        result[item_model_type::ASK_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_ASK_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_BID_PRICE ).toDouble();
+        result[item_model_type::ASK_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_ASK_SIZE ), chains_->tableData( rowLong, table_model_type::PUT_ASK_SIZE ) );
+        result[item_model_type::BID_ASK_SIZE] = result[item_model_type::BID_SIZE].toString() + " x " + result[item_model_type::ASK_SIZE].toString();
+
+        result[item_model_type::LAST_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_LAST_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_LAST_PRICE ).toDouble();
+        result[item_model_type::LAST_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_LAST_SIZE ), chains_->tableData( rowLong, table_model_type::PUT_LAST_SIZE ) );
+
+        double breakEvenPrice = chains_->tableData( rowShort, table_model_type::PUT_MULTIPLIER ).toDouble() * (chains_->tableData( rowShort, table_model_type::PUT_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK ).toDouble());
+        breakEvenPrice -= 2.0 * AppDatabase::instance()->optionTradeCost();
+        breakEvenPrice /= chains_->tableData( rowShort, table_model_type::PUT_MULTIPLIER ).toDouble();
+        breakEvenPrice = chains_->tableData( rowShort, table_model_type::STRIKE_PRICE ).toDouble() - breakEvenPrice;
+
+        result[item_model_type::BREAK_EVEN_PRICE] = breakEvenPrice;
+        result[item_model_type::INTRINSIC_VALUE] = breakEvenPrice - underlying_;
+
+        result[item_model_type::OPEN_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_OPEN_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_OPEN_PRICE ).toDouble();
+        result[item_model_type::HIGH_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_HIGH_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_LOW_PRICE ).toDouble();
+        result[item_model_type::LOW_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_LOW_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_HIGH_PRICE ).toDouble();
+        result[item_model_type::CLOSE_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_CLOSE_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_CLOSE_PRICE ).toDouble();
+        result[item_model_type::CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_CHANGE ).toDouble();
+        result[item_model_type::PERCENT_CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_PERCENT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_PERCENT_CHANGE ).toDouble();
+
+        result[item_model_type::TOTAL_VOLUME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_TOTAL_VOLUME ), chains_->tableData( rowLong, table_model_type::PUT_TOTAL_VOLUME ) );
+        result[item_model_type::QUOTE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_QUOTE_TIME ), chains_->tableData( rowLong, table_model_type::PUT_QUOTE_TIME ) );
+        result[item_model_type::TRADE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_TRADE_TIME ), chains_->tableData( rowLong, table_model_type::PUT_TRADE_TIME ) );
+
+        result[item_model_type::MARK] = chains_->tableData( rowShort, table_model_type::PUT_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK ).toDouble();
+        result[item_model_type::MARK_CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_MARK_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK_CHANGE ).toDouble();
+        result[item_model_type::MARK_PERCENT_CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_MARK_PERCENT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK_PERCENT_CHANGE ).toDouble();
+        result[item_model_type::EXCHANGE_NAME] = chains_->tableData( rowShort, table_model_type::PUT_EXCHANGE_NAME );
+
+        // net volatility
+        // https://en.wikipedia.org/wiki/Net_volatility#:~:text=Net%20volatility%20refers%20to%20the,implied%20volatility%20of%20the%20spread.
+        double volNet = chains_->tableData( rowLong, table_model_type::PUT_VEGA ).toDouble() * chains_->tableData( rowLong, table_model_type::PUT_VOLATILITY ).toDouble();
+        volNet -= chains_->tableData( rowShort, table_model_type::PUT_VEGA ).toDouble() * chains_->tableData( rowShort, table_model_type::PUT_VOLATILITY ).toDouble();
+        volNet /= chains_->tableData( rowLong, table_model_type::PUT_VEGA ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_VEGA ).toDouble();
+
+        result[item_model_type::VOLATILITY] = volNet;
+        result[item_model_type::DELTA] = chains_->tableData( rowLong, table_model_type::PUT_DELTA ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_DELTA ).toDouble();
+        result[item_model_type::GAMMA] = chains_->tableData( rowLong, table_model_type::PUT_GAMMA ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_GAMMA ).toDouble();
+        result[item_model_type::THETA] = chains_->tableData( rowLong, table_model_type::PUT_THETA ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_THETA ).toDouble();
+        result[item_model_type::VEGA] = chains_->tableData( rowLong, table_model_type::PUT_VEGA ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_VEGA ).toDouble();
+        result[item_model_type::RHO] = chains_->tableData( rowLong, table_model_type::PUT_RHO ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_RHO ).toDouble();
+
+        result[item_model_type::TIME_VALUE] = chains_->tableData( rowShort, table_model_type::PUT_TIME_VALUE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_TIME_VALUE ).toDouble();
+        result[item_model_type::OPEN_INTEREST] = qMin( chains_->tableData( rowShort, table_model_type::PUT_OPEN_INTEREST ), chains_->tableData( rowLong, table_model_type::PUT_OPEN_INTEREST ) );
+        result[item_model_type::IS_IN_THE_MONEY] = (chains_->tableData( rowShort, table_model_type::PUT_IS_IN_THE_MONEY ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_IN_THE_MONEY ).toBool());
+        result[item_model_type::IS_OUT_OF_THE_MONEY] = !(chains_->tableData( rowShort, table_model_type::PUT_IS_IN_THE_MONEY ).toBool() && chains_->tableData( rowLong, table_model_type::PUT_IS_IN_THE_MONEY ).toBool());
+
+        // net volatility
+        // https://en.wikipedia.org/wiki/Net_volatility#:~:text=Net%20volatility%20refers%20to%20the,implied%20volatility%20of%20the%20spread.
+        double theoVolNet = chains_->tableData( rowLong, table_model_type::PUT_VEGA ).toDouble() * chains_->tableData( rowLong, table_model_type::PUT_THEO_VOLATILITY ).toDouble();
+        theoVolNet -= chains_->tableData( rowShort, table_model_type::PUT_VEGA ).toDouble() * chains_->tableData( rowShort, table_model_type::PUT_THEO_VOLATILITY ).toDouble();
+        theoVolNet /= chains_->tableData( rowLong, table_model_type::PUT_VEGA ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_VEGA ).toDouble();
+
+        result[item_model_type::THEO_OPTION_VALUE] = chains_->tableData( rowShort, table_model_type::PUT_THEO_OPTION_VALUE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_THEO_OPTION_VALUE ).toDouble();
+        result[item_model_type::THEO_VOLATILITY] = theoVolNet;
+
+        result[item_model_type::IS_MINI] = (chains_->tableData( rowShort, table_model_type::PUT_IS_MINI ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_MINI ).toBool());
+        result[item_model_type::IS_NON_STANDARD] = (chains_->tableData( rowShort, table_model_type::PUT_IS_NON_STANDARD ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_NON_STANDARD ).toBool());
+        result[item_model_type::IS_INDEX] = (chains_->tableData( rowShort, table_model_type::PUT_IS_INDEX ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_INDEX ).toBool());
+        result[item_model_type::IS_WEEKLY] = (chains_->tableData( rowShort, table_model_type::PUT_IS_WEEKLY ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_WEEKLY ).toBool());
+        result[item_model_type::IS_QUARTERLY] = (chains_->tableData( rowShort, table_model_type::PUT_IS_QUARTERLY ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_QUARTERLY ).toBool());
+        result[item_model_type::EXPIRY_DATE] = chains_->tableData( rowShort, table_model_type::PUT_EXPIRY_DATE );
+        result[item_model_type::EXPIRY_TYPE] = chains_->tableData( rowShort, table_model_type::PUT_EXPIRY_TYPE );
+        result[item_model_type::DAYS_TO_EXPIRY] = chains_->tableData( rowShort, table_model_type::PUT_DAYS_TO_EXPIRY );
+        result[item_model_type::LAST_TRADING_DAY] = chains_->tableData( rowShort, table_model_type::PUT_LAST_TRADING_DAY );
+        result[item_model_type::MULTIPLIER] = chains_->tableData( rowShort, table_model_type::PUT_MULTIPLIER );
+        result[item_model_type::SETTLEMENT_TYPE] = chains_->tableData( rowShort, table_model_type::PUT_SETTLEMENT_TYPE );
+        result[item_model_type::DELIVERABLE_NOTE] = chains_->tableData( rowShort, table_model_type::PUT_DELIVERABLE_NOTE );
+    }
+
+    result[item_model_type::STRIKE_PRICE] = chains_->tableData( rowShort, table_model_type::STRIKE_PRICE ).toString() + "/" + chains_->tableData( rowLong, table_model_type::STRIKE_PRICE ).toString();
+
+    // determine historical volatility
+    const QDateTime quoteTime( result[item_model_type::QUOTE_TIME].toDateTime() );
+
+    int tradingDaysToExpiry( daysToExpiry_ );
+    tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
+    tradingDaysToExpiry /= AppDatabase::instance()->numDays();
+
+    result[item_model_type::HIST_VOLATILITY] = 100.0 * AppDatabase::instance()->historicalVolatility( chains_->symbol(), quoteTime, tradingDaysToExpiry );
+}

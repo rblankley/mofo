@@ -1,6 +1,6 @@
 /**
- * @file configdialog.h
- * Dialog for modifying configuration values.
+ * @file filtereditordialog.h
+ * Dialog for editing/modifying a filter.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,26 +20,28 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef CONFIGDIALOG_H
-#define CONFIGDIALOG_H
+#ifndef FILTEREDITORDIALOG_H
+#define FILTEREDITORDIALOG_H
+
+#include "optionprofitcalcfilter.h"
 
 #include <QDialog>
-#include <QJsonObject>
-#include <QString>
 
-class QComboBox;
+class QCheckBox;
+class QDoubleSpinBox;
+class QGroupBox;
 class QLabel;
-class QLineEdit;
 class QPushButton;
+class QSpinBox;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for modifying configuration values.
-class ConfigurationDialog : public QDialog
+/// Dialog for editing/modifying a filter.
+class FilterEditorDialog : public QDialog
 {
     Q_OBJECT
 
-    using _Myt = ConfigurationDialog;
+    using _Myt = FilterEditorDialog;
     using _Mybase = QDialog;
 
 public:
@@ -50,14 +52,22 @@ public:
 
     /// Constructor.
     /**
+     * @param[in] name  filter name
+     * @param[in] value  filter
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    ConfigurationDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    FilterEditorDialog( const QString& name, const QByteArray& value, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Retrieve filter value.
+    /**
+     * @return  filter
+     */
+    virtual QByteArray filterValue() const;
 
     /// Retrieve size hint.
     /**
@@ -74,51 +84,59 @@ public:
 
 protected:
 
-    QLabel *equityRefreshRateLabel_;
-    QLineEdit *equityRefreshRate_;
+    QLabel *minInvestAmountLabel_;
+    QDoubleSpinBox *minInvestAmount_;
 
-    QLabel *equityTradeCostLabel_;
-    QLineEdit *equityTradeCost_;
+    QLabel *maxInvestAmountLabel_;
+    QDoubleSpinBox *maxInvestAmount_;
 
-    QLabel *equityTradeCostNonExchangeLabel_;
-    QLineEdit *equityTradeCostNonExchange_;
+    QLabel *maxLossAmountLabel_;
+    QDoubleSpinBox *maxLossAmount_;
 
-    QLabel *equityWatchListsLabel_;
-    QLineEdit *equityWatchLists_;
+    QLabel *minReturnOnInvestmentLabel_;
+    QDoubleSpinBox *minReturnOnInvestment_;
 
-    QLabel *historyLabel_;
-    QLineEdit *history_;
+    QLabel *maxReturnOnInvestmentLabel_;
+    QDoubleSpinBox *maxReturnOnInvestment_;
 
-    QLabel *marketTypesLabel_;
-    QLineEdit *marketTypes_;
+    QLabel *minReturnOnInvestmentTimeLabel_;
+    QDoubleSpinBox *minReturnOnInvestmentTime_;
 
-    QLabel *numDaysLabel_;
-    QLineEdit *numDays_;
+    QLabel *maxReturnOnInvestmentTimeLabel_;
+    QDoubleSpinBox *maxReturnOnInvestmentTime_;
 
-    QLabel *numTradingDaysLabel_;
-    QLineEdit *numTradingDays_;
+    QLabel *maxSpreadPercentLabel_;
+    QDoubleSpinBox *maxSpreadPercent_;
 
-    QLabel *optionChainRefreshRateLabel_;
-    QLineEdit *optionChainRefreshRate_;
+    QLabel *minVolatilityLabel_;
+    QDoubleSpinBox *minVolatility_;
 
-    QLabel *optionChainExpiryEndDateLabel_;
-    QLineEdit *optionChainExpiryEndDate_;
+    QLabel *maxVolatilityLabel_;
+    QDoubleSpinBox *maxVolatility_;
 
-    QLabel *optionChainWatchListsLabel_;
-    QLineEdit *optionChainWatchLists_;
+    QGroupBox *optionTypes_;
+    QCheckBox *itmCalls_;
+    QCheckBox *otmCalls_;
+    QCheckBox *itmPuts_;
+    QCheckBox *otmPuts_;
 
-    QLabel *optionTradeCostLabel_;
-    QLineEdit *optionTradeCost_;
+    QGroupBox *optionTradingStrats_;
+    QCheckBox *single_;
+    QCheckBox *vertical_;
+    QCheckBox *calendar_;
+    QCheckBox *strangle_;
+    QCheckBox *straddle_;
+    QCheckBox *butterfly_;
+    QCheckBox *condor_;
+    QCheckBox *diagonal_;
+    QCheckBox *collar_;
 
-    QLabel *optionCalcMethodLabel_;
-    QComboBox *optionCalcMethod_;
+    QGroupBox *volatility_;
+    QCheckBox *histLessThanImpl_;
+    QCheckBox *histGreaterThanImpl_;
 
-    QLabel *paletteLabel_;
-    QComboBox *palette_;
-
-    QLabel *paletteHighlightLabel_;
-    QLineEdit *paletteHighlight_;
-    QPushButton *paletteHighlightDialog_;
+    QLabel *verticalDepthLabel_;
+    QSpinBox *verticalDepth_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
@@ -130,7 +148,9 @@ private slots:
 
 private:
 
-    QJsonObject configs_;
+    QString name_;
+
+    OptionProfitCalculatorFilter f_;
 
     /// Initialize.
     void initialize();
@@ -138,17 +158,11 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Save to database.
-    void saveForm();
-
-    /// Check configuration value changed.
-    void checkConfigChanged( const QString& config, const QString& value );
+    // not implemented
+    FilterEditorDialog( const _Myt& ) = delete;
 
     // not implemented
-    ConfigurationDialog( const _Myt& ) = delete;
-
-    // not implemented
-    ConfigurationDialog( const _Myt&& ) = delete;
+    FilterEditorDialog( const _Myt&& ) = delete;
 
     // not implemented
     _Myt& operator = ( const _Myt& ) = delete;
@@ -160,4 +174,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // CONFIGDIALOG_H
+#endif // FILTEREDITORDIALOG_H

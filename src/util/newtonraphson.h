@@ -27,6 +27,8 @@
 
 #include <QtGlobal>
 
+#include <cmath>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Newton-Raphson Implied Volatility methods.
@@ -92,7 +94,7 @@ inline double NewtonRaphson::calcImplVol( T& pricing, OptionType type, double X,
     double ci = pricing.optionPrice( type, X );
     double vegai = pricing.vega( type, X );
 
-    while ( EPSILON < fabs( price - ci ) )
+    while ( EPSILON < std::fabs( price - ci ) )
     {
         vi -= (ci - price) / vegai;
 

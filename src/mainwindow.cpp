@@ -21,6 +21,7 @@
 
 #include "common.h"
 #include "configdialog.h"
+#include "filtersdialog.h"
 #include "mainwindow.h"
 #include "optionviewertabwidget.h"
 #include "watchlistdialog.h"
@@ -42,7 +43,7 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.2" );
+static const QString applicationVersion( "0.0.3" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -93,6 +94,7 @@ void MainWindow::translate()
 
     viewMenu_->setTitle( tr( "&View" ) );
     config_->setText( tr( "&Configuration..." ) );
+    filters_->setText( tr( "&Filters..." ) );
     watchlists_->setText( tr( "&Watchlists..." ) );
 
     marketDaemonMenu_->setTitle( daemon_->name() );
@@ -163,6 +165,15 @@ void MainWindow::onActionTriggered()
         LOG_TRACE << "config dialog...";
 
         ConfigurationDialog d( this );
+        d.exec();
+    }
+
+    // filters
+    else if ( filters_ == sender() )
+    {
+        LOG_TRACE << "filters dialog...";
+
+        FiltersDialog d( this );
         d.exec();
     }
 
@@ -400,13 +411,17 @@ void MainWindow::initialize()
 
     config_ = new QAction( QString(), this );
 
+    filters_ = new QAction( QString(), this );
+
     watchlists_ = new QAction( QString(), this );
 
     connect( config_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( filters_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( watchlists_, &QAction::triggered, this, &_Myt::onActionTriggered );
 
     viewMenu_ = menuBar()->addMenu( QString() );
     viewMenu_->addAction( config_ );
+    viewMenu_->addAction( filters_ );
     viewMenu_->addAction( watchlists_ );
 
     // market daemon menu

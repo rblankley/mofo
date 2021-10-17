@@ -109,6 +109,7 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     quoteFields_[JSON_GAMMA] = DB_GAMMA;
     quoteFields_[JSON_HIGH_PRICE] = DB_HIGH_PRICE;
     quoteFields_[JSON_IMPLIED_YIELD] = DB_IMPLIED_YIELD;
+    quoteFields_[JSON_INTRINSIC_VALUE] = DB_INTRINSIC_VALUE;
     quoteFields_[JSON_IN_THE_MONEY] = DB_IS_IN_THE_MONEY;
     quoteFields_[JSON_IS_INDEX] = DB_IS_INDEX;
     quoteFields_[JSON_IS_INDEX_OPTION] = DB_IS_INDEX;
@@ -133,6 +134,7 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     quoteFields_[JSON_OPEN_INTEREST] = DB_OPEN_INTEREST;
     quoteFields_[JSON_OPEN_PRICE] = DB_OPEN_PRICE;
     quoteFields_[JSON_OPTION_DELIVERABLES_LIST] = "";
+    quoteFields_[JSON_PENNY_PILOT] = DB_IS_PENNY_PILOT;
     quoteFields_[JSON_PERCENT_CHANGE] = DB_PERCENT_CHANGE;
     quoteFields_[JSON_PE_RATIO] = DB_PE_RATIO;
     quoteFields_[JSON_PUT_CALL] = DB_TYPE;

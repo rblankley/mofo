@@ -47,6 +47,7 @@ static const QString OPTION_CHAIN_REFRESH_RATE( "optionChainRefreshRate" );
 static const QString OPTION_CHAIN_EXPIRY_END_DATE( "optionChainExpiryEndDate" );
 static const QString OPTION_CHAIN_WATCH_LISTS( "optionChainWatchLists" );
 static const QString OPTION_TRADE_COST( "optionTradeCost" );
+static const QString OPTION_CALC_METHOD( "optionCalcMethod" );
 
 static const QString PALETTE( "palette" );
 static const QString PALETTE_HIGHLIGHT( "paletteHighlight" );
@@ -66,22 +67,23 @@ ConfigurationDialog::ConfigurationDialog( QWidget *parent, Qt::WindowFlags f ) :
     // retrieve config
     configs_ = AppDatabase::instance()->configs();
 
-    history_->setText( configs_[HISTORY] );
-    marketTypes_->setText( configs_[MARKET_TYPES] );
-    numDays_->setText( configs_[NUM_DAYS] );
-    numTradingDays_->setText( configs_[NUM_TRADING_DAYS] );
-    palette_->setCurrentIndex( palette_->findData( configs_[PALETTE] ) );
-    paletteHighlight_->setText( configs_[PALETTE_HIGHLIGHT] );
+    history_->setText( configs_[HISTORY].toString() );
+    marketTypes_->setText( configs_[MARKET_TYPES].toString() );
+    numDays_->setText( configs_[NUM_DAYS].toString() );
+    numTradingDays_->setText( configs_[NUM_TRADING_DAYS].toString() );
+    palette_->setCurrentIndex( palette_->findData( configs_[PALETTE].toString() ) );
+    paletteHighlight_->setText( configs_[PALETTE_HIGHLIGHT].toString() );
 
-    equityRefreshRate_->setText( configs_[EQUITY_REFRESH_RATE] );
-    equityTradeCost_->setText( configs_[EQUITY_TRADE_COST] );
-    equityTradeCostNonExchange_->setText( configs_[EQUITY_TRADE_COST_NON_EXCHANGE] );
-    equityWatchLists_->setText( configs_[EQUITY_WATCH_LISTS] );
+    equityRefreshRate_->setText( configs_[EQUITY_REFRESH_RATE].toString() );
+    equityTradeCost_->setText( configs_[EQUITY_TRADE_COST].toString() );
+    equityTradeCostNonExchange_->setText( configs_[EQUITY_TRADE_COST_NON_EXCHANGE].toString() );
+    equityWatchLists_->setText( configs_[EQUITY_WATCH_LISTS].toString() );
 
-    optionChainRefreshRate_->setText( configs_[OPTION_CHAIN_REFRESH_RATE] );
-    optionChainExpiryEndDate_->setText( configs_[OPTION_CHAIN_EXPIRY_END_DATE] );
-    optionChainWatchLists_->setText( configs_[OPTION_CHAIN_WATCH_LISTS] );
-    optionTradeCost_->setText( configs_[OPTION_TRADE_COST] );
+    optionChainRefreshRate_->setText( configs_[OPTION_CHAIN_REFRESH_RATE].toString() );
+    optionChainExpiryEndDate_->setText( configs_[OPTION_CHAIN_EXPIRY_END_DATE].toString() );
+    optionChainWatchLists_->setText( configs_[OPTION_CHAIN_WATCH_LISTS].toString() );
+    optionTradeCost_->setText( configs_[OPTION_TRADE_COST].toString() );
+    optionCalcMethod_->setCurrentIndex( optionCalcMethod_->findData( configs_[OPTION_CALC_METHOD].toString() ) );
 
     // set focus to first widget
     history_->setFocus();
@@ -133,6 +135,14 @@ void ConfigurationDialog::translate()
 
     optionTradeCostLabel_->setText( tr( "Option Trading Cost" ) );
     optionTradeCost_->setToolTip( tr( "Cost to trade an option contract." ) );
+
+    optionCalcMethodLabel_->setText( tr( "Option Analysis Calculation Method" ) );
+    optionCalcMethod_->setItemText( 0, tr( "Binomial Tree (Cox Ross Rubinstein)" ) );
+    optionCalcMethod_->setItemText( 1, tr( "Binomial Tree (Equal Probability)" ) );
+    optionCalcMethod_->setItemText( 2, tr( "Black Scholes" ) );
+    optionCalcMethod_->setItemText( 3, tr( "Monte Carlo" ) );
+    optionCalcMethod_->setItemText( 4, tr( "Trinomial Tree (Phelim Boyle)" ) );
+    optionCalcMethod_->setToolTip( tr( "Which option pricing methodology to use for analysis." ) );
 
     paletteLabel_->setText( tr( "Color Scheme" ) );
     palette_->setItemText( 0, tr( "System" ) );
@@ -216,6 +226,15 @@ void ConfigurationDialog::initialize()
     optionTradeCostLabel_ = new QLabel( this );
     optionTradeCost_ = new QLineEdit( this );
 
+    optionCalcMethodLabel_ = new QLabel( this );
+    optionCalcMethod_ = new QComboBox( this );
+
+    optionCalcMethod_->addItem( QString(), "BINOM" );
+    optionCalcMethod_->addItem( QString(), "BINOM_EQPROB" );
+    optionCalcMethod_->addItem( QString(), "BLACKSCHOLES" );
+    optionCalcMethod_->addItem( QString(), "MONTECARLO" );
+    optionCalcMethod_->addItem( QString(), "TRINOM" );
+
     paletteLabel_ = new QLabel( this );
     palette_ = new QComboBox( this );
 
@@ -265,6 +284,7 @@ void ConfigurationDialog::createLayout()
     configs->addRow( optionChainExpiryEndDateLabel_, optionChainExpiryEndDate_ );
     configs->addRow( optionChainWatchListsLabel_, optionChainWatchLists_ );
     configs->addRow( optionTradeCostLabel_, optionTradeCost_ );
+    configs->addRow( optionCalcMethodLabel_, optionCalcMethod_ );
 
     QHBoxLayout *buttons( new QHBoxLayout );
     buttons->addStretch();
@@ -295,6 +315,7 @@ void ConfigurationDialog::saveForm()
     checkConfigChanged( OPTION_CHAIN_EXPIRY_END_DATE, optionChainExpiryEndDate_->text() );
     checkConfigChanged( OPTION_CHAIN_WATCH_LISTS, optionChainWatchLists_->text() );
     checkConfigChanged( OPTION_TRADE_COST, optionTradeCost_->text() );
+    checkConfigChanged( OPTION_CALC_METHOD, optionCalcMethod_->currentData().toString() );
 
     // save!
     AppDatabase::instance()->setConfigs( configs_ );

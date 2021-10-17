@@ -80,36 +80,22 @@ CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double CoxRossRubinstein::optionPrice( OptionType type, double X ) const
 {
+    const double r = r_;
+    const double q = r_ - b_;
+
+    // quantities for the tree
     const double dt = T_ / N_;
-
-    // subtract out current value of dividends
-    double S = S_ - div_[0];
-
-    double r = r_;
-    double q = r_ - b_;
-
-    // MacDonald Schroeder
-    if ( OptionType::Call == type )
-    {
-        std::swap( S, X );
-        std::swap( r, q );
-    }
 
     const double pu = (exp( (r - q) * dt ) - d_) / (u_ - d_);
     const double pd = 1.0 - pu;
 
     const double Df = exp( -r * dt );
 
+    // subtract out current value of dividends
+    const double S = S_ - div_[0];
+
     // calc!
-    const double price = calcOptionPricePut( S, X, u_, d_, pu, pd, Df, div_ );
-
-    if ( OptionType::Call == type )
-    {
-        std::swap( f_[2][2], f_[2][0] );
-        std::swap( f_[1][1], f_[1][0] );
-    }
-
-    return price;
+    return calcOptionPrice( (OptionType::Call == type), S, X, u_, d_, pu, pd, Df, div_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

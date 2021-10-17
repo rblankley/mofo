@@ -40,7 +40,7 @@ double cnd( double x )
         a4 = -1.821255978,
         a5 = +1.330274429;
 
-    const double L = fabs(x);
+    const double L = std::fabs(x);
     const double K = 1.0 / (1.0 + (0.2316419 * L));
 
     const double a12345k

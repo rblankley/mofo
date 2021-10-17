@@ -68,7 +68,7 @@ protected:
      */
     virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay = nullptr ) const override;
 
-    /// Option pricing method factory method.
+    /// Factory method for creation of Option Pricing Methods.
     /**
      * @param[in] S  underlying price
      * @param[in] r  risk-free interest rate
@@ -79,6 +79,12 @@ protected:
      * @return  pointer to pricing method
      */
     virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, bool european = false ) const override;
+
+    /// Factory method for destruction of Option Pricing Methods.
+    /**
+     * @param[in] doomed  pricing method to destroy
+     */
+    virtual void destroyPricingMethod( AbstractOptionPricing *doomed ) const override;
 
 private:
 

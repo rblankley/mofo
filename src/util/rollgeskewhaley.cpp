@@ -78,7 +78,7 @@ double RollGeskeWhaley::optionPrice( OptionType type, double X ) const
     ci = BlackScholes( I, r_, b_, sigma_, DT_ - T_ ).optionPrice( OptionType::Call, X );
 
     // search algorithm to find the critical stock price I
-    while (( epsilon < fabs( ci - I - d_ + X ) ) && ( epsilon < (HighS - LowS) ))
+    while (( epsilon < std::fabs( ci - I - d_ + X ) ) && ( epsilon < (HighS - LowS) ))
     {
         if ( (ci - I - d_ + X) < 0 )
             HighS = I;

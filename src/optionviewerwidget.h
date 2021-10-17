@@ -154,6 +154,7 @@ private:
     QLabel *divDateLabel_;
     QLabel *divDate_;
 
+    QToolButton *clear_;
     QToolButton *analysis_;
     QToolButton *refresh_;
 

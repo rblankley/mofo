@@ -33,7 +33,7 @@
 #include <QSqlRecord>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "1" );
+static const QString DB_VERSION( "3" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -63,6 +63,7 @@ AppDatabase::AppDatabase() :
     configs_.append( "optionChainExpiryEndDate" );
     configs_.append( "optionChainWatchLists" );
     configs_.append( "optionTradeCost" );
+    configs_.append( "optionCalcMethod" );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -107,16 +108,16 @@ QStringList AppDatabase::accounts() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QMap<QString,QString> AppDatabase::configs() const
+QJsonObject AppDatabase::configs() const
 {
-    QMap<QString,QString> result;
+    QJsonObject obj;
     QVariant v;
 
     foreach ( const QString& c, configs_ )
         if ( readSetting( c, v ) )
-            result[c] = v.toString();
+            obj[c] = v.toString();
 
-    return result;
+    return obj;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -126,6 +127,75 @@ QDateTime AppDatabase::currentDateTime() const
         return now_;
 
     return QDateTime::currentDateTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QByteArray AppDatabase::filter( const QString& name ) const
+{
+    static const QString sql( "SELECT * FROM filters WHERE name=:name" );
+
+    QByteArray result;
+
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+    query.bindValue( ":name", name );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        QSqlQueryModel model;
+        model.setQuery( query );
+
+        if ( !model.rowCount() )
+             LOG_WARN << "no row(s)s found";
+        else
+        {
+            const QSqlRecord rec( model.record( 0 ) );
+
+            result.append( rec.value( "value" ).toByteArray() );
+        }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QStringList AppDatabase::filters() const
+{
+    static const QString sql( "SELECT DISTINCT name FROM filters" );
+
+    QStringList result;
+
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        QSqlQueryModel model;
+        model.setQuery( query );
+
+        for ( int i( 0 ); i < model.rowCount(); ++i )
+        {
+            const QSqlRecord rec( model.record( i ) );
+
+            result.append( rec.value( "name" ).toString() );
+        }
+    }
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -295,6 +365,37 @@ QSqlDatabase AppDatabase::openDatabaseConnection( const QString& symbol ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::quoteHistoryDateRange( const QString& symbol, QDate& start, QDate& end ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        child->quoteHistoryDateRange( start, end );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::removeFilter( const QString& name )
+{
+    static const QString sql( "DELETE FROM filters WHERE name=:name" );
+
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+    query.bindValue( ":name", name );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_WARN << "error during delete " << e.type() << " " << qPrintable( e.text() );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void AppDatabase::removeWatchlist( const QString& name )
 {
     static const QString sql( "DELETE FROM %1 WHERE name=:name" );
@@ -316,19 +417,6 @@ void AppDatabase::removeWatchlist( const QString& name )
 
             LOG_WARN << "error during delete " << e.type() << " " << qPrintable( e.text() );
         }
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::quoteHistoryDateRange( const QString& symbol, QDate& start, QDate& end ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        child->quoteHistoryDateRange( start, end );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
     }
 }
 
@@ -390,18 +478,46 @@ double AppDatabase::riskFreeRate( double term ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::setConfigs( const QMap<QString,QString>& value )
+void AppDatabase::setConfigs( const QJsonObject& value )
 {
     // write each value
-    for ( QMap<QString,QString>::const_iterator i( value.constBegin() ); i != value.constEnd(); ++i )
-        if ( !writeSetting( i.key(), i.value() ) )
-            LOG_WARN << "failed to write setting " << qPrintable( i.key() ) << " '" << qPrintable( i.value() ) << "'";
+    for ( QJsonObject::const_iterator i( value.constBegin() ); i != value.constEnd(); ++i )
+    {
+        const QString v( i->toString() );
+
+        if ( !writeSetting( i.key(), v ) )
+            LOG_WARN << "failed to write setting " << qPrintable( i.key() ) << " '" << qPrintable( v ) << "'";
+    }
 
     // refresh settings
     readSettings();
 
     // emit!
     emit configurationChanged();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::setFilter( const QString& name, const QByteArray& value )
+{
+    static const QString sql( "INSERT INTO filters (name,value) "
+            "VALUES (:name,:value)" );
+
+    // remove old filter
+    removeFilter( name );
+
+    // create new filter
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+    query.bindValue( ":name", name );
+    query.bindValue( ":value", value );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -800,7 +916,7 @@ QStringList AppDatabase::upgradeFiles( const QString& fromStr, const QString& to
     QStringList files;
 
     while ( from < to )
-        files.append( QString( ":/db/version%0_app.sql" ).arg( from++ ) );
+        files.append( QString( ":/db/version%0_app.sql" ).arg( ++from ) );
 
     return files;
 }
@@ -1067,6 +1183,8 @@ void AppDatabase::readSettings()
     // read settings
     QVariant v;
 
+    if ( readSetting( "optionCalcMethod", v ) )
+        optionCalcMethod_ = v.toString();
     if ( readSetting( "optionTradeCost", v ) )
         optionTradeCost_ = v.toDouble();
 

@@ -1,5 +1,5 @@
 /**
- * @file binomialcalc.cpp
+ * @file trinomialcalc.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,36 +20,36 @@
  */
 
 #include "common.h"
-#include "binomialcalc.h"
+#include "trinomialcalc.h"
 
-#include "util/coxrossrubinstein.h"
 #include "util/newtonraphson.h"
+#include "util/phelimboyle.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-BinomialCalculator::BinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
+TrinomialCalculator::TrinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     _Mybase( underlying, chains, results )
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-BinomialCalculator::~BinomialCalculator()
+TrinomialCalculator::~TrinomialCalculator()
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double BinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
+double TrinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
 {
     return NewtonRaphson::calcImplVol( (*pricing), type, X, price, okay );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
+AbstractOptionPricing *TrinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
 {
-    return new CoxRossRubinstein( S, r, b, sigma, T, BINOM_DEPTH, european );
+    return new PhelimBoyle( S, r, b, sigma, T, TRINOM_DEPTH, european );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void BinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
+void TrinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )
         delete doomed;

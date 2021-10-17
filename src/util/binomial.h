@@ -104,35 +104,35 @@ protected:
     // Properties
     // ========================================================================
 
-    /// Calculate option price for put type option.
+    /// Calculate option price using binomial pricing.
     /**
-     * @param[in] S  underlying price
-     * @param[in] X  strike price
+     * @param[in] isCall  @c true if option is call, @c false for put
+     * @param[in] S  underlying (spot) price
+     * @param[in] K  strike price
      * @param[in] u  upward amount
      * @param[in] d  downward amount
      * @param[in] pu  probability up
      * @param[in] pd  probability down
-     * @param[in] Df  discount factor
-     * @return  put option price
+     * @return  option price
      */
-    virtual double calcOptionPricePut( double S, double X, double u, double d, double pu, double pd, double Df ) const {
+    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const {
         const std::vector<double> div( N_+1, 0.0 );
-        return calcOptionPricePut( S, X, u, d, pu, pd, Df, div );
+        return calcOptionPrice( isCall, S, K, u, d, pu, pd, Df, div );
     }
 
-    /// Calculate option price for put type option.
+    /// Calculate option price using binomial pricing.
     /**
-     * @param[in] S  underlying price
-     * @param[in] X  strike price
+     * @param[in] isCall  @c true if option is call, @c false for put
+     * @param[in] S  underlying (spot) price
+     * @param[in] K  strike price
      * @param[in] u  upward amount
      * @param[in] d  downward amount
      * @param[in] pu  probability up
      * @param[in] pd  probability down
-     * @param[in] Df  discount factor
      * @param[in] div  dividend value for time
-     * @return  put option price
+     * @return  option price
      */
-    virtual double calcOptionPricePut( double S, double X, double u, double d, double pu, double pd, double Df, const std::vector<double>& div ) const;
+    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& div ) const;
 
     /// Calculate partials.
     /**
@@ -161,6 +161,7 @@ protected:
      * @return  reference to this
      */
     void move( const _Myt&& other );
+
 
 };
 
