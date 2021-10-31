@@ -173,6 +173,18 @@ public:
      */
     virtual double numTradingDays() const {return numTradingDays_;}
 
+    /// Retrieve filter to use for option analysis.
+    /**
+     * @return  filter name
+     */
+    virtual QString optionAnalysisFilter() const {return optionAnalysisFilter_;}
+
+    /// Retrieve watch lists to use for option analysis.
+    /**
+     * @return  watch lists
+     */
+    virtual QString optionAnalysisWatchLists() const {return optionAnalysisWatchLists_;}
+
     /// Retrieve option calc method.
     /**
      * @return  method
@@ -322,8 +334,11 @@ public slots:
 
 protected:
 
-    QString optionCalcMethod_;                      ///< Option calc method.
     double optionTradeCost_;                        ///< Option trade cost.
+    QString optionCalcMethod_;                      ///< Option calc method.
+
+    QString optionAnalysisWatchLists_;              ///< Watchlists to use for option analysis.
+    QString optionAnalysisFilter_;                  ///< Filter to use for option analysis.
 
     double numTradingDays_;                         ///< Number of trading days.
     double numDays_;                                ///< Number of days.

@@ -32,11 +32,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void fit_polynomial( const std::vector<vector2>& v, double& x2, double& x1, double& x0 )
 {
-    //const size_t N( v.size() );
-    const int N( v.size() );
+    const size_t N( v.size() );
 
-    //size_t i, j, k;
-    int i, j, k;
+    size_t i, j, k;
 
     // generate augmented matrix
     double B[3][4] = {0.0};

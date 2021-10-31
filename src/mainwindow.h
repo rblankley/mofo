@@ -28,6 +28,8 @@
 #include <QMainWindow>
 
 class AppDatabase;
+class OptionAnalyzer;
+class OptionTradingItemModel;
 
 class QAction;
 class QComboBox;
@@ -103,6 +105,9 @@ private:
     AbstractDaemon *daemon_;
     AppDatabase *db_;
 
+    OptionAnalyzer *analysis_;
+    OptionTradingItemModel *analysisModel_;
+
     QMenu *fileMenu_;
     QAction *exit_;
 
@@ -119,6 +124,10 @@ private:
     QAction *stopDaemon_;
     QAction *pauseDaemon_;
     QAction *runWhenMarketsClosed_;
+
+    QMenu *results_;
+    QAction *viewAnalysis_;
+    QAction *customScan_;
 
     QMenu *helpMenu_;
     QAction *about_;

@@ -50,7 +50,7 @@ public:
     /// Option strategies.
     enum OptionTradingStrategyFilter
     {
-        SINGLE = 0x0001,                            ///< Single options.
+        SINGLE = 0x0001,                            ///< Single options (CSP and CC).
         VERTICAL = 0x0002,                          ///< Verticals.
         CALENDAR = 0x0004,                          ///< Calendar trades.
         STRANGLE = 0x0008,                          ///< Strangles.
@@ -127,6 +127,90 @@ public:
      * @return  amount
      */
     virtual double maxLossAmount() const {return maxLossAmount_;}
+
+    /// Set minimum gain amount.
+    /**
+     * @param[in] value  amount
+     */
+    virtual void setMinGainAmount( double value ) {minGainAmount_ = value;}
+
+    /// Retrieve minimum gain amount.
+    /**
+     * @return  amount
+     */
+    virtual double minGainAmount() const {return minGainAmount_;}
+
+    /// Set minimum bid size.
+    /**
+     * @param[in] value  size
+     */
+    virtual void setMinBidSize( int value ) {minBidSize_ = value;}
+
+    /// Retrieve minimum bid size.
+    /**
+     * @return  size
+     */
+    virtual int minBidSize() const {return minBidSize_;}
+
+    /// Set minimum ask size.
+    /**
+     * @param[in] value  size
+     */
+    virtual void setMinAskSize( int value ) {minAskSize_ = value;}
+
+    /// Retrieve minimum ask size.
+    /**
+     * @return  size
+     */
+    virtual int minAskSize() const {return minAskSize_;}
+
+    /// Set minimum probability of profit.
+    /**
+     * @param[in] value  percentage
+     */
+    virtual void setMinProbProfit( double value ) {minProbProfit_ = value;}
+
+    /// Retrieve minimum probability of profit.
+    /**
+     * @return  percentage
+     */
+    virtual double minProbProfit() const {return minProbProfit_;}
+
+    /// Set maximum probability of profit.
+    /**
+     * @param[in] value  percentage
+     */
+    virtual void setMaxProbProfit( double value ) {maxProbProfit_ = value;}
+
+    /// Retrieve maximum probability of profit.
+    /**
+     * @return  percentage
+     */
+    virtual double maxProbProfit() const {return maxProbProfit_;}
+
+    /// Set minimum days to expiration.
+    /**
+     * @param[in] value  DTE
+     */
+    virtual void setMinDaysToExpiry( int value ) {minDaysToExpiry_ = value;}
+
+    /// Retrieve minimum days to expiration.
+    /**
+     * @return  DTE
+     */
+    virtual int minDaysToExpiry() const {return minDaysToExpiry_;}
+
+    /// Set maximum days to expiration.
+    /**
+     * @param[in] value  DTE
+     */
+    virtual void setMaxDaysToExpiry( int value ) {maxDaysToExpiry_ = value;}
+
+    /// Retrieve maximum days to expiration.
+    /**
+     * @return  DTE
+     */
+    virtual int maxDaysToExpiry() const {return maxDaysToExpiry_;}
 
     /// Set minimum ROI.
     /**
@@ -282,6 +366,16 @@ protected:
     double maxInvestAmount_;                                ///< Maximum investment amount.
 
     double maxLossAmount_;                                  ///< Maximum loss amount.
+    double minGainAmount_;                                  ///< Minimum gain amount.
+
+    int minBidSize_;                                        ///< Minimum bid size.
+    int minAskSize_;                                        ///< Minimum ask size.
+
+    double minProbProfit_;                                  ///< Minimum probability of profit.
+    double maxProbProfit_;                                  ///< Maximum probability of profit.
+
+    int minDaysToExpiry_;                                   ///< Minimum days to expiration.
+    int maxDaysToExpiry_;                                   ///< Maximum days to expiration.
 
     double minReturnOnInvestment_;                          ///< Minimum return on investment.
     double maxReturnOnInvestment_;                          ///< Maximum return on investment.

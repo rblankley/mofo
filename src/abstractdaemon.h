@@ -156,6 +156,12 @@ public slots:
     /// Daemon API Authorization.
     virtual void authorize();
 
+    /// Force a new scan.
+    /**
+     * @param[in] watchlist  watchlist(s) to process
+     */
+    virtual void scan( const QString& watchlists );
+
 signals:
 
     /// Signal for active changed.
@@ -170,6 +176,13 @@ signals:
      */
     void connectedStateChanged( AbstractDaemon::ConnectedState newState );
 
+    /// Signal for when option chain background process goes active (or deactive).
+    /**
+     * @param[in] active  @c true when active, @c false if inactive
+     * @param[in] symbols  list of symbols being processed
+     */
+    void optionChainBackgroundProcess( bool active, const QStringList& symbols = QStringList() );
+
     /// Signal for when option chains have updated.
     /**
      * @param[in] symbol  updated symbol
@@ -177,6 +190,13 @@ signals:
      * @param[in] background  @c true if update occured in background processing, @c false otherwise
      */
     void optionChainUpdated( const QString& symbol, const QList<QDate>& expiryDates, bool background = false );
+
+    /// Signal for when equity quotes and history background process goes active (or deactive).
+    /**
+     * @param[in] active  @c true when active, @c false if inactive
+     * @param[in] symbols  list of symbols being processed
+     */
+    void quotesBackgroundProcess( bool active, const QStringList& symbols = QStringList() );
 
     /// Signal for when quotes have updated.
     /**
@@ -262,10 +282,18 @@ protected:
     virtual void dequeue() {}
 
     /// Queue equity requests.
-    virtual void queueEquityRequests() {}
+    /**
+     * @param[in] symbols  symbols to queue
+     * @param[in] force  @c true to force queueing, @c false otherwise
+     */
+    virtual void queueEquityRequests( const QStringList& /*symbols*/, const bool /*force*/ = false ) {}
 
     /// Queue option chain requests.
-    virtual void queueOptionChainRequests() {}
+    /**
+     * @param[in] symbols  symbols to queue
+     * @param[in] force  @c true to force queueing, @c false otherwise
+     */
+    virtual void queueOptionChainRequests( const QStringList& /*symbols*/, const bool /*force*/ = false ) {}
 
 private slots:
 

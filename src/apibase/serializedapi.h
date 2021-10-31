@@ -61,7 +61,29 @@ signals:
      */
     void processFile( const QUuid& uuid, const QByteArray& request, const QString& requestType, int status, const QString& filename );
 
+public:
+
+    // ========================================================================
+    // Properties
+    // ========================================================================
+
+    /// Retrieve if API should block.
+    /**
+     * @return  @c true if blocking enabled, @c false otherwise
+     */
+    virtual bool isBlocking() const {return blocking_;}
+
 public slots:
+
+    // ========================================================================
+    // Properties
+    // ========================================================================
+
+    /// Set if API should block.
+    /**
+     * @param[in] value  @c true to block on responses, @c false otherwise
+     */
+    virtual void setBlocking( bool value ) {blocking_ = value;}
 
     // ========================================================================
     // Methods
@@ -83,6 +105,15 @@ public slots:
      */
     virtual void downloadFile( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType );
 
+    /// Remove (delete) resource.
+    /**
+     * @param[in] uuid  uuid
+     * @param[in] url  url to remove
+     * @param[in] timeout  >0 to for request timeout (ms)
+     * @param[in] maxAttempts  number of attempts
+     */
+    virtual void remove( const QUuid& uuid, const QUrl& url, unsigned int timeout, unsigned int maxAttempts );
+
     /// Send request.
     /**
      * @param[in] uuid  uuid
@@ -103,7 +134,20 @@ public slots:
      */
     virtual void send( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts );
 
+    /// Upload resource.
+    /**
+     * @param[in] uuid  uuid
+     * @param[in] url  url to download
+     * @param[in] request  request
+     * @param[in] requestType  request type
+     * @param[in] timeout  >0 to for request timeout (ms)
+     * @param[in] maxAttempts  number of attempts
+     */
+    virtual void upload( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts );
+
 protected:
+
+    bool blocking_;                                 ///< Blocking enabled.
 
     // ========================================================================
     // CTOR / DTOR
@@ -149,6 +193,12 @@ protected:
      */
     virtual void handleProcessDocument( const QUuid& uuid, const QByteArray& request, const QString& requestType, int status, const QByteArray& response, const QString& responseType );
 
+    /// Wait for response.
+    /**
+     * @param[in] uuid  uuid to wait for
+     */
+    virtual void waitForResponse( const QUuid& uuid ) const;
+
 private slots:
 
     /// Slot for reply download progress.
@@ -158,6 +208,14 @@ private slots:
     void onReplyReceived( QNetworkReply *reply, bool valid, int statusCode, const QByteArray& content, const QString& contentType, unsigned int elapsed );
 
 private:
+
+    enum Method
+    {
+        DELETE_RESOURCE,
+        GET,
+        POST,
+        PUT
+    };
 
     struct RequestControl
     {
@@ -175,6 +233,7 @@ private:
         QByteArray request;
         QString requestType;
 
+        Method method;
         bool file;
 
         int status;
@@ -192,10 +251,10 @@ private:
     QNetworkReply *processRequestControl( const RequestControl& rc );
 
     /// Create request control block.
-    RequestControl createDocumentRequestControl( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts );
+    RequestControl createDocumentRequestControl( const QUuid& uuid, const QUrl& url, Method m, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts );
 
     /// Create request control block.
-    RequestControl createFileRequestControl( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType );
+    RequestControl createFileRequestControl( const QUuid& uuid, const QUrl& url, Method m, const QByteArray& request, const QString& requestType );
 
     /// Read request control block.
     RequestControl readRequestControl( QNetworkReply *reply ) const;
@@ -205,6 +264,9 @@ private:
 
     /// Destroy request control block.
     void destroyRequestControl( QNetworkReply *reply );
+
+    /// Check request control for uuid exists or not.
+    bool requestControlExists( const QUuid& uuid ) const;
 
     // not implemented
     SerializedWebInterface( const _Myt& ) = delete;

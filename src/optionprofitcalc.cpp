@@ -127,6 +127,11 @@ bool OptionProfitCalculator::isFilteredOut( int row, bool isCall ) const
             return true;
     }
 
+    if (( f_.minDaysToExpiry() ) && ( daysToExpiry_ < f_.minDaysToExpiry() ))
+        return true;
+    else if (( f_.maxDaysToExpiry() ) && ( f_.maxDaysToExpiry() < daysToExpiry_ ))
+        return true;
+
     return false;
 }
 
@@ -140,20 +145,48 @@ bool OptionProfitCalculator::isNonStandard( int row ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionProfitCalculator::addRowToItemModel( const item_model_type::ColumnValueMap& result ) const
 {
-    if (( 0.0 < f_.minInvestAmount() ) && ( result[item_model_type::INVESTMENT_VALUE].toDouble() < f_.minInvestAmount() ))
+    // negative investments have zero risk!
+    // either the VI is really high or option data is out of date
+    const bool freeMoney( result[item_model_type::INVESTMENT_AMOUNT].toDouble() <= 0.0 );
+
+    // investment amount in range
+    if (( 0.0 < f_.minInvestAmount() ) && ( result[item_model_type::INVESTMENT_AMOUNT].toDouble() < f_.minInvestAmount() ) && ( !freeMoney ))
         return;
-    if (( 0.0 < f_.maxInvestAmount() ) && ( f_.maxInvestAmount() < result[item_model_type::INVESTMENT_VALUE].toDouble() ))
+    if (( 0.0 < f_.maxInvestAmount() ) && ( f_.maxInvestAmount() < result[item_model_type::INVESTMENT_AMOUNT].toDouble() ))
         return;
 
-    if (( 0.0 < f_.maxLossAmount() ) && ( f_.maxLossAmount() < result[item_model_type::MAX_LOSS].toDouble() ))
+    // check max loss and min gain
+    if (( 0.0 < f_.maxLossAmount() ) && ( f_.maxLossAmount() < result[item_model_type::MAX_LOSS].toDouble() ) && ( !freeMoney ))
+        return;
+    if (( 0.0 < f_.minGainAmount() ) && ( result[item_model_type::MAX_GAIN].toDouble() < f_.minGainAmount() ))
         return;
 
-    if (( 0.0 < f_.minReturnOnInvestment() ) && ( result[item_model_type::ROI].toDouble() < f_.minReturnOnInvestment() ))
+    // check bid sizes
+    if (( 0 < f_.minBidSize() ) && ( result[item_model_type::BID_SIZE].toInt() < f_.minBidSize() ))
+        return;
+    if (( 0 < f_.minAskSize() ) && ( result[item_model_type::ASK_SIZE].toInt() < f_.minAskSize() ))
+        return;
+
+    // probability of profit
+    if (( 0.0 < f_.minProbProfit() ) && ( result[item_model_type::PROBABILITY_PROFIT].toDouble() < f_.minProbProfit() ))
+        return;
+    else if (( 0.0 < f_.maxProbProfit() ) && ( f_.maxProbProfit() < result[item_model_type::PROBABILITY_PROFIT].toDouble() ))
+        return;
+
+    // DTE
+    if (( f_.minDaysToExpiry() ) && ( daysToExpiry_ < f_.minDaysToExpiry() ))
+        return;
+    else if (( f_.maxDaysToExpiry() ) && ( f_.maxDaysToExpiry() < daysToExpiry_ ))
+        return;
+
+    // ROI
+    if (( 0.0 < f_.minReturnOnInvestment() ) && ( result[item_model_type::ROI].toDouble() < f_.minReturnOnInvestment() ) && ( !freeMoney ))
         return;
     if (( 0.0 < f_.maxReturnOnInvestment() ) && ( f_.maxReturnOnInvestment() < result[item_model_type::ROI].toDouble() ))
         return;
 
-    if (( 0.0 < f_.minReturnOnInvestmentTime() ) && ( result[item_model_type::ROI_TIME].toDouble() < f_.minReturnOnInvestmentTime() ))
+    // ROI / Time
+    if (( 0.0 < f_.minReturnOnInvestmentTime() ) && ( result[item_model_type::ROI_TIME].toDouble() < f_.minReturnOnInvestmentTime() ) && ( !freeMoney ))
         return;
     if (( 0.0 < f_.maxReturnOnInvestmentTime() ) && ( f_.maxReturnOnInvestmentTime() < result[item_model_type::ROI_TIME].toDouble() ))
         return;

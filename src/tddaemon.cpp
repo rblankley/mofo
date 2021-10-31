@@ -195,12 +195,19 @@ void TDAmeritradeDaemon::dequeue()
     if ( !processActiveState( now ) )
         return;
 
+    // no longer processing chains or equities
+    if ( ACTIVE_BACKGROUND == currentState() )
+    {
+        quotesBackgroundProcess( false );
+        optionChainBackgroundProcess( false );
+    }
+
     // clear background processing flag
     setCurrentState( ACTIVE );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritradeDaemon::queueEquityRequests()
+void TDAmeritradeDaemon::queueEquityRequests( const QStringList& symbols, bool force )
 {
     // prevent queue of back to back requests
     if (( fetchEquityStamp_.isValid() ) && ( fetchEquityStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() ))
@@ -210,7 +217,9 @@ void TDAmeritradeDaemon::queueEquityRequests()
     }
 
     // check for markets closed
-    if ( queueWhenClosed_ )
+    if ( force )
+        LOG_TRACE << "forcing queue";
+    else if ( queueWhenClosed_ )
         LOG_TRACE << "queue when markets closed set";
     else if ( !db_->isMarketOpen( db_->currentDateTime(), EQUITY_MARKET ) )
     {
@@ -219,7 +228,11 @@ void TDAmeritradeDaemon::queueEquityRequests()
     }
 
     // retrieve list
-    equityQueue_ = equityWatchlist();
+    equityQueue_ = symbols;
+
+    // active
+    if ( equityQueue_.size() )
+        emit quotesBackgroundProcess( true, equityQueue_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,6 +255,9 @@ void TDAmeritradeDaemon::retrievePriceHistory( const QString& symbol, const QDat
     // not enough history
     if (( !start.isValid() ) || ( !end.isValid() ) || ( toDate.addYears( -QUOTE_HIST_CHECK ).date() < start ))
     {
+        // yuck... get around stupid Qt cannot emit from const methods...
+        emit const_cast<_Myt*>( this )->statusMessageChanged( tr( "Fetching historical prices for " ) + symbol + "..." );
+
         LOG_DEBUG << "request " << QUOTE_HIST << " year history for " << qPrintable( symbol );
         api_->getPriceHistory( symbol, QUOTE_HIST, "year", 1, "daily", QDateTime(), toDate );
     }
@@ -249,6 +265,9 @@ void TDAmeritradeDaemon::retrievePriceHistory( const QString& symbol, const QDat
     // retrieve missing data
     else
     {
+        // yuck... get around stupid Qt cannot emit from const methods...
+        emit const_cast<_Myt*>( this )->statusMessageChanged( tr( "Updating historical prices for " ) + symbol + "..." );
+
         // how much history do we need
         int numMonths( 0 );
 
@@ -265,7 +284,7 @@ void TDAmeritradeDaemon::retrievePriceHistory( const QString& symbol, const QDat
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritradeDaemon::queueOptionChainRequests()
+void TDAmeritradeDaemon::queueOptionChainRequests( const QStringList& symbols, const bool force )
 {
     // prevent queue of back to back requests
     if (( fetchOptionChainStamp_.isValid() ) && ( fetchOptionChainStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() ))
@@ -275,7 +294,9 @@ void TDAmeritradeDaemon::queueOptionChainRequests()
     }
 
     // check for markets closed
-    if ( queueWhenClosed_ )
+    if ( force )
+        LOG_TRACE << "forcing queue";
+    else if ( queueWhenClosed_ )
         LOG_TRACE << "queue when markets closed set";
     else if ( !db_->isMarketOpen( db_->currentDateTime(), OPTION_MARKET ) )
     {
@@ -284,7 +305,7 @@ void TDAmeritradeDaemon::queueOptionChainRequests()
     }
 
     // retrieve list
-    optionChainQueue_ = optionChainWatchlist();
+    optionChainQueue_ = symbols;
 
     // determine if quote history needed (fetch once per day)
     foreach ( const QString& symbol, optionChainQueue_ )
@@ -294,6 +315,10 @@ void TDAmeritradeDaemon::queueOptionChainRequests()
         if (( !stamp.isValid() ) || ( stamp.date() < db_->currentDateTime().date() ))
             quoteHistoryQueue_.append( symbol );
     }
+
+    // active
+    if ( optionChainQueue_.size() )
+        emit optionChainBackgroundProcess( true, optionChainQueue_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -318,8 +343,8 @@ void TDAmeritradeDaemon::onActiveChanged( bool newValue )
         setCurrentState( STARTUP );
 
         // queue
-        queueEquityRequests();
-        queueOptionChainRequests();
+        queueEquityRequests( equityWatchlist() );
+        queueOptionChainRequests( optionChainWatchlist() );
     }
     else
     {
@@ -441,9 +466,9 @@ bool TDAmeritradeDaemon::processTreasYieldsState( const QDateTime& now )
     // wait for treasury yield curve
     if ( WAIT_TREAS_YIELDS == currentState() )
     {
-        if ( fetchTreasStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
+        if (( fetchTreasStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() ) || ( !requestsPending() ))
         {
-            LOG_WARN << "timeout waiting for treasury yield curve data";
+            LOG_WARN << "timeout waiting for treasury yield curve data (or bad response)";
             setActive( false );
 
             emit statusMessageChanged( tr( "ERROR: Timeout waiting for treasury yield curve data." ) );
@@ -496,9 +521,40 @@ bool TDAmeritradeDaemon::processMarketHoursState( const QDateTime& now )
     // wait for market hours
     if ( WAIT_MARKET_HOURS == currentState() )
     {
-        if ( fetchMarketHoursStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
+        if (( fetchMarketHoursStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() ) || ( !requestsPending() ))
         {
-            LOG_WARN << "timeout waiting for market hours";
+            bool okay( true );
+
+            LOG_WARN << "timeout waiting for market hours (or bad response)";
+
+            // as long as we have market hours for today and the past this error is okay... for
+            // now... not sure about when we fetch market hours tomorrow...
+            if ( fetchMarketHours_ <= now.date() )
+                okay = false;
+            else
+            {
+                const QStringList marketTypes( db_->marketTypes() );
+
+                foreach ( const QString& marketType, marketTypes )
+                    if ( !db_->marketHoursExist( now.date(), marketType ) )
+                    {
+                        okay = false;
+                        break;
+                    }
+            }
+
+            if ( okay )
+            {
+                LOG_INFO << "market hours exist for today";
+
+                emit statusMessageChanged( tr( "WARNING: Timeout waiting for market hours" ) );
+
+                // move to next state
+                setCurrentState( FETCH_ACCOUNTS );
+                return true;
+            }
+
+            // we do not have market hours for today and/or the past
             setActive( false );
 
             emit statusMessageChanged( tr( "ERROR: Timeout waiting for market hours." ) );
@@ -528,9 +584,9 @@ bool TDAmeritradeDaemon::processAccountsState()
     // wait for accounts
     if ( WAIT_ACCOUNTS == currentState() )
     {
-        if ( fetchAccountsStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() )
+        if (( fetchAccountsStamp_.addSecs( REQUEST_TIMEOUT ) <= QDateTime::currentDateTime() ) || ( !requestsPending() ))
         {
-            LOG_WARN << "timeout waiting for accounts";
+            LOG_WARN << "timeout waiting for accounts (or bad response)";
             setActive( false );
 
             emit statusMessageChanged( tr( "ERROR: Timeout waiting for account and balance information." ) );

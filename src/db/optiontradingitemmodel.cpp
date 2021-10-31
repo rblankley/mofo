@@ -31,41 +31,93 @@
 OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     _Mybase( 0, _NUM_COLUMNS, parent )
 {
-    // generate column is currency
-    columnIsCurrency_[BID_PRICE] = true;
-    columnIsCurrency_[ASK_PRICE] = true;
-    columnIsCurrency_[LAST_PRICE] = true;
+    // when sorting, use user role data (raw data)
+    setSortRole( Qt::UserRole );
 
-    columnIsCurrency_[BREAK_EVEN_PRICE] = true;
-    columnIsCurrency_[INTRINSIC_VALUE] = true;
+    // text columns
+    columnIsText_[STAMP] = true;
+    columnIsText_[UNDERLYING] = true;
+    columnIsText_[TYPE] = true;
 
-    columnIsCurrency_[OPEN_PRICE] = true;
-    columnIsCurrency_[HIGH_PRICE] = true;
-    columnIsCurrency_[LOW_PRICE] = true;
-    columnIsCurrency_[CLOSE_PRICE] = true;
+    columnIsText_[STRATEGY] = true;
+    columnIsText_[STRATEGY_DESC] = true;
 
-    columnIsCurrency_[CHANGE] = true;
+    columnIsText_[SYMBOL] = true;
+    columnIsText_[DESC] = true;
 
-    columnIsCurrency_[MARK] = true;
-    columnIsCurrency_[MARK_CHANGE] = true;
+    columnIsText_[EXCHANGE_NAME] = true;
 
-    columnIsCurrency_[TIME_VALUE] = true;
-    columnIsCurrency_[THEO_OPTION_VALUE] = true;
+    columnIsText_[SETTLEMENT_TYPE] = true;
+    columnIsText_[DELIVERABLE_NOTE] = true;
 
-    columnIsCurrency_[CALC_THEO_OPTION_VALUE] = true;
+    // number of decimal places
+    numDecimalPlaces_[BID_PRICE] = 2;
+    numDecimalPlaces_[ASK_PRICE] = 2;
+    numDecimalPlaces_[LAST_PRICE] = 2;
 
-    columnIsCurrency_[BID_ASK_SPREAD] = true;
+    numDecimalPlaces_[BREAK_EVEN_PRICE] = 2;
+    numDecimalPlaces_[INTRINSIC_VALUE] = 2;
 
-    columnIsCurrency_[INVESTMENT_OPTION_PRICE] = true;
-    columnIsCurrency_[INVESTMENT_OPTION_PRICE_VS_THEO] = true;
+    numDecimalPlaces_[OPEN_PRICE] = 2;
+    numDecimalPlaces_[HIGH_PRICE] = 2;
+    numDecimalPlaces_[LOW_PRICE] = 2;
+    numDecimalPlaces_[CLOSE_PRICE] = 2;
 
-    columnIsCurrency_[INVESTMENT_VALUE] = true;
-    columnIsCurrency_[MAX_GAIN] = true;
-    columnIsCurrency_[MAX_LOSS] = true;
+    numDecimalPlaces_[CHANGE] = 2;
+    numDecimalPlaces_[PERCENT_CHANGE] = 1;
 
-    columnIsCurrency_[EXPECTED_VALUE] = true;
+    numDecimalPlaces_[MARK] = 2;
+    numDecimalPlaces_[MARK_CHANGE] = 2;
+    numDecimalPlaces_[MARK_PERCENT_CHANGE] = 1;
 
-    columnIsCurrency_[STRIKE_PRICE] = true;
+    numDecimalPlaces_[VOLATILITY] = 4;
+    numDecimalPlaces_[DELTA] = 4;
+    numDecimalPlaces_[GAMMA] = 4;
+    numDecimalPlaces_[THETA] = 4;
+    numDecimalPlaces_[VEGA] = 4;
+    numDecimalPlaces_[RHO] = 4;
+
+    numDecimalPlaces_[TIME_VALUE] = 2;
+    numDecimalPlaces_[THEO_OPTION_VALUE] = 2;
+    numDecimalPlaces_[THEO_VOLATILITY] = 4;
+
+    numDecimalPlaces_[HIST_VOLATILITY] = 4;
+    numDecimalPlaces_[TIME_TO_EXPIRY] = 4;
+    numDecimalPlaces_[RISK_FREE_INTEREST_RATE] = 4;
+
+    numDecimalPlaces_[CALC_BID_PRICE_VI] = 4;
+    numDecimalPlaces_[CALC_ASK_PRICE_VI] = 4;
+    numDecimalPlaces_[CALC_MARK_VI] = 4;
+
+    numDecimalPlaces_[CALC_THEO_OPTION_VALUE] = 2;
+    numDecimalPlaces_[CALC_THEO_VOLATILITY] = 4;
+    numDecimalPlaces_[CALC_DELTA] = 4;
+    numDecimalPlaces_[CALC_GAMMA] = 4;
+    numDecimalPlaces_[CALC_THETA] = 4;
+    numDecimalPlaces_[CALC_VEGA] = 4;
+    numDecimalPlaces_[CALC_RHO] = 4;
+
+    numDecimalPlaces_[BID_ASK_SPREAD] = 2;
+    numDecimalPlaces_[BID_ASK_SPREAD_PERCENT] = 1;
+
+    numDecimalPlaces_[PROBABILITY_ITM] = 1;
+    numDecimalPlaces_[PROBABILITY_OTM] = 1;
+    numDecimalPlaces_[PROBABILITY_PROFIT] = 1;
+
+    numDecimalPlaces_[INVESTMENT_OPTION_PRICE] = 2;
+    numDecimalPlaces_[INVESTMENT_OPTION_PRICE_VS_THEO] = 2;
+
+    numDecimalPlaces_[INVESTMENT_AMOUNT] = 2;
+    numDecimalPlaces_[PREMIUM_AMOUNT] = 2;
+    numDecimalPlaces_[MAX_GAIN] = 2;
+    numDecimalPlaces_[MAX_LOSS] = 2;
+
+    numDecimalPlaces_[ROI] = 3;
+    numDecimalPlaces_[ROI_TIME] = 3;
+
+    numDecimalPlaces_[EXPECTED_VALUE] = 2;
+    numDecimalPlaces_[EXPECTED_VALUE_ROI] = 3;
+    numDecimalPlaces_[EXPECTED_VALUE_ROI_TIME] = 3;
 
     // color of money!!!!
     inTheMoneyColor_ = Qt::green;
@@ -85,99 +137,6 @@ OptionTradingItemModel::~OptionTradingItemModel()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QVariant OptionTradingItemModel::data( const QModelIndex& index, int role ) const
-{
-    QMutexLocker guard( &m_ );
-
-    if ( Qt::DisplayRole == role )
-    {
-        if ( STRATEGY == index.column() )
-            return strategyText( (Strategy) _Mybase::data( index, role ).toInt() );
-    }
-    else if ( Qt::TextAlignmentRole == role )
-    {
-        switch ( index.column() )
-        {
-        case UNDERLYING:
-        case TYPE:
-        case STRATEGY:
-        case STRATEGY_DESC:
-        case SYMBOL:
-        case EXPIRY_DATE:
-            return QVariant( Qt::AlignLeft | Qt::AlignVCenter );
-        default:
-            break;
-        }
-
-        return QVariant( Qt::AlignRight | Qt::AlignVCenter );
-    }
-    else if ( Qt::BackgroundRole == role )
-    {
-        if ( _Mybase::data( index.row(), IS_IN_THE_MONEY ).toBool() )
-        {
-            if ( _Mybase::data( index.row(), IS_OUT_OF_THE_MONEY ).toBool() )
-                return QVariant( mixedMoneyColor_ );
-
-            return QVariant( inTheMoneyColor_ );
-        }
-    }
-    else if ( Qt::ForegroundRole == role )
-    {
-        switch ( index.column() )
-        {
-        case CALC_THEO_OPTION_VALUE:
-            return calcErrorColor( index.row(), THEO_OPTION_VALUE, CALC_THEO_OPTION_VALUE, textColor_ );
-
-        case CALC_THEO_VOLATILITY:
-            return calcErrorColor( index.row(), VOLATILITY, CALC_THEO_VOLATILITY, textColor_ );
-
-        case CALC_DELTA:
-            return calcErrorColor( index.row(), DELTA, CALC_DELTA, textColor_ );
-
-        case CALC_GAMMA:
-            return calcErrorColor( index.row(), GAMMA, CALC_GAMMA, textColor_ );
-
-        case CALC_THETA:
-            return calcErrorColor( index.row(), THETA, CALC_THETA, textColor_ );
-
-        case CALC_VEGA:
-            return calcErrorColor( index.row(), VEGA, CALC_VEGA, textColor_ );
-
-        case CALC_RHO:
-            return calcErrorColor( index.row(), RHO, CALC_RHO, textColor_ );
-
-        case INVESTMENT_OPTION_PRICE:
-            if ( 0.0 < _Mybase::data( index.row(), INVESTMENT_OPTION_PRICE_VS_THEO ).toDouble() )
-                return QVariant( QColor( Qt::green ) );
-            else if ( _Mybase::data( index.row(), INVESTMENT_OPTION_PRICE_VS_THEO ).toDouble() < 0.0 )
-                return QVariant( QColor( Qt::red ) );
-
-            break;
-
-        case INVESTMENT_OPTION_PRICE_VS_THEO:
-        case ROI:
-        case ROI_TIME:
-        case EXPECTED_VALUE:
-        case EXPECTED_VALUE_ROI:
-        case EXPECTED_VALUE_ROI_TIME:
-            if ( 0.0 < _Mybase::data( index.row(), index.column() ).toDouble() )
-                return QVariant( QColor( Qt::green ) );
-            else if ( _Mybase::data( index.row(), index.column() ).toDouble() < 0.0 )
-                return QVariant( QColor( Qt::red ) );
-
-            break;
-
-        default:
-            break;
-        }
-
-        return QVariant( textColor_ );
-    }
-
-    return _Mybase::data( index, role );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 Qt::ItemFlags OptionTradingItemModel::flags( const QModelIndex& index ) const
 {
     QMutexLocker guard( &m_ );
@@ -192,90 +151,150 @@ Qt::ItemFlags OptionTradingItemModel::flags( const QModelIndex& index ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 {
-/*
-    const double roiTime( values[EXPECTED_ROI_TIME].toDouble() );
-*/
     QMutexLocker guard( &m_ );
 
-    // find insertion row
-    int row( 0 );
-/*
-    while ( row < rowCount() )
-    {
-        const QModelIndex idx( index( row, EXPECTED_ROI_TIME ) );
-
-        if ( data( idx ).toDouble() <= roiTime )
-            break;
-
-        ++row;
-    }
-*/
     // insert!
-    insertRow( row );
+    insertRow( 0 );
 
     // populate
     for ( ColumnValueMap::const_iterator i( values.constBegin() ); i != values.constEnd(); ++i )
     {
-        const QModelIndex idx( index( row, i.key() ) );
-        setData( idx, formatValue( i.value(), columnIsCurrency_[i.key()] ), Qt::DisplayRole );
+        const QModelIndex idx( index( 0, i.key() ) );
+
+        // display role
+        QString text;
+
+        if ( STRATEGY == idx.column() )
+            text = strategyText( (Strategy) i->toInt() );
+        else
+            text = formatValue( i.value(), numDecimalPlaces_[i.key()] );
+
+        setData( idx, text, Qt::DisplayRole );
+
+        // text alignment role
+        Qt::Alignment align;
+
+        if ( columnIsText_[idx.column()] )
+            align = Qt::AlignLeft | Qt::AlignVCenter;
+        else
+            align = Qt::AlignRight | Qt::AlignVCenter;
+
+        setData( idx, QVariant( align ), Qt::TextAlignmentRole );
+
+        // background role
+        if ( values[IS_IN_THE_MONEY].toBool() )
+        {
+            if ( values[IS_OUT_OF_THE_MONEY].toBool() )
+                setData( idx, QVariant( mixedMoneyColor_ ), Qt::BackgroundRole );
+            else
+                setData( idx, QVariant( inTheMoneyColor_ ), Qt::BackgroundRole );
+        }
+
+        // foreground role
+        double v;
+
+        setData( idx, textColor_, Qt::ForegroundRole );
+
+        switch ( idx.column() )
+        {
+        case CALC_THEO_OPTION_VALUE:
+            setData( idx, calcErrorColor( values[THEO_OPTION_VALUE], values[CALC_THEO_OPTION_VALUE], textColor_ ), Qt::ForegroundRole );
+            break;
+        case CALC_THEO_VOLATILITY:
+            setData( idx, calcErrorColor( values[VOLATILITY], values[CALC_THEO_VOLATILITY], textColor_ ), Qt::ForegroundRole );
+            break;
+        case CALC_DELTA:
+            setData( idx, calcErrorColor( values[DELTA], values[CALC_DELTA], textColor_ ), Qt::ForegroundRole );
+            break;
+        case CALC_GAMMA:
+            setData( idx, calcErrorColor( values[GAMMA], values[CALC_GAMMA], textColor_ ), Qt::ForegroundRole );
+            break;
+        case CALC_THETA:
+            setData( idx, calcErrorColor( values[THETA], values[CALC_THETA], textColor_ ), Qt::ForegroundRole );
+            break;
+        case CALC_VEGA:
+            setData( idx, calcErrorColor( values[VEGA], values[CALC_VEGA], textColor_ ), Qt::ForegroundRole );
+            break;
+        case CALC_RHO:
+            setData( idx, calcErrorColor( values[RHO], values[CALC_RHO], textColor_ ), Qt::ForegroundRole );
+            break;
+
+        case INVESTMENT_OPTION_PRICE:
+        case INVESTMENT_OPTION_PRICE_VS_THEO:
+            v = values[INVESTMENT_OPTION_PRICE_VS_THEO].toDouble();
+            if ( 0.0 < v )
+                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+            else if ( v < 0.0 )
+                setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            break;
+
+        case INVESTMENT_AMOUNT:
+        case MAX_LOSS:
+            if ( values[idx.column()].toDouble() < 0.0 )
+                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+            break;
+        case PREMIUM_AMOUNT:
+        case MAX_GAIN:
+            if ( values[idx.column()].toDouble() < 0.0 )
+                setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            break;
+
+        case ROI:
+        case ROI_TIME:
+            if ( values[idx.column()].toDouble() < 0.0 )
+            {
+                if ( values[INVESTMENT_AMOUNT].toDouble() < 0.0 )
+                    setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                else
+                    setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            }
+            break;
+
+        case EXPECTED_VALUE:
+            v = values[idx.column()].toDouble();
+            if ( 0.0 < v )
+                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+            else if ( v < 0.0 )
+                setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            break;
+
+        case EXPECTED_VALUE_ROI:
+        case EXPECTED_VALUE_ROI_TIME:
+            v = values[idx.column()].toDouble();
+            if ( 0.0 < v )
+                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+            else if ( v < 0.0 )
+            {
+                if ( values[INVESTMENT_AMOUNT].toDouble() < 0.0 )
+                    setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                else
+                    setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            }
+            break;
+
+        default:
+            break;
+        }
+
+        // user role
+        setData( idx, i.value(), Qt::UserRole );
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QString OptionTradingItemModel::formatValue( const QVariant& v, bool isCurrency )
+double OptionTradingItemModel::calcError( const QVariant& col0, const QVariant& col1, bool &valid )
 {
-    static const QString invalidNumber( "NaN" );
-
-    if ( QVariant::String == v.type() )
-    {
-        const QString result( v.toString() );
-
-        if ( invalidNumber == result )
-            return QString();
-
-        return result;
-    }
-    else if ( QVariant::Date == v.type() )
-    {
-        const QDate result( v.toDate() );
-
-        return result.toString();
-    }
-
-    const double doubleValue( v.toDouble() );
-
-    if ( isCurrency )
-        return QString::number( doubleValue, 'f', 2 );
-
-    // check for integer
-    const qlonglong intValue( v.toLongLong() );
-
-    if ( doubleValue == (double) intValue )
-    {
-        const QLocale l( QLocale::system() );
-        return l.toString( intValue );
-    }
-
-    return QString::number( doubleValue );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double OptionTradingItemModel::calcError( int row, ColumnIndex col0, ColumnIndex col1, bool &valid ) const
-{
-    const QVariant v0( data( row, col0 ) );
-    const QVariant v1( data( row, col1 ) );
-
-    if ( !(valid = (( v0.isValid() ) && ( v1.isValid() ))) )
+    if ( !(valid = (( col0.isValid() ) && ( col1.isValid() ))) )
         return 0.0;
 
-    return std::fabs( (v1.toDouble() - v0.toDouble()) / v0.toDouble() );
+    return std::fabs( (col1.toDouble() - col0.toDouble()) / col0.toDouble() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QColor OptionTradingItemModel::calcErrorColor( int row, ColumnIndex col0, ColumnIndex col1, const QColor& orig ) const
+QColor OptionTradingItemModel::calcErrorColor( const QVariant& col0, const QVariant& col1, const QColor& orig )
 {
     bool valid;
-    const double e( calcError( row, col0, col1, valid ) );
+    const double e( calcError( col0, col1, valid ) );
 
     if ( 0.50 < e )
         return Qt::darkRed;

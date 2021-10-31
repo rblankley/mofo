@@ -85,6 +85,12 @@ void SerializedJsonWebInterface::send( const QUuid& uuid, const QUrl& url, const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void SerializedJsonWebInterface::upload( const QUuid& uuid, const QUrl& url, const QJsonDocument& request, unsigned int timeout, unsigned int maxAttempts )
+{
+    _Mybase::upload( uuid, url, request.toJson(), APPLICATION_JSON, timeout, maxAttempts );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void SerializedJsonWebInterface::saveDocument( const QJsonDocument& doc, const QString& filename )
 {
 #if !defined( DEBUG_JSON )

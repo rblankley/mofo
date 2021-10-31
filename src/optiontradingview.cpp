@@ -145,16 +145,27 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
 
     QMap<QAction*, int> columnMap;
 
+    QMap<QAction*, int> sortAscMap;
+    QMap<QAction*, int> sortDescMap;
+
     QMenu contextMenu;
     QAction *a;
 
     // hide whats underneath cursor
-    a = contextMenu.addAction( tr( "&Hide" ) + " " + columnHeaderText( from ) );
+    a = contextMenu.addAction( QIcon( ":/res/prohibition.png" ), tr( "&Hide" ) + " \"" + columnHeaderText( from ) + "\"" );
     columnMap[a] = from;
 
-    QAction *showAll( contextMenu.addAction( tr( "Show &All Columns" ) ) );
+    // sort ascending
+    a = contextMenu.addAction( QIcon( ":/res/sort-asc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&ASC" ) );
+    sortAscMap[a] = from;
 
-    contextMenu.addAction( tr( "&Cancel" ) );
+    // sort descending
+    a = contextMenu.addAction( QIcon( ":/res/sort-desc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&DESC" ) );
+    sortDescMap[a] = from;
+
+    QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "&Show All Columns" ) ) );
+
+    contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );
     contextMenu.addSeparator();
 
     // show all columns
@@ -173,6 +184,8 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
     // check result
     if ( showAll == a )
     {
+        LOG_TRACE << "show all columns";
+
         for ( int i( 0 ); i < model_type::_NUM_COLUMNS; ++i )
             setColumnHidden( i, false );
     }
@@ -185,7 +198,27 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
         if ( a->isCheckable() )
             hide = !a->isChecked();
 
+        LOG_TRACE << "set column " << column << " hidden " << hide;
+
         setColumnHidden( column, hide );
+    }
+    else if ( sortAscMap.contains( a ) )
+    {
+        const int column( sortAscMap[a] );
+
+        LOG_TRACE << "sorting by column " << column << " ASC";
+
+        sortByColumn( column, Qt::AscendingOrder );
+        return;
+    }
+    else if ( sortDescMap.contains( a ) )
+    {
+        const int column( sortDescMap[a] );
+
+        LOG_TRACE << "sorting by column " << column << " DESC";
+
+        sortByColumn( column, Qt::DescendingOrder );
+        return;
     }
     else
     {
@@ -415,18 +448,23 @@ QString OptionTradingView::columnHeaderText( int column ) const
         return tr( "Prob. ITM" );
     case model_type::PROBABILITY_OTM:
         return tr( "Prob. OTM" );
+    case model_type::PROBABILITY_PROFIT:
+        return tr( "Prob. Profit" );
 
     case model_type::INVESTMENT_OPTION_PRICE:
         return tr( "Price" );
     case model_type::INVESTMENT_OPTION_PRICE_VS_THEO:
         return tr( "Price Diff" );
 
-    case model_type::INVESTMENT_VALUE:
-        return tr( "Invest. Value" );
+    case model_type::INVESTMENT_AMOUNT:
+        return tr( "Invest. Amount" );
+    case model_type::PREMIUM_AMOUNT:
+        return tr( "Premium Amount" );
     case model_type::MAX_GAIN:
         return tr( "Max Gain" );
     case model_type::MAX_LOSS:
         return tr( "Max Loss" );
+
     case model_type::ROI:
         return tr( "ROI %" );
     case model_type::ROI_TIME:

@@ -53,6 +53,21 @@ FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& v
     maxInvestAmount_->setValue( f_.maxInvestAmount() );
 
     maxLossAmount_->setValue( f_.maxLossAmount() );
+    minGainAmount_->setValue( f_.minGainAmount() );
+
+    minBidSize_->setValue( f_.minBidSize() );
+    minAskSize_->setValue( f_.minAskSize() );
+
+    maxSpreadPercent_->setValue( f_.maxSpreadPercent() );
+
+    minDaysToExpiry_->setValue( f_.minDaysToExpiry() );
+    maxDaysToExpiry_->setValue( f_.maxDaysToExpiry() );
+
+    minImplVolatility_->setValue( f_.minVolatility() );
+    maxImplVolatility_->setValue( f_.maxVolatility() );
+
+    minProbProfit_->setValue( f_.minProbProfit() );
+    maxProbProfit_->setValue( f_.maxProbProfit() );
 
     minReturnOnInvestment_->setValue( f_.minReturnOnInvestment() );
     maxReturnOnInvestment_->setValue( f_.maxReturnOnInvestment() );
@@ -60,10 +75,7 @@ FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& v
     minReturnOnInvestmentTime_->setValue( f_.minReturnOnInvestmentTime() );
     maxReturnOnInvestmentTime_->setValue( f_.maxReturnOnInvestmentTime() );
 
-    maxSpreadPercent_->setValue( f_.maxSpreadPercent() );
-
-    minVolatility_->setValue( f_.minVolatility() );
-    maxVolatility_->setValue( f_.maxVolatility() );
+    verticalDepth_->setValue( f_.verticalDepth() );
 
     itmCalls_->setChecked( OptionProfitCalculatorFilter::ITM_CALLS & f_.optionTypeFilter() );
     otmCalls_->setChecked( OptionProfitCalculatorFilter::OTM_CALLS & f_.optionTypeFilter() );
@@ -82,8 +94,6 @@ FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& v
 
     histLessThanImpl_->setChecked( OptionProfitCalculatorFilter::HV_LTE_VI & f_.volatilityFilter() );
     histGreaterThanImpl_->setChecked( OptionProfitCalculatorFilter::HV_GT_VI & f_.volatilityFilter() );
-
-    verticalDepth_->setValue( f_.verticalDepth() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -103,21 +113,30 @@ void FilterEditorDialog::translate()
 {
     setWindowTitle( tr( "Filter Editor" ) + " - " + name_ );
 
-    minInvestAmountLabel_->setText( tr( "Minimum Investment Amount" ) );
-    maxInvestAmountLabel_->setText( tr( "Maximum Investment Amount" ) );
+    minColumnLabel_->setText( tr( "Minimum" ) );
+    maxColumnLabel_->setText( tr( "Maximum" ) );
 
-    maxLossAmountLabel_->setText( tr( "Maximum Loss Allowed" ) );
+    investAmountLabel_->setText( tr( "Investment Amount ($)" ) );
 
-    minReturnOnInvestmentLabel_->setText( tr( "Minimum ROI (%)" ) );
-    maxReturnOnInvestmentLabel_->setText( tr( "Maximum ROI (%)" ) );
+    lossAmountLabel_->setText( tr( "Max. Loss Allowed ($)" ) );
 
-    minReturnOnInvestmentTimeLabel_->setText( tr( "Minimum ROI / Time (%)" ) );
-    maxReturnOnInvestmentTimeLabel_->setText( tr( "Maximum ROI / Time (%)" ) );
+    gainAmountLabel_->setText( tr( "Min. Gain Desired ($)" ) );
 
-    maxSpreadPercentLabel_->setText( tr( "Maximum Bid/Ask Spread (%)" ) );
+    bidSizeLabel_->setText( tr( "Min. Bid Size" ) );
 
-    minVolatilityLabel_->setText( tr( "Minimum Implied Volatility" ) );
-    maxVolatilityLabel_->setText( tr( "Maximum Implied Volatility" ) );
+    askSizeLabel_->setText( tr( "Min. Ask Size" ) );
+
+    probProfitLabel_->setText( tr( "Probability of Profit (%)" ) );
+
+    daysToExpiryLabel_->setText( tr( "Days To Expiration (DTE)" ) );
+
+    returnOnInvestmentLabel_->setText( tr( "ROI (%)" ) );
+
+    returnOnInvestmentTimeLabel_->setText( tr( "ROI / Time (%)" ) );
+
+    spreadPercentLabel_->setText( tr( "Max. Bid/Ask Spread Ratio (%)" ) );
+
+    implVolatilityLabel_->setText( tr( "Implied Volatility" ) );
 
     optionTypes_->setTitle( tr( "Option Type" ) );
 
@@ -128,7 +147,7 @@ void FilterEditorDialog::translate()
 
     optionTradingStrats_->setTitle( tr( "Option Trading Strategy" ) );
 
-    single_->setText( tr( "Single" ) );
+    single_->setText( tr( "Single (CSP and CC)" ) );
     vertical_->setText( tr( "Vertical" ) );
     calendar_->setText( tr( "Calendar" ) );
     strangle_->setText( tr( "Strangle" ) );
@@ -160,6 +179,21 @@ void FilterEditorDialog::onButtonClicked()
         f_.setMaxInvestAmount( maxInvestAmount_->value() );
 
         f_.setMaxLossAmount( maxLossAmount_->value() );
+        f_.setMinGainAmount( minGainAmount_->value() );
+
+        f_.setMinBidSize( minBidSize_->value() );
+        f_.setMinAskSize( minAskSize_->value() );
+
+        f_.setMaxSpreadPercent( maxSpreadPercent_->value() );
+
+        f_.setMinDaysToExpiry( minDaysToExpiry_->value() );
+        f_.setMaxDaysToExpiry( maxDaysToExpiry_->value() );
+
+        f_.setMinVolatility( minImplVolatility_->value() );
+        f_.setMaxVolatility( maxImplVolatility_->value() );
+
+        f_.setMinProbProfit( minProbProfit_->value() );
+        f_.setMaxProbProfit( maxProbProfit_->value() );
 
         f_.setMinReturnOnInvestment( minReturnOnInvestment_->value() );
         f_.setMaxReturnOnInvestment( maxReturnOnInvestment_->value() );
@@ -167,10 +201,7 @@ void FilterEditorDialog::onButtonClicked()
         f_.setMinReturnOnInvestmentTime( minReturnOnInvestmentTime_->value() );
         f_.setMaxReturnOnInvestmentTime( maxReturnOnInvestmentTime_->value() );
 
-        f_.setMaxSpreadPercent( maxSpreadPercent_->value() );
-
-        f_.setMinVolatility( minVolatility_->value() );
-        f_.setMaxVolatility( maxVolatility_->value() );
+        f_.setVerticalDepth( verticalDepth_->value() );
 
         int optionTypeFilter( 0 );
         optionTypeFilter |= ( itmCalls_->isChecked() ? OptionProfitCalculatorFilter::ITM_CALLS : 0 );
@@ -199,8 +230,6 @@ void FilterEditorDialog::onButtonClicked()
 
         f_.setVolatilityFilter( (OptionProfitCalculatorFilter::VolatilityFilter) volatilityFilter );
 
-        f_.setVerticalDepth( verticalDepth_->value() );
-
         accept();
     }
 
@@ -214,65 +243,116 @@ void FilterEditorDialog::onButtonClicked()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void FilterEditorDialog::initialize()
 {
-    minInvestAmountLabel_ = new QLabel( this );
+    minColumnLabel_ = new QLabel( this );
+
+    maxColumnLabel_ = new QLabel( this );
+
+    investAmountLabel_ = new QLabel( this );
 
     minInvestAmount_ = new QDoubleSpinBox( this );
     minInvestAmount_->setDecimals( 2 );
     minInvestAmount_->setMinimum( 0.0 );
-
-    maxInvestAmountLabel_ = new QLabel( this );
+    minInvestAmount_->setMaximum( 99999999.99 );
 
     maxInvestAmount_ = new QDoubleSpinBox( this );
     maxInvestAmount_->setDecimals( 2 );
     maxInvestAmount_->setMinimum( 0.0 );
+    maxInvestAmount_->setMaximum( 99999999.99 );
 
-    maxLossAmountLabel_ = new QLabel( this );
+    lossAmountLabel_ = new QLabel( this );
 
     maxLossAmount_ = new QDoubleSpinBox( this );
     maxLossAmount_->setDecimals( 2 );
     maxLossAmount_->setMinimum( 0.0 );
+    maxLossAmount_->setMaximum( 99999999.99 );
 
-    minReturnOnInvestmentLabel_ = new QLabel( this );
+    gainAmountLabel_ = new QLabel( this );
 
-    minReturnOnInvestment_ = new QDoubleSpinBox( this );
-    minReturnOnInvestment_->setDecimals( 2 );
-    minReturnOnInvestment_->setMinimum( 0.0 );
+    minGainAmount_ = new QDoubleSpinBox( this );
+    minGainAmount_->setDecimals( 2 );
+    minGainAmount_->setMinimum( 0.0 );
+    minGainAmount_->setMaximum( 99999999.99 );
 
-    maxReturnOnInvestmentLabel_ = new QLabel( this );
+    bidSizeLabel_ = new QLabel( this );
 
-    maxReturnOnInvestment_ = new QDoubleSpinBox( this );
-    maxReturnOnInvestment_->setDecimals( 2 );
-    maxReturnOnInvestment_->setMinimum( 0.0 );
+    minBidSize_ = new QSpinBox( this );
+    minBidSize_->setMinimum( 0 );
+    minBidSize_->setMaximum( 99999999 );
 
-    minReturnOnInvestmentTimeLabel_ = new QLabel( this );
+    askSizeLabel_ = new QLabel( this );
 
-    minReturnOnInvestmentTime_ = new QDoubleSpinBox( this );
-    minReturnOnInvestmentTime_->setDecimals( 2 );
-    minReturnOnInvestmentTime_->setMinimum( 0.0 );
+    minAskSize_ = new QSpinBox( this );
+    minAskSize_->setMinimum( 0 );
+    minAskSize_->setMaximum( 99999999 );
 
-    maxReturnOnInvestmentTimeLabel_ = new QLabel( this );
-
-    maxReturnOnInvestmentTime_ = new QDoubleSpinBox( this );
-    maxReturnOnInvestmentTime_->setDecimals( 2 );
-    maxReturnOnInvestmentTime_->setMinimum( 0.0 );
-
-    maxSpreadPercentLabel_ = new QLabel( this );
+    spreadPercentLabel_ = new QLabel( this );
 
     maxSpreadPercent_ = new QDoubleSpinBox( this );
     maxSpreadPercent_->setDecimals( 2 );
     maxSpreadPercent_->setMinimum( 0.0 );
+    maxSpreadPercent_->setMaximum( 100.0 );
 
-    minVolatilityLabel_ = new QLabel( this );
+    daysToExpiryLabel_ = new QLabel( this );
 
-    minVolatility_ = new QDoubleSpinBox( this );
-    minVolatility_->setDecimals( 2 );
-    minVolatility_->setMinimum( 0.0 );
+    minDaysToExpiry_ = new QSpinBox( this );
+    minDaysToExpiry_->setMinimum( 0 );
 
-    maxVolatilityLabel_ = new QLabel( this );
+    maxDaysToExpiry_ = new QSpinBox( this );
+    maxDaysToExpiry_->setMinimum( 0 );
+    maxDaysToExpiry_->setMaximum( 99999999 );
 
-    maxVolatility_ = new QDoubleSpinBox( this );
-    maxVolatility_->setDecimals( 2 );
-    maxVolatility_->setMinimum( 0.0 );
+    implVolatilityLabel_ = new QLabel( this );
+
+    minImplVolatility_ = new QDoubleSpinBox( this );
+    minImplVolatility_->setDecimals( 2 );
+    minImplVolatility_->setMinimum( 0.0 );
+    minImplVolatility_->setMaximum( 99999.99 );
+
+    maxImplVolatility_ = new QDoubleSpinBox( this );
+    maxImplVolatility_->setDecimals( 2 );
+    maxImplVolatility_->setMinimum( 0.0 );
+    maxImplVolatility_->setMaximum( 99999.99 );
+
+    probProfitLabel_ = new QLabel( this );
+
+    minProbProfit_ = new QDoubleSpinBox( this );
+    minProbProfit_->setDecimals( 2 );
+    minProbProfit_->setMinimum( 0.0 );
+    minProbProfit_->setMaximum( 100.0 );
+
+    maxProbProfit_ = new QDoubleSpinBox( this );
+    maxProbProfit_->setDecimals( 1 );
+    maxProbProfit_->setMinimum( 0.0 );
+    maxProbProfit_->setMaximum( 100.0 );
+
+    returnOnInvestmentLabel_ = new QLabel( this );
+
+    minReturnOnInvestment_ = new QDoubleSpinBox( this );
+    minReturnOnInvestment_->setDecimals( 2 );
+    minReturnOnInvestment_->setMinimum( 0.0 );
+    minReturnOnInvestment_->setMaximum( 99999999.99 );
+
+    maxReturnOnInvestment_ = new QDoubleSpinBox( this );
+    maxReturnOnInvestment_->setDecimals( 2 );
+    maxReturnOnInvestment_->setMinimum( 0.0 );
+    maxReturnOnInvestment_->setMaximum( 99999999.99 );
+
+    returnOnInvestmentTimeLabel_ = new QLabel( this );
+
+    minReturnOnInvestmentTime_ = new QDoubleSpinBox( this );
+    minReturnOnInvestmentTime_->setDecimals( 2 );
+    minReturnOnInvestmentTime_->setMinimum( 0.0 );
+    minReturnOnInvestmentTime_->setMaximum( 99999999.99 );
+
+    maxReturnOnInvestmentTime_ = new QDoubleSpinBox( this );
+    maxReturnOnInvestmentTime_->setDecimals( 2 );
+    maxReturnOnInvestmentTime_->setMinimum( 0.0 );
+    maxReturnOnInvestmentTime_->setMaximum( 99999999.99 );
+
+    verticalDepthLabel_ = new QLabel( this );
+
+    verticalDepth_ = new QSpinBox( this );
+    verticalDepth_->setMinimum( 1 );
 
     optionTypes_ = new QGroupBox( this );
 
@@ -310,11 +390,6 @@ void FilterEditorDialog::initialize()
 
     histGreaterThanImpl_ = new QCheckBox( volatility_ );
 
-    verticalDepthLabel_ = new QLabel( this );
-
-    verticalDepth_ = new QSpinBox( this );
-    verticalDepth_->setMinimum( 1 );
-
     // okay
     okay_ = new QPushButton( this );
 
@@ -329,6 +404,36 @@ void FilterEditorDialog::initialize()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void FilterEditorDialog::createLayout()
 {
+    QHBoxLayout *header( new QHBoxLayout() );
+    header->addWidget( minColumnLabel_ );
+    header->addWidget( maxColumnLabel_ );
+
+    QHBoxLayout *investAmount( new QHBoxLayout() );
+    investAmount->addWidget( minInvestAmount_ );
+    investAmount->addWidget( maxInvestAmount_ );
+
+    QHBoxLayout *probProfit( new QHBoxLayout() );
+    probProfit->addWidget( minProbProfit_ );
+    probProfit->addWidget( maxProbProfit_ );
+
+    QHBoxLayout *daysToExpiry( new QHBoxLayout() );
+    daysToExpiry->addWidget( minDaysToExpiry_ );
+    daysToExpiry->addWidget( maxDaysToExpiry_ );
+
+    QHBoxLayout *returnOnInvestment( new QHBoxLayout() );
+    returnOnInvestment->addWidget( minReturnOnInvestment_ );
+    returnOnInvestment->addWidget( maxReturnOnInvestment_ );
+
+    QHBoxLayout *returnOnInvestmentTime( new QHBoxLayout() );
+    returnOnInvestmentTime->addWidget( minReturnOnInvestmentTime_ );
+    returnOnInvestmentTime->addWidget( maxReturnOnInvestmentTime_ );
+
+    QHBoxLayout *implVolatility( new QHBoxLayout() );
+    implVolatility->addWidget( minImplVolatility_ );
+    implVolatility->addWidget( maxImplVolatility_ );
+
+    // ---- //
+
     QVBoxLayout *optionTypes( new QVBoxLayout( optionTypes_ ) );
     optionTypes->addWidget( itmCalls_ );
     optionTypes->addWidget( otmCalls_ );
@@ -356,24 +461,23 @@ void FilterEditorDialog::createLayout()
     // ---- //
 
     QFormLayout *filters( new QFormLayout() );
-    filters->addRow( minInvestAmountLabel_, minInvestAmount_ );
-    filters->addRow( maxInvestAmountLabel_, maxInvestAmount_ );
+    filters->addRow( new QLabel(), header );
+    filters->addRow( investAmountLabel_, investAmount );
+    filters->addRow( lossAmountLabel_, maxLossAmount_ );
+    filters->addRow( gainAmountLabel_, minGainAmount_ );
     filters->addItem( new QSpacerItem( 16, 16 ) );
-    filters->addRow( maxLossAmountLabel_, maxLossAmount_ );
+    filters->addRow( bidSizeLabel_, minBidSize_ );
+    filters->addRow( askSizeLabel_, minAskSize_ );
+    filters->addRow( spreadPercentLabel_, maxSpreadPercent_ );
     filters->addItem( new QSpacerItem( 16, 16 ) );
-    filters->addRow( minReturnOnInvestmentLabel_, minReturnOnInvestment_ );
-    filters->addRow( maxReturnOnInvestmentLabel_, maxReturnOnInvestment_ );
+    filters->addRow( daysToExpiryLabel_, daysToExpiry );
+    filters->addRow( implVolatilityLabel_, implVolatility );
     filters->addItem( new QSpacerItem( 16, 16 ) );
-    filters->addRow( minReturnOnInvestmentTimeLabel_, minReturnOnInvestmentTime_ );
-    filters->addRow( maxReturnOnInvestmentTimeLabel_, maxReturnOnInvestmentTime_ );
-    filters->addItem( new QSpacerItem( 16, 16 ) );
-    filters->addRow( maxSpreadPercentLabel_, maxSpreadPercent_ );
-    filters->addItem( new QSpacerItem( 16, 16 ) );
-    filters->addRow( minVolatilityLabel_, minVolatility_ );
-    filters->addRow( maxVolatilityLabel_, maxVolatility_ );
+    filters->addRow( probProfitLabel_, probProfit );
+    filters->addRow( returnOnInvestmentLabel_, returnOnInvestment );
+    filters->addRow( returnOnInvestmentTimeLabel_, returnOnInvestmentTime );
     filters->addItem( new QSpacerItem( 16, 16 ) );
     filters->addRow( verticalDepthLabel_, verticalDepth_ );
-    filters->addItem( new QSpacerItem( 16, 16 ) );
 
     QHBoxLayout *groups( new QHBoxLayout() );
     groups->addWidget( optionTypes_ );
@@ -387,6 +491,7 @@ void FilterEditorDialog::createLayout()
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
     form->addLayout( filters );
+    form->addItem( new QSpacerItem( 16, 16 ) );
     form->addLayout( groups );
     form->addStretch();
     form->addLayout( buttons );

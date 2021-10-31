@@ -22,11 +22,17 @@
 #include "common.h"
 #include "itemmodel.h"
 
+#include <QDate>
+#include <QDateTime>
+#include <QLocale>
+#include <QTime>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ItemModel::ItemModel( int rows, int columns, QObject *parent ) :
     _Mybase( rows, columns, parent ),
     m_( QMutex::Recursive ),
-    columnIsCurrency_( columns, false )
+    columnIsText_( columns, false ),
+    numDecimalPlaces_( columns, 0 )
 {
 }
 
@@ -50,12 +56,6 @@ QVariant ItemModel::data0( int col, int role ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool ItemModel::isColumnCurrency( int col ) const
-{
-    return columnIsCurrency_[col];
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 void ItemModel::removeAllRows()
 {
     QMutexLocker guard( &m_ );
@@ -66,3 +66,52 @@ void ItemModel::removeAllRows()
     removeRows( 0, rowCount() );
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString ItemModel::formatValue( const QVariant& v, int numDecimalPlaces )
+{
+    static const QString invalidNumber( "NaN" );
+
+    if ( QVariant::String == v.type() )
+    {
+        const QString result( v.toString() );
+
+        if ( invalidNumber == result )
+            return QString();
+
+        return result;
+    }
+    else if ( QVariant::Date == v.type() )
+    {
+        const QDate result( v.toDate() );
+
+        return result.toString();
+    }
+    else if ( QVariant::DateTime == v.type() )
+    {
+        const QDateTime result( v.toDateTime() );
+
+        return result.toString();
+    }
+    else if ( QVariant::Time == v.type() )
+    {
+        const QTime result( v.toTime() );
+
+        return result.toString();
+    }
+
+    const double doubleValue( v.toDouble() );
+
+    if ( numDecimalPlaces )
+        return QString::number( doubleValue, 'f', numDecimalPlaces );
+
+    // check for integer
+    const qlonglong intValue( v.toLongLong() );
+
+    if ( doubleValue == (double) intValue )
+    {
+        const QLocale l( QLocale::system() );
+        return l.toString( intValue );
+    }
+
+    return QString::number( doubleValue );
+}

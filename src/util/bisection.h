@@ -51,7 +51,7 @@ public:
      * @return  implied volatility of @p pricing
      */
     template <class T>
-    static double calcImplVol( T& pricing, OptionType type, double X, double price, bool *okay = nullptr );
+    static double calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay = nullptr );
 
 private:
 
@@ -73,16 +73,16 @@ private:
 };
 
 template <class T>
-inline double Bisection::calcImplVol( T& pricing, OptionType type, double X, double price, bool *okay )
+inline double Bisection::calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay )
 {
     static const double VOLATILITY_MIN = 0.0000001;
     static const double VOLATILITY_MAX = 100.99999;
-    static const double EPSILON = 0.00000001;
+    static const double EPSILON = 0.001;
 
-    T vLow( pricing );
+    T vLow( (*pricing) );
     vLow.setSigma( VOLATILITY_MIN );
 
-    T vHigh( pricing );
+    T vHigh( (*pricing) );
     vHigh.setSigma( VOLATILITY_MAX );
 
     for ( ;; )
@@ -107,9 +107,9 @@ inline double Bisection::calcImplVol( T& pricing, OptionType type, double X, dou
         const double vi = vLow.sigma() + (price - cLow) * (vHigh.sigma() - vLow.sigma()) / (cHigh - cLow);
 
         // set new volatility
-        pricing.setSigma( vi );
+        pricing->setSigma( vi );
 
-        const double val( pricing.optionPrice( type, X ) );
+        const double val( pricing->optionPrice( type, X ) );
 
         if ( std::fabs( price - val ) <= EPSILON )
             break;
@@ -122,7 +122,7 @@ inline double Bisection::calcImplVol( T& pricing, OptionType type, double X, dou
     if ( okay )
         *okay = true;
 
-    return pricing.sigma();
+    return pricing->sigma();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

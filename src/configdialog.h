@@ -113,6 +113,9 @@ protected:
     QLabel *optionCalcMethodLabel_;
     QComboBox *optionCalcMethod_;
 
+    QLabel *optionAnalysisFilterLabel_;
+    QComboBox *optionAnalysisFilter_;
+
     QLabel *paletteLabel_;
     QComboBox *palette_;
 

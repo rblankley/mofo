@@ -4,12 +4,31 @@
         <file>db/default_app.sql</file>
         <file>db/version2_app.sql</file>
         <file>db/version3_app.sql</file>
+        <file>db/version4_app.sql</file>
+        <file>db/version5_app.sql</file>
         <file>db/createdb_symbol.sql</file>
         <file>db/default_symbol.sql</file>
         <file>res/analysis.png</file>
         <file>res/clear.png</file>
         <file>res/icon.png</file>
-        <file>res/lock.png</file>
-        <file>res/refresh.jpg</file>
+        <file>res/bar-chart.png</file>
+        <file>res/chains.png</file>
+        <file>res/filter.png</file>
+        <file>res/key.png</file>
+        <file>res/loupe.png</file>
+        <file>res/pause-button.png</file>
+        <file>res/pie-chart.png</file>
+        <file>res/play-button.png</file>
+        <file>res/stop-button.png</file>
+        <file>res/view.png</file>
+        <file>res/cogwheel.png</file>
+        <file>res/padlock.png</file>
+        <file>res/sort-asc.png</file>
+        <file>res/sort-desc.png</file>
+        <file>res/cancel.png</file>
+        <file>res/information.png</file>
+        <file>res/prohibition.png</file>
+        <file>res/refresh.png</file>
+        <file>res/warning.png</file>
     </qresource>
 </RCC>

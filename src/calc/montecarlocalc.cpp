@@ -39,7 +39,7 @@ MonteCarloCalculator::~MonteCarloCalculator()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double MonteCarloCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
 {
-    return NewtonRaphson::calcImplVol( (*pricing), type, X, price, okay );
+    return NewtonRaphson::calcImplVol( pricing, type, X, price, okay );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

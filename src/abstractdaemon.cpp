@@ -195,6 +195,22 @@ void AbstractDaemon::authorize()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AbstractDaemon::scan( const QString& watchlists )
+{
+    if (( isActive() ) && ( !isPaused() ))
+    {
+        const QStringList symbols( watchlistSymbols( watchlists ) );
+
+        // force scan
+        if ( symbols.size() )
+        {
+            LOG_DEBUG << "force scan of " << symbols.size() << " symbols";
+            queueOptionChainRequests( symbols, true );
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QStringList AbstractDaemon::equityWatchlist() const
 {
     return watchlistSymbols( configs_[EQUITY_WATCH_LISTS].toString() );
@@ -203,7 +219,7 @@ QStringList AbstractDaemon::equityWatchlist() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int AbstractDaemon::optionChainExpiryEndDate() const
 {
-    return configs_[OPTION_CHAIN_EXPIRY_END_DATE].toInt();
+    return configs_[OPTION_CHAIN_EXPIRY_END_DATE].toString().toInt();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -221,8 +237,8 @@ void AbstractDaemon::onConfigurationChanged()
     configs_ = db_->configs();
 
     // update timer intervals
-    updateTimerInterval( equity_, configs_[EQUITY_REFRESH_RATE].toInt() * MIN_TO_MS );
-    updateTimerInterval( optionChain_, configs_[OPTION_CHAIN_REFRESH_RATE].toInt() * MIN_TO_MS );
+    updateTimerInterval( equity_, configs_[EQUITY_REFRESH_RATE].toString().toInt() * MIN_TO_MS );
+    updateTimerInterval( optionChain_, configs_[OPTION_CHAIN_REFRESH_RATE].toString().toInt() * MIN_TO_MS );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -242,11 +258,11 @@ void AbstractDaemon::onTimeout()
 
     // equity
     else if ( equity_ == sender() )
-        queueEquityRequests();
+        queueEquityRequests( equityWatchlist() );
 
     // option chain
     else if ( optionChain_ == sender() )
-        queueOptionChainRequests();
+        queueOptionChainRequests( optionChainWatchlist() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

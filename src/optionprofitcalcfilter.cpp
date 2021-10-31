@@ -30,6 +30,16 @@ static const QString JSON_MIN_INVEST_AMOUNT( "minInvestAmount" );
 static const QString JSON_MAX_INVEST_AMOUNT( "maxInvestAmount" );
 
 static const QString JSON_MAX_LOSS_AMOUNT( "maxLossAmount" );
+static const QString JSON_MIN_GAIN_AMOUNT( "minGainAmount" );
+
+static const QString JSON_MIN_BID_SIZE( "minBidSize" );
+static const QString JSON_MIN_ASK_SIZE( "minAskSize" );
+
+static const QString JSON_MIN_PROB_PROFIT( "minProbProfit" );
+static const QString JSON_MAX_PROB_PROFIT( "maxProbProfit" );
+
+static const QString JSON_MIN_DTE( "minDaysToExpiry" );
+static const QString JSON_MAX_DTE( "maxDaysToExpiry" );
 
 static const QString JSON_MIN_ROI( "minReturnOnInvestment" );
 static const QString JSON_MAX_ROI( "maxReturnOnInvestment" );
@@ -54,6 +64,13 @@ OptionProfitCalculatorFilter::OptionProfitCalculatorFilter() :
     minInvestAmount_( 0.0 ),
     maxInvestAmount_( 0.0 ),
     maxLossAmount_( 0.0 ),
+    minGainAmount_( 0.0 ),
+    minBidSize_( 0 ),
+    minAskSize_( 0 ),
+    minProbProfit_( 0.0 ),
+    maxProbProfit_( 0.0 ),
+    minDaysToExpiry_( 0 ),
+    maxDaysToExpiry_( 0 ),
     minReturnOnInvestment_( 0.0 ),
     maxReturnOnInvestment_( 0.0 ),
     minReturnOnInvestmentTime_( 0.0 ),
@@ -87,6 +104,13 @@ QByteArray OptionProfitCalculatorFilter::saveState() const
     obj[JSON_MIN_INVEST_AMOUNT] = minInvestAmount_;
     obj[JSON_MAX_INVEST_AMOUNT] = maxInvestAmount_;
     obj[JSON_MAX_LOSS_AMOUNT] = maxLossAmount_;
+    obj[JSON_MIN_GAIN_AMOUNT] = minGainAmount_;
+    obj[JSON_MIN_BID_SIZE] = minBidSize_;
+    obj[JSON_MIN_ASK_SIZE] = minAskSize_;
+    obj[JSON_MIN_PROB_PROFIT] = minProbProfit_;
+    obj[JSON_MAX_PROB_PROFIT] = maxProbProfit_;
+    obj[JSON_MIN_DTE] = minDaysToExpiry_;
+    obj[JSON_MAX_DTE] = maxDaysToExpiry_;
     obj[JSON_MIN_ROI] = minReturnOnInvestment_;
     obj[JSON_MAX_ROI] = maxReturnOnInvestment_;
     obj[JSON_MIN_ROI_TIME] = minReturnOnInvestmentTime_;
@@ -133,6 +157,23 @@ void OptionProfitCalculatorFilter::restoreState( const QByteArray& state )
 
     if ( obj.contains( JSON_MAX_LOSS_AMOUNT ) )
         maxLossAmount_ = obj[JSON_MAX_LOSS_AMOUNT].toDouble();
+    if ( obj.contains( JSON_MIN_GAIN_AMOUNT ) )
+        minGainAmount_ = obj[JSON_MIN_GAIN_AMOUNT].toDouble();
+
+    if ( obj.contains( JSON_MIN_BID_SIZE ) )
+        minBidSize_ = obj[JSON_MIN_BID_SIZE].toInt();
+    if ( obj.contains( JSON_MIN_ASK_SIZE ) )
+        minAskSize_ = obj[JSON_MIN_ASK_SIZE].toInt();
+
+    if ( obj.contains( JSON_MIN_PROB_PROFIT ) )
+        minProbProfit_ = obj[JSON_MIN_PROB_PROFIT].toDouble();
+    if ( obj.contains( JSON_MAX_PROB_PROFIT ) )
+        maxProbProfit_ = obj[JSON_MAX_PROB_PROFIT].toDouble();
+
+    if ( obj.contains( JSON_MIN_DTE ) )
+        minDaysToExpiry_ = obj[JSON_MIN_DTE].toInt();
+    if ( obj.contains( JSON_MAX_DTE ) )
+        maxDaysToExpiry_ = obj[JSON_MAX_DTE].toInt();
 
     if ( obj.contains( JSON_MIN_ROI ) )
         minReturnOnInvestment_ = obj[JSON_MIN_ROI].toDouble();

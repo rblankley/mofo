@@ -49,6 +49,8 @@ static const QString OPTION_CHAIN_WATCH_LISTS( "optionChainWatchLists" );
 static const QString OPTION_TRADE_COST( "optionTradeCost" );
 static const QString OPTION_CALC_METHOD( "optionCalcMethod" );
 
+static const QString OPTION_ANALYSIS_FILTER( "optionAnalysisFilter" );
+
 static const QString PALETTE( "palette" );
 static const QString PALETTE_HIGHLIGHT( "paletteHighlight" );
 
@@ -56,6 +58,8 @@ static const QString PALETTE_HIGHLIGHT( "paletteHighlight" );
 ConfigurationDialog::ConfigurationDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f )
 {
+    int i;
+
     // remove the question mark button
     setWindowFlags( windowFlags() & ~Qt::WindowContextHelpButtonHint );
 
@@ -83,7 +87,12 @@ ConfigurationDialog::ConfigurationDialog( QWidget *parent, Qt::WindowFlags f ) :
     optionChainExpiryEndDate_->setText( configs_[OPTION_CHAIN_EXPIRY_END_DATE].toString() );
     optionChainWatchLists_->setText( configs_[OPTION_CHAIN_WATCH_LISTS].toString() );
     optionTradeCost_->setText( configs_[OPTION_TRADE_COST].toString() );
-    optionCalcMethod_->setCurrentIndex( optionCalcMethod_->findData( configs_[OPTION_CALC_METHOD].toString() ) );
+
+    if ( 0 <= (i = optionCalcMethod_->findData( configs_[OPTION_CALC_METHOD].toString() )) )
+        optionCalcMethod_->setCurrentIndex( i );
+
+    if ( 0 <= (i = optionAnalysisFilter_->findData( configs_[OPTION_ANALYSIS_FILTER].toString() )) )
+        optionAnalysisFilter_->setCurrentIndex( i );
 
     // set focus to first widget
     history_->setFocus();
@@ -136,13 +145,16 @@ void ConfigurationDialog::translate()
     optionTradeCostLabel_->setText( tr( "Option Trading Cost" ) );
     optionTradeCost_->setToolTip( tr( "Cost to trade an option contract." ) );
 
-    optionCalcMethodLabel_->setText( tr( "Option Analysis Calculation Method" ) );
+    optionCalcMethodLabel_->setText( tr( "Option Pricing Calculation Method" ) );
     optionCalcMethod_->setItemText( 0, tr( "Binomial Tree (Cox Ross Rubinstein)" ) );
     optionCalcMethod_->setItemText( 1, tr( "Binomial Tree (Equal Probability)" ) );
     optionCalcMethod_->setItemText( 2, tr( "Black Scholes" ) );
     optionCalcMethod_->setItemText( 3, tr( "Monte Carlo" ) );
     optionCalcMethod_->setItemText( 4, tr( "Trinomial Tree (Phelim Boyle)" ) );
     optionCalcMethod_->setToolTip( tr( "Which option pricing methodology to use for analysis." ) );
+
+    optionAnalysisFilterLabel_->setText( tr( "Option Analysis Filtering Method" ) );
+    optionAnalysisFilter_->setItemText( 0, tr( "NONE" ) );
 
     paletteLabel_->setText( tr( "Color Scheme" ) );
     palette_->setItemText( 0, tr( "System" ) );
@@ -235,6 +247,14 @@ void ConfigurationDialog::initialize()
     optionCalcMethod_->addItem( QString(), "MONTECARLO" );
     optionCalcMethod_->addItem( QString(), "TRINOM" );
 
+    optionAnalysisFilterLabel_ = new QLabel( this );
+    optionAnalysisFilter_ = new QComboBox( this );
+
+    optionAnalysisFilter_->addItem( QString(), QString() );
+
+    foreach ( const QString& f, AppDatabase::instance()->filters() )
+        optionAnalysisFilter_->addItem( f, f );
+
     paletteLabel_ = new QLabel( this );
     palette_ = new QComboBox( this );
 
@@ -285,6 +305,8 @@ void ConfigurationDialog::createLayout()
     configs->addRow( optionChainWatchListsLabel_, optionChainWatchLists_ );
     configs->addRow( optionTradeCostLabel_, optionTradeCost_ );
     configs->addRow( optionCalcMethodLabel_, optionCalcMethod_ );
+    configs->addItem( new QSpacerItem( 16, 16 ) );
+    configs->addRow( optionAnalysisFilterLabel_, optionAnalysisFilter_ );
 
     QHBoxLayout *buttons( new QHBoxLayout );
     buttons->addStretch();
@@ -316,6 +338,8 @@ void ConfigurationDialog::saveForm()
     checkConfigChanged( OPTION_CHAIN_WATCH_LISTS, optionChainWatchLists_->text() );
     checkConfigChanged( OPTION_TRADE_COST, optionTradeCost_->text() );
     checkConfigChanged( OPTION_CALC_METHOD, optionCalcMethod_->currentData().toString() );
+
+    checkConfigChanged( OPTION_ANALYSIS_FILTER, optionAnalysisFilter_->currentData().toString() );
 
     // save!
     AppDatabase::instance()->setConfigs( configs_ );

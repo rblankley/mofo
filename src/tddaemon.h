@@ -161,10 +161,18 @@ protected:
     virtual void dequeue() override;
 
     /// Queue equity requests.
-    virtual void queueEquityRequests() override;
+    /**
+     * @param[in] symbols  symbols to queue
+     * @param[in] force  @c true to force queueing, @c false otherwise
+     */
+    virtual void queueEquityRequests( const QStringList& symbols, const bool force = false ) override;
 
     /// Queue option chain requests.
-    virtual void queueOptionChainRequests() override;
+    /**
+     * @param[in] symbols  symbols to queue
+     * @param[in] force  @c true to force queueing, @c false otherwise
+     */
+    virtual void queueOptionChainRequests( const QStringList& symbols, const bool force = false ) override;
 
     /// Fetch option chain.
     /**

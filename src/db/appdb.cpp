@@ -33,7 +33,7 @@
 #include <QSqlRecord>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "3" );
+static const QString DB_VERSION( "5" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -64,6 +64,8 @@ AppDatabase::AppDatabase() :
     configs_.append( "optionChainWatchLists" );
     configs_.append( "optionTradeCost" );
     configs_.append( "optionCalcMethod" );
+
+    configs_.append( "optionAnalysisFilter" );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,7 +138,10 @@ QByteArray AppDatabase::filter( const QString& name ) const
 
     QByteArray result;
 
-    QSqlQuery query( db_ );
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":name", name );
 
@@ -437,7 +442,10 @@ double AppDatabase::riskFreeRate( double term ) const
     double lowerTerm( 0.0 );
     double lowerRate( 0.0 );
 
-    QSqlQuery query( db_ );
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":dateMin", dateMin.toString( Qt::ISODate ) );
     query.bindValue( ":dateMax", dateMax.toString( Qt::ISODate ) );
@@ -1183,10 +1191,15 @@ void AppDatabase::readSettings()
     // read settings
     QVariant v;
 
-    if ( readSetting( "optionCalcMethod", v ) )
-        optionCalcMethod_ = v.toString();
     if ( readSetting( "optionTradeCost", v ) )
         optionTradeCost_ = v.toDouble();
+    if ( readSetting( "optionCalcMethod", v ) )
+        optionCalcMethod_ = v.toString();
+
+    if ( readSetting( "optionChainWatchLists", v ) )
+        optionAnalysisWatchLists_ = v.toString();
+    if ( readSetting( "optionAnalysisFilter", v ) )
+        optionAnalysisFilter_ = v.toString();
 
     if ( readSetting( "numTradingDays", v ) )
         numTradingDays_ = v.toDouble();

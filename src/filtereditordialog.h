@@ -84,35 +84,50 @@ public:
 
 protected:
 
-    QLabel *minInvestAmountLabel_;
-    QDoubleSpinBox *minInvestAmount_;
+    QLabel *minColumnLabel_;
+    QLabel *maxColumnLabel_;
 
-    QLabel *maxInvestAmountLabel_;
+    QLabel *investAmountLabel_;
+    QDoubleSpinBox *minInvestAmount_;
     QDoubleSpinBox *maxInvestAmount_;
 
-    QLabel *maxLossAmountLabel_;
+    QLabel *lossAmountLabel_;
     QDoubleSpinBox *maxLossAmount_;
 
-    QLabel *minReturnOnInvestmentLabel_;
-    QDoubleSpinBox *minReturnOnInvestment_;
+    QLabel *gainAmountLabel_;
+    QDoubleSpinBox *minGainAmount_;
 
-    QLabel *maxReturnOnInvestmentLabel_;
-    QDoubleSpinBox *maxReturnOnInvestment_;
+    QLabel *bidSizeLabel_;
+    QSpinBox *minBidSize_;
 
-    QLabel *minReturnOnInvestmentTimeLabel_;
-    QDoubleSpinBox *minReturnOnInvestmentTime_;
+    QLabel *askSizeLabel_;
+    QSpinBox *minAskSize_;
 
-    QLabel *maxReturnOnInvestmentTimeLabel_;
-    QDoubleSpinBox *maxReturnOnInvestmentTime_;
-
-    QLabel *maxSpreadPercentLabel_;
+    QLabel *spreadPercentLabel_;
     QDoubleSpinBox *maxSpreadPercent_;
 
-    QLabel *minVolatilityLabel_;
-    QDoubleSpinBox *minVolatility_;
+    QLabel *daysToExpiryLabel_;
+    QSpinBox *minDaysToExpiry_;
+    QSpinBox *maxDaysToExpiry_;
 
-    QLabel *maxVolatilityLabel_;
-    QDoubleSpinBox *maxVolatility_;
+    QLabel *implVolatilityLabel_;
+    QDoubleSpinBox *minImplVolatility_;
+    QDoubleSpinBox *maxImplVolatility_;
+
+    QLabel *probProfitLabel_;
+    QDoubleSpinBox *minProbProfit_;
+    QDoubleSpinBox *maxProbProfit_;
+
+    QLabel *returnOnInvestmentLabel_;
+    QDoubleSpinBox *minReturnOnInvestment_;
+    QDoubleSpinBox *maxReturnOnInvestment_;
+
+    QLabel *returnOnInvestmentTimeLabel_;
+    QDoubleSpinBox *minReturnOnInvestmentTime_;
+    QDoubleSpinBox *maxReturnOnInvestmentTime_;
+
+    QLabel *verticalDepthLabel_;
+    QSpinBox *verticalDepth_;
 
     QGroupBox *optionTypes_;
     QCheckBox *itmCalls_;
@@ -134,9 +149,6 @@ protected:
     QGroupBox *volatility_;
     QCheckBox *histLessThanImpl_;
     QCheckBox *histGreaterThanImpl_;
-
-    QLabel *verticalDepthLabel_;
-    QSpinBox *verticalDepth_;
 
     QPushButton *okay_;
     QPushButton *cancel_;

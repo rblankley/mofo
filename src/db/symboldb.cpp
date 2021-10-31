@@ -71,7 +71,10 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
         "WHERE DATE(date)=DATE(:date) "
         "ORDER BY depth ASC" );
 
-    QSqlQuery query( db_ );
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
     query.prepare( sql );
 
     query.bindValue( ":" + DB_DATE, dt.date().toString( Qt::ISODate ) );
@@ -592,11 +595,18 @@ void SymbolDatabase::calcHistoricalVolatility()
 {
     const double annualized( sqrt( AppDatabase::instance()->numTradingDays() ) );
 
-    QVariantList dates;
-    QVariantList symbols;
-    QVariantList depths;
-    QVariantList hv;
+    // records for quote history
+    QVariantList quoteDates;
+    QVariantList quoteSymbols;
+    QVariantList quoteDepths;
 
+    // records for historic volatility
+    QVariantList histVolDates;
+    QVariantList histVolSymbols;
+    QVariantList histVolDepths;
+    QVariantList histVol;
+
+    // historic volatility days
     QVector<int> hvd;
     hvd.append( 5 );        // 5d
     hvd.append( 10 );       // 10d
@@ -611,7 +621,6 @@ void SymbolDatabase::calcHistoricalVolatility()
     // ---- //
 
     QSqlTableModel model( nullptr, db_ );
-    model.setEditStrategy( QSqlTableModel::OnManualSubmit );
     model.setTable( "quoteHistory" );
     model.setSort( model.fieldIndex( DB_STAMP ), Qt::AscendingOrder );
     model.select();
@@ -621,28 +630,27 @@ void SymbolDatabase::calcHistoricalVolatility()
         model.fetchMore();
 
     // force update of last N rows
-    const int forced( model.rowCount() - 5 );
+    const int forced( model.rowCount() - HIST_VOL_FORCED );
 
     // calculate returns
     QVector<double> r;
+    r.reserve( model.rowCount() );
 
     double prevClose( 0.0 );
 
     for ( int i( 0 ); i < model.rowCount(); ++i )
     {
-        QSqlRecord rec( model.record( i ) );
+        const QSqlRecord rec( model.record( i ) );
 
         const double close( rec.value( DB_CLOSE_PRICE ).toDouble() );
 
         if (( i ) && ( 0.0 < close ) && ( 0.0 < prevClose ))
         {
             // calc log of interday return
-            r.push_back( log( close / prevClose ) );
-
-            if ( hvd.last() < r.length() )
-                r.pop_front();
+            r.append( log( close / prevClose ) );
 
             // lookup depth of this record
+            bool update( false );
             int depth( 0 );
 
             if ( !rec.isNull( DB_DEPTH ) )
@@ -656,20 +664,47 @@ void SymbolDatabase::calcHistoricalVolatility()
                 else if (( i < forced ) && ( d <= depth ))
                     continue;
 
-                dates.append( rec.value( DB_DATE ).toString() );
-                symbols.append( symbol() );
-                depths.append( d );
-                hv.append( annualized * Stats::calcStdDeviation( r.mid( r.length() - d ) ) );
+                histVolDates.append( rec.value( DB_DATE ).toString() );
+                histVolSymbols.append( symbol() );
+                histVolDepths.append( d );
+                histVol.append( annualized * Stats::calcStdDeviation( r.mid( r.length() - d ) ) );
 
-                rec.setValue( DB_DEPTH, d );
-                model.setRecord( i, rec );
+                update = true;
+                depth = d;
+            }
+
+            // update record
+            if ( update )
+            {
+                quoteDates.append( rec.value( DB_DATE ).toString() );
+                quoteSymbols.append( symbol() );
+                quoteDepths.append( depth );
             }
         }
 
         prevClose = close;
     }
 
-    model.submitAll();
+    // ---- //
+
+    static const QString quoteSql( "UPDATE quoteHistory "
+        "SET depth=:depth "
+            "WHERE date=:date AND symbol=:symbol" );
+
+    QSqlQuery quoteQuery( db_ );
+    quoteQuery.prepare( quoteSql );
+
+    quoteQuery.bindValue( ":" + DB_DATE, quoteDates );
+    quoteQuery.bindValue( ":" + DB_SYMBOL, quoteSymbols );
+    quoteQuery.bindValue( ":" + DB_DEPTH, quoteDepths );
+
+    // exec sql
+    if ( !quoteQuery.execBatch() )
+    {
+        const QSqlError e( quoteQuery.lastError() );
+
+        LOG_WARN << "error during update " << e.type() << " " << qPrintable( e.text() );
+    }
 
     // ---- //
 
@@ -681,10 +716,10 @@ void SymbolDatabase::calcHistoricalVolatility()
     QSqlQuery query( db_ );
     query.prepare( sql );
 
-    query.bindValue( ":" + DB_DATE, dates );
-    query.bindValue( ":" + DB_SYMBOL, symbols );
-    query.bindValue( ":" + DB_DEPTH, depths );
-    query.bindValue( ":" + DB_VOLATILITY, hv );
+    query.bindValue( ":" + DB_DATE, histVolDates );
+    query.bindValue( ":" + DB_SYMBOL, histVolSymbols );
+    query.bindValue( ":" + DB_DEPTH, histVolDepths );
+    query.bindValue( ":" + DB_VOLATILITY, histVol );
 
     // exec sql
     if ( !query.execBatch() )

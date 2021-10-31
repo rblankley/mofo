@@ -121,13 +121,16 @@ public:
 
         PROBABILITY_ITM,
         PROBABILITY_OTM,
+        PROBABILITY_PROFIT,
 
         INVESTMENT_OPTION_PRICE,                    ///< Calculated buy/sell price based on adjusted bid/ask.
         INVESTMENT_OPTION_PRICE_VS_THEO,
 
-        INVESTMENT_VALUE,
+        INVESTMENT_AMOUNT,
+        PREMIUM_AMOUNT,
         MAX_GAIN,
         MAX_LOSS,
+
         ROI,
         ROI_TIME,
 
@@ -163,23 +166,6 @@ public:
     // Properties
     // ========================================================================
 
-    /// Retrieve table data.
-    /**
-     * @param[in] row  row
-     * @param[in] col  column
-     * @param[in] role  role
-     * @return  data
-     */
-    virtual QVariant data( int row, int col, int role = Qt::DisplayRole ) const override {return _Mybase::data( row, col, role );}
-
-    /// Retrieve data for role.
-    /**
-     * @param[in] index  index
-     * @param[in] role  role
-     * @return  data value
-     */
-    virtual QVariant data( const QModelIndex& index, int role = Qt::DisplayRole ) const override;
-
     /// Retrieve flags.
     /**
      * @param[in] index  index
@@ -207,13 +193,10 @@ private:
     QColor textColor_;
 
     /// Calculate percent error.
-    double calcError( int row, ColumnIndex col0, ColumnIndex col1, bool &valid ) const;
+    static double calcError( const QVariant& col0, const QVariant& col1, bool &valid );
 
     /// Calculate error color.
-    QColor calcErrorColor( int row, ColumnIndex col0, ColumnIndex col1, const QColor& orig ) const;
-
-    /// Format value.
-    static QString formatValue( const QVariant& value, bool isCurrency = false );
+    static QColor calcErrorColor( const QVariant& col0, const QVariant& col1, const QColor& orig );
 
     /// Retrieve strategy text.
     static QString strategyText( Strategy strat );

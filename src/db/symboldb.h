@@ -189,6 +189,8 @@ protected:
 
 private:
 
+    static const int HIST_VOL_FORCED = 5;
+
     /// Calculate historical volatility (standard deviation).
     void calcHistoricalVolatility();
 

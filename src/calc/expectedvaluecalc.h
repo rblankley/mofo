@@ -208,10 +208,10 @@ private:
     double underlyingMin_;
     double underlyingMax_;
 
-    /// Analyze single call.
+    /// Analyze single covered call.
     void analyzeSingleCall( int row ) const;
 
-    /// Analyze single put.
+    /// Analyze single cash secured put.
     void analyzeSinglePut( int row ) const;
 
     /// Analyze vertical bear call.
@@ -257,10 +257,7 @@ private:
     double calcProbInTheMoney( double price, bool isCall ) const;
 
     /// Calculate expected loss.
-    double calcExpectedLossCall( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb ) const;
-
-    /// Calculate expected loss.
-    double calcExpectedLossPut( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb ) const;
+    double calcExpectedLoss( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb, bool isCall ) const;
 
     /// Populate result model greeks.
     static void populateResultModelGreeks( const Greeks& g, item_model_type::ColumnValueMap &result );

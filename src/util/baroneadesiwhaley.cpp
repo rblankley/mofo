@@ -304,7 +304,7 @@ void BaroneAdesiWhaley::validate()
     _Myt bisect_test1( 70.0, 0.10, 0.05, bisect_vi, 0.5 );
     const double bisect_price = bisect_test1.optionPrice( OptionType::Put, 70.0 );
 
-    Q_ASSERT_DOUBLE( Bisection::calcImplVol( bisect_test1, OptionType::Put, 70.0, bisect_price ), bisect_vi );
+    Q_ASSERT_DOUBLE( Bisection::calcImplVol( &bisect_test1, OptionType::Put, 70.0, bisect_price ), bisect_vi );
 }
 #endif
 

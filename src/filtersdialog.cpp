@@ -29,6 +29,7 @@
 #include <QLabel>
 #include <QListWidget>
 #include <QPushButton>
+#include <QTimer>
 #include <QVBoxLayout>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -74,9 +75,19 @@ void FiltersDialog::translate()
 
     createFilter_->setText( tr( "New" ) );
     editFilter_->setText( tr( "Edit" ) );
+    renameFilter_->setText( tr( "Rename" ) );
     removeFilter_->setText( tr( "Delete" ) );
 
     okay_->setText( tr( "Okay" ) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FiltersDialog::closePersistentEditor()
+{
+    QListWidgetItem *item( selected() );
+
+    if (( item ) && ( filters_->isPersistentEditorOpen( item ) ))
+        filters_->closePersistentEditor( item );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -120,6 +131,15 @@ void FiltersDialog::onButtonClicked()
 
         if ( QDialog::Accepted == d.exec() )
             AppDatabase::instance()->setFilter( currentFilterName_, d.filterValue() );
+    }
+
+    // rename selected filter
+    else if ( renameFilter_ == sender() )
+    {
+        QListWidgetItem *item( selected() );
+
+        if ( item )
+            filters_->editItem( item );
     }
 
     // remove selected filter
@@ -191,6 +211,9 @@ void FiltersDialog::onItemDoubleClicked( QListWidgetItem *item )
 
     if ( QDialog::Accepted == d.exec() )
         AppDatabase::instance()->setFilter( item->text(), d.filterValue() );
+
+    // force close any editor
+    closeEditorTimer_->start( 0 );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -199,6 +222,7 @@ void FiltersDialog::onItemSelectionChanged()
     QListWidgetItem *item( selected() );
 
     editFilter_->setEnabled( item );
+    renameFilter_->setEnabled( item );
     removeFilter_->setEnabled( item );
 
     currentFilterName_ = (item ? item->text() : QString());
@@ -213,6 +237,11 @@ void FiltersDialog::initialize()
     // filters
     filters_ = new QListWidget( this );
     filters_->setSelectionMode( QListWidget::SingleSelection );
+
+    QListWidget::EditTriggers triggers( filters_->editTriggers() );
+    triggers.setFlag( QListWidget::SelectedClicked, true );
+
+    filters_->setEditTriggers( triggers );
 
     connect( filters_, &QListWidget::itemChanged, this, &_Myt::onItemChanged );
     connect( filters_, &QListWidget::itemDoubleClicked, this, &_Myt::onItemDoubleClicked );
@@ -229,6 +258,12 @@ void FiltersDialog::initialize()
 
     connect( editFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
+    // rename filter
+    renameFilter_ = new QPushButton( this );
+    renameFilter_->setEnabled( false );
+
+    connect( renameFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
     // remove filter
     removeFilter_ = new QPushButton( this );
     removeFilter_->setEnabled( false );
@@ -239,6 +274,12 @@ void FiltersDialog::initialize()
     okay_ = new QPushButton( this );
 
     connect( okay_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
+    // close editor timer
+    closeEditorTimer_ = new QTimer( this );
+    closeEditorTimer_->setSingleShot( true );
+
+    connect( closeEditorTimer_, &QTimer::timeout, this, &_Myt::closePersistentEditor );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -251,6 +292,7 @@ void FiltersDialog::createLayout()
     QHBoxLayout *buttons( new QHBoxLayout );
     buttons->addWidget( createFilter_ );
     buttons->addWidget( editFilter_ );
+    buttons->addWidget( renameFilter_ );
     buttons->addWidget( removeFilter_ );
     buttons->addStretch();
     buttons->addWidget( okay_ );

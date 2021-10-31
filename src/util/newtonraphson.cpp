@@ -48,13 +48,13 @@ void NewtonRaphson::validate()
         BlackScholes bs( S, r, r, sigma, T );
 
         cm = bs.optionPrice( OptionType::Call, X );
-        iv = _Myt::calcImplVol( bs, OptionType::Call, X, cm, &okay );
+        iv = _Myt::calcImplVol( &bs, OptionType::Call, X, cm, &okay );
 
         Q_ASSERT( okay );
         Q_ASSERT_DOUBLE( sigma, iv );
 
         cm = bs.optionPrice( OptionType::Put, X );
-        iv = _Myt::calcImplVol( bs, OptionType::Put, X, cm, &okay );
+        iv = _Myt::calcImplVol( &bs, OptionType::Put, X, cm, &okay );
 
         Q_ASSERT( okay );
         Q_ASSERT_DOUBLE( sigma, iv );
@@ -70,13 +70,13 @@ void NewtonRaphson::validate()
         BlackScholes bs( S, r, r, sigma, T );
 
         cm = bs.optionPrice( OptionType::Call, X );
-        iv = _Myt::calcImplVol( bs, OptionType::Call, X, cm, &okay );
+        iv = _Myt::calcImplVol( &bs, OptionType::Call, X, cm, &okay );
 
         Q_ASSERT( okay );
         Q_ASSERT_DOUBLE( sigma, iv );
 
         cm = bs.optionPrice( OptionType::Put, X );
-        iv = _Myt::calcImplVol( bs, OptionType::Put, X, cm, &okay );
+        iv = _Myt::calcImplVol( &bs, OptionType::Put, X, cm, &okay );
 
         Q_ASSERT( okay );
         Q_ASSERT_DOUBLE( sigma, iv );

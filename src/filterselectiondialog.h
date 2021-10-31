@@ -27,6 +27,7 @@
 
 class QComboBox;
 class QLabel;
+class QLineEdit;
 class QPushButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -62,11 +63,41 @@ public:
      */
     virtual bool filtersExist() const;
 
+    /// Check watch lists visible.
+    /**
+     * @return  @c true if visible, @c false otherwise
+     */
+    virtual bool isWatchListsVisible() const;
+
     /// Retrieve selected filter.
     /**
      * @return  filter
      */
     virtual QString selected() const;
+
+    /// Retrieve watch lists.
+    /**
+     * @return  watch lists
+     */
+    virtual QString watchLists() const;
+
+    /// Set default filter for selection.
+    /**
+     * @param[in] value  default filter
+     */
+    virtual void setDefaultFilter( const QString& value );
+
+    /// Set default watch lists.
+    /**
+     * @param[in] value  default watch lists
+     */
+    virtual void setDefaultWatchLists( const QString& value );
+
+    /// Set watch lists visible or not.
+    /**
+     * @param[in] value  @c true if visible, @c false otherwise
+     */
+    virtual void setWatchListsVisible( bool value );
 
     /// Retrieve size hint.
     /**
@@ -83,16 +114,16 @@ public:
 
 protected:
 
+    bool watchListsVisible_;
+
+    QLabel *watchListsLabel_;
+    QLineEdit *watchLists_;
+
     QLabel *filtersLabel_;
     QComboBox *filters_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
-
-private slots:
-
-    /// Slot for button clicked.
-    void onButtonClicked();
 
 private:
 

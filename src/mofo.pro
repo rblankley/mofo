@@ -23,6 +23,7 @@ DEFINES += HAVE_CLIO_H
 
 SOURCES += \
     abstractdaemon.cpp \
+    analysiswidget.cpp \
     apibase/abstractapi.cpp \
     apibase/serializedapi.cpp \
     apibase/serializedjsonapi.cpp \
@@ -50,6 +51,8 @@ SOURCES += \
     gridtableview.cpp \
     hoveritemdelegate.cpp \
     mainwindow.cpp \
+    optionanalyzer.cpp \
+    optionanalyzerthread.cpp \
     optionchainview.cpp \
     optionprofitcalc.cpp \
     optionprofitcalcfilter.cpp \
@@ -85,6 +88,7 @@ SOURCES += \
 
 HEADERS += \
     abstractdaemon.h \
+    analysiswidget.h \
     apibase/abstractapi.h \
     apibase/serializedapi.h \
     apibase/serializedjsonapi.h \
@@ -113,6 +117,8 @@ HEADERS += \
     gridtableview.h \
     hoveritemdelegate.h \
     mainwindow.h \
+    optionanalyzer.h \
+    optionanalyzerthread.h \
     optionchainview.h \
     optionprofitcalc.h \
     optionprofitcalcfilter.h \
@@ -166,6 +172,9 @@ contains(DEFINES, HAVE_CLIO_H) {
 
         INCLUDEPATH += $$PWD/../../libclio/src
         DEPENDPATH += $$PWD/../../libclio/src
+
+        CONFIG(release, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../../libclio/x64/release/clio.lib
+        else:CONFIG(debug, debug|release): PRE_TARGETDEPS += $$OUT_PWD/../../libclio/x64/debug/clio.lib
     } else {
         PKGCONFIG += clio
     }

@@ -22,11 +22,13 @@
 #include "common.h"
 #include "serializedapi.h"
 
+#include <QCoreApplication>
 #include <QDir>
 #include <QFile>
 #include <QJsonDocument>
 #include <QNetworkReply>
 #include <QTemporaryFile>
+#include <QThread>
 
 static const QString TEMP_FILE_CACHE_DIR( "cache" );
 static const QString TEMP_FILE( TEMP_FILE_CACHE_DIR + QDir::separator() + "download-XXXXXX.tmp" );
@@ -35,7 +37,8 @@ static const QString TEMP_FILE_FILTER( "download-*.tmp" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SerializedWebInterface::SerializedWebInterface( QObject *parent ) :
-    _Mybase( parent )
+    _Mybase( parent ),
+    blocking_( false )
 {
     // connect signals
     connect( this, &_Myt::replyDownloadProgress, this, &_Myt::onReplyDownloadProgress );
@@ -83,8 +86,23 @@ void SerializedWebInterface::downloadFile( const QUuid& uuid, const QUrl& url )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SerializedWebInterface::downloadFile( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType )
 {
+    const Method m( request.isNull() ? GET : POST );
+
     LOG_DEBUG << "download file " << qPrintable( uuid.toString() ) << " " << qPrintable( url.toString() );
-    processRequestControl( createFileRequestControl( uuid, url, request, requestType ) );
+    processRequestControl( createFileRequestControl( uuid, url, m, request, requestType ) );
+
+    if ( isBlocking() )
+        waitForResponse( uuid );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SerializedWebInterface::remove( const QUuid& uuid, const QUrl& url, unsigned int timeout, unsigned int maxAttempts )
+{
+    LOG_DEBUG << "remove " << qPrintable( uuid.toString() ) << " " << qPrintable( url.toString() );
+    processRequestControl( createDocumentRequestControl( uuid, url, DELETE_RESOURCE, QByteArray(), QString(), timeout, maxAttempts ) );
+
+    if ( isBlocking() )
+        waitForResponse( uuid );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -96,8 +114,30 @@ void SerializedWebInterface::send( const QUuid& uuid, const QUrl& url, unsigned 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SerializedWebInterface::send( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts )
 {
+    const Method m( request.isNull() ? GET : POST );
+
     LOG_DEBUG << "send " << qPrintable( uuid.toString() ) << " " << qPrintable( url.toString() );
-    processRequestControl( createDocumentRequestControl( uuid, url, request, requestType, timeout, maxAttempts ) );
+    processRequestControl( createDocumentRequestControl( uuid, url, m, request, requestType, timeout, maxAttempts ) );
+
+    if ( isBlocking() )
+        waitForResponse( uuid );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SerializedWebInterface::upload( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts )
+{
+    if ( request.isEmpty() )
+        LOG_WARN << "empty request; nothing to upload";
+    else if ( requestType.isEmpty() )
+        LOG_WARN << "empty request type";
+    else
+    {
+        LOG_DEBUG << "upload " << qPrintable( uuid.toString() ) << " " << qPrintable( url.toString() );
+        processRequestControl( createDocumentRequestControl( uuid, url, PUT, request, requestType, timeout, maxAttempts ) );
+
+        if ( isBlocking() )
+            waitForResponse( uuid );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -116,6 +156,25 @@ void SerializedWebInterface::handleProcessDocument( const QUuid& uuid, const QBy
 {
     LOG_TRACE << "emit process document...";
     emit processDocument( uuid, request, requestType, status, response, responseType );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SerializedWebInterface::waitForResponse( const QUuid& uuid ) const
+{
+    static const int PROCESS_EVENTS_TIME( 16 );
+    static const int SLEEP_TIME( 4 );
+
+    LOG_DEBUG << "waiting for response " << qPrintable( uuid.toString() ) << "...";
+
+    do
+    {
+        // process pending events
+        QCoreApplication::processEvents( QEventLoop::AllEvents, PROCESS_EVENTS_TIME );
+
+        // do not consume 100% cpu resources
+        QThread::msleep( SLEEP_TIME );
+
+    } while ( requestControlExists( uuid ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -250,10 +309,14 @@ QNetworkReply *SerializedWebInterface::processRequestControl( const RequestContr
 {
     QNetworkReply *reply( nullptr );
 
-    if ( rc.request.isNull() )
+    if ( DELETE_RESOURCE == rc.method )
+        reply = deleteResource( rc.url, false, rc.timeout );
+    else if ( GET == rc.method )
         reply = get( rc.url, false, rc.timeout );
-    else
+    else if ( POST == rc.method )
         reply = post( rc.url, rc.request, rc.requestType, false, rc.timeout );
+    else if ( PUT == rc.method )
+        reply = put( rc.url, rc.request, rc.requestType, false, rc.timeout );
 
     if ( reply )
         writeRequestControl( reply, rc );
@@ -266,7 +329,7 @@ QNetworkReply *SerializedWebInterface::processRequestControl( const RequestContr
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SerializedWebInterface::RequestControl SerializedWebInterface::createDocumentRequestControl( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts )
+SerializedWebInterface::RequestControl SerializedWebInterface::createDocumentRequestControl( const QUuid& uuid, const QUrl& url, Method m, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts )
 {
     // create request control
     RequestControl rc;
@@ -278,13 +341,14 @@ SerializedWebInterface::RequestControl SerializedWebInterface::createDocumentReq
     rc.url = url;
     rc.request = request;
     rc.requestType = requestType;
+    rc.method = m;
     rc.file = false;
 
     return rc;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SerializedWebInterface::RequestControl SerializedWebInterface::createFileRequestControl( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType )
+SerializedWebInterface::RequestControl SerializedWebInterface::createFileRequestControl( const QUuid& uuid, const QUrl& url, Method m, const QByteArray& request, const QString& requestType )
 {
     QTemporaryFile f( TEMP_FILE );
     QString location;
@@ -310,6 +374,7 @@ SerializedWebInterface::RequestControl SerializedWebInterface::createFileRequest
     rc.url = url;
     rc.request = request;
     rc.requestType = requestType;
+    rc.method = m;
     rc.file = true;
     rc.location = location;
 
@@ -353,4 +418,16 @@ void SerializedWebInterface::destroyRequestControl( QNetworkReply *reply )
     }
 
     LOG_DEBUG << "requests pending " << pending_.size();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SerializedWebInterface::requestControlExists( const QUuid& uuid ) const
+{
+    QMutexLocker guard( &m_ );
+
+    foreach ( const RequestControl& rc, pending_ )
+        if ( rc.uuid == uuid )
+            return true;
+
+    return false;
 }

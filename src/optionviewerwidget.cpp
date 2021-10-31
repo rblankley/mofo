@@ -405,7 +405,7 @@ void OptionViewerWidget::initialize()
 
     refresh_ = new QToolButton( this );
     refresh_->setMinimumWidth( 70 );
-    refresh_->setIcon( QIcon( ":/res/refresh.jpg" ) );
+    refresh_->setIcon( QIcon( ":/res/refresh.png" ) );
     refresh_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
 
     connect( refresh_, &QToolButton::clicked, this, &_Myt::onButtonPressed );

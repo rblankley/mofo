@@ -53,7 +53,7 @@ public:
      * @return  implied volatility of @p pricing
      */
     template <class T>
-    static double calcImplVol( T& pricing, OptionType type, double X, double price, bool *okay = nullptr );
+    static double calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay = nullptr );
 
 #if defined( QT_DEBUG )
     /// Validate methods.
@@ -61,6 +61,8 @@ public:
 #endif
 
 private:
+
+    static const size_t MAX_LOOPS = 512;
 
     // not implemented
     NewtonRaphson() = delete;
@@ -80,19 +82,21 @@ private:
 };
 
 template <class T>
-inline double NewtonRaphson::calcImplVol( T& pricing, OptionType type, double X, double price, bool *okay )
+inline double NewtonRaphson::calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay )
 {
     static const double VOLATILITY_MIN = 0.0000001;
     static const double VOLATILITY_MAX = 1000.0 - VOLATILITY_MIN;
-    static const double EPSILON = 0.00000000001;
+    static const double EPSILON = 0.001;
+
+    size_t maxloops( MAX_LOOPS );
 
     // Compute the Manaster and Koehler seed value (vi)
-    double vi = pricing.calcImplVolSeedValue( X );
+    double vi = pricing->calcImplVolSeedValue( X );
 
-    pricing.setSigma( vi );
+    pricing->setSigma( vi );
 
-    double ci = pricing.optionPrice( type, X );
-    double vegai = pricing.vega( type, X );
+    double ci = pricing->optionPrice( type, X );
+    double vegai = pricing->vega( type, X );
 
     while ( EPSILON < std::fabs( price - ci ) )
     {
@@ -106,10 +110,18 @@ inline double NewtonRaphson::calcImplVol( T& pricing, OptionType type, double X,
             return 0.0;
         }
 
-        pricing.setSigma( vi );
+        pricing->setSigma( vi );
 
-        ci = pricing.optionPrice( type, X );
-        vegai = pricing.vega( type, X );
+        ci = pricing->optionPrice( type, X );
+        vegai = pricing->vega( type, X );
+
+        if ( !maxloops-- )
+        {
+            if ( okay )
+                *okay = false;
+
+            return 0.0;
+        }
     }
 
     if ( okay )

@@ -70,13 +70,6 @@ public:
      */
     virtual QVariant data0( int col, int role = Qt::DisplayRole ) const;
 
-    /// Check if column is currency.
-    /**
-     * @param[in] col  column
-     * @return  @c true if currency, @c false otherwise
-     */
-    virtual bool isColumnCurrency( int col ) const;
-
     // ========================================================================
     // Methods
     // ========================================================================
@@ -88,7 +81,8 @@ protected:
 
     mutable QMutex m_;                              ///< Mutex.
 
-    QVector<bool> columnIsCurrency_;
+    QVector<bool> columnIsText_;                    ///< Column contains text data.
+    QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.
 
     // ========================================================================
     // CTOR / DTOR
@@ -104,6 +98,18 @@ protected:
 
     /// Destructor.
     virtual ~ItemModel();
+
+    // ========================================================================
+    // Static Methods
+    // ========================================================================
+
+    /// Format value into string.
+    /**
+     * @param[in] value  value to format
+     * @param[in] numDecimalPlaces  number of decimal places (for numeric values)
+     * @return  formatted value
+     */
+    static QString formatValue( const QVariant& value, int numDecimalPlaces = 0 );
 
 private:
 

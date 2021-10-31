@@ -298,59 +298,59 @@ void validateOptionPricing()
 
         results << format5
             .arg( "BAW", 10 )
-            .arg( Bisection::calcImplVol( baw, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( baw, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( baw, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( baw, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &baw, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &baw, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &baw, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &baw, OptionType::Put, K0, op_put ), 14 );
 
         results << format5
             .arg( "BJS", 10 )
-            .arg( Bisection::calcImplVol( bjs, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( bjs, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( bjs, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( bjs, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 );
 
         results << format5
             .arg( "BS", 10 )
-            .arg( Bisection::calcImplVol( bs, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( bs, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( bs, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( bs, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &bs, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bs, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &bs, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bs, OptionType::Put, K0, op_put ), 14 );
 
         results << format5
             .arg( "CRR Binom", 10 )
-            .arg( Bisection::calcImplVol( crr, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( crr, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( crr, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( crr, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &crr, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &crr, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &crr, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &crr, OptionType::Put, K0, op_put ), 14 );
 
         results << format5
             .arg( "EQP Binom", 10 )
-            .arg( Bisection::calcImplVol( eqpb, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( eqpb, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( eqpb, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( eqpb, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &eqpb, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &eqpb, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &eqpb, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &eqpb, OptionType::Put, K0, op_put ), 14 );
 
         results << format5
             .arg( "PB Trinom", 10 )
-            .arg( Bisection::calcImplVol( pb, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( pb, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( pb, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( pb, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &pb, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &pb, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &pb, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &pb, OptionType::Put, K0, op_put ), 14 );
 
         results << format5
             .arg( "RGW", 10 )
-            .arg( Bisection::calcImplVol( rgw, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( rgw, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( rgw, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( rgw, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &rgw, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &rgw, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &rgw, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &rgw, OptionType::Put, K0, op_put ), 14 );
 /*
         results << format5
             .arg( "M Carlo", 10 )
-            .arg( Bisection::calcImplVol( mc, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( mc, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( mc, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( mc, OptionType::Put, K0, op_put ), 14 );
+            .arg( Bisection::calcImplVol( &mc, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &mc, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &mc, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &mc, OptionType::Put, K0, op_put ), 14 );
 */
         results << "";
     }
@@ -428,10 +428,10 @@ void calculatePartials()
 
     CoxRossRubinstein crr( S, r, r-q, 0.0, T, 1024 );
 
-    //vi_bid = NewtonRaphson::calcImplVol( crr, OptionType::Call, X, 0.26, &okay );
-    //vi_ask = NewtonRaphson::calcImplVol( crr, OptionType::Call, X, 0.30, &okay );
+    //vi_bid = NewtonRaphson::calcImplVol( &crr, OptionType::Call, X, 0.26, &okay );
+    //vi_ask = NewtonRaphson::calcImplVol( &crr, OptionType::Call, X, 0.30, &okay );
     //vi_mid = vi_bid + (vi_ask - vi_bid) / 2.0;
-    vi = NewtonRaphson::calcImplVol( crr, OptionType::Call, X, 0.28, &okay );
+    vi = NewtonRaphson::calcImplVol( &crr, OptionType::Call, X, 0.28, &okay );
 
     if ( okay )
     {
@@ -443,10 +443,10 @@ void calculatePartials()
         LOG_ERROR << "CRR Call " << vi << " " << delta << " " << gamma << " " << theta << " " << vega << " " << rho;
     }
 
-    //vi_bid = NewtonRaphson::calcImplVol( crr, OptionType::Put, X, 1.91, &okay );
-    //vi_ask = NewtonRaphson::calcImplVol( crr, OptionType::Put, X, 2.09, &okay );
+    //vi_bid = NewtonRaphson::calcImplVol( &crr, OptionType::Put, X, 1.91, &okay );
+    //vi_ask = NewtonRaphson::calcImplVol( &crr, OptionType::Put, X, 2.09, &okay );
     //vi_mid = vi_bid + (vi_ask - vi_bid) / 2.0;
-    vi = NewtonRaphson::calcImplVol( crr, OptionType::Put, X, 1.985, &okay );
+    vi = NewtonRaphson::calcImplVol( &crr, OptionType::Put, X, 1.985, &okay );
 
     if ( okay )
     {
@@ -460,10 +460,10 @@ void calculatePartials()
 
     BlackScholes bs( S, r, r-q, 0.0, T );
 
-    //vi_bid = NewtonRaphson::calcImplVol( bs, OptionType::Call, X, 0.26, &okay );
-    //vi_ask = NewtonRaphson::calcImplVol( bs, OptionType::Call, X, 0.30, &okay );
+    //vi_bid = NewtonRaphson::calcImplVol( &bs, OptionType::Call, X, 0.26, &okay );
+    //vi_ask = NewtonRaphson::calcImplVol( &bs, OptionType::Call, X, 0.30, &okay );
     //vi_mid = vi_bid + (vi_ask - vi_bid) / 2.0;
-    vi = NewtonRaphson::calcImplVol( bs, OptionType::Call, X, 0.28, &okay );
+    vi = NewtonRaphson::calcImplVol( &bs, OptionType::Call, X, 0.28, &okay );
 
     if ( okay )
     {
@@ -475,10 +475,10 @@ void calculatePartials()
         LOG_ERROR << "BS Call " << vi << " " << delta << " " << gamma << " " << theta << " " << vega << " " << rho;
     }
 
-    //vi_bid = NewtonRaphson::calcImplVol( bs, OptionType::Put, X, 1.91, &okay );
-    //vi_ask = NewtonRaphson::calcImplVol( bs, OptionType::Put, X, 2.09, &okay );
+    //vi_bid = NewtonRaphson::calcImplVol( &bs, OptionType::Put, X, 1.91, &okay );
+    //vi_ask = NewtonRaphson::calcImplVol( &bs, OptionType::Put, X, 2.09, &okay );
     //vi_mid = vi_bid + (vi_ask - vi_bid) / 2.0;
-    vi = NewtonRaphson::calcImplVol( bs, OptionType::Put, X, 1.985, &okay );
+    vi = NewtonRaphson::calcImplVol( &bs, OptionType::Put, X, 1.985, &okay );
 
     if ( okay )
     {

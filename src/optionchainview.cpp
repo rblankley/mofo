@@ -233,13 +233,13 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
     if ( from == to )
         if (( model_->isColumnCallOption( (model_type::ColumnIndex) from ) ) || ( model_->isColumnPutOption( (model_type::ColumnIndex) from ) ))
         {
-            a = contextMenu.addAction( tr( "&Hide" ) + " " + columnHeaderText( from ) );
+            a = contextMenu.addAction( QIcon( ":/res/prohibition.png" ), tr( "&Hide" ) + " \"" + columnHeaderText( from ) + "\"" );
             columnMap[a] = from;
         }
 
-    QAction *showAll( contextMenu.addAction( tr( "Show &All Columns" ) ) );
+    QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Show &All Columns" ) ) );
 
-    contextMenu.addAction( tr( "&Cancel" ) );
+    contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );
     contextMenu.addSeparator();
 
     // show all columns
@@ -258,6 +258,8 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
     // check result
     if ( showAll == a )
     {
+        LOG_TRACE << "show all columns";
+
         for ( int i( model_type::_CALL_COLUMNS_BEGIN ); i < model_type::_CALL_COLUMNS_END; ++i )
         {
             setColumnHidden( i, false );
@@ -273,6 +275,8 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
 
         if ( a->isCheckable() )
             hide = !a->isChecked();
+
+        LOG_TRACE << "set columns " << callColumn << " " << putColumn << " hidden " << hide;
 
         setColumnHidden( callColumn, hide );
         setColumnHidden( putColumn, hide );

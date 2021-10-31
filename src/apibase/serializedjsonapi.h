@@ -117,6 +117,29 @@ public slots:
         _Mybase::send( uuid, url, request, requestType, timeout, maxAttempts );
     }
 
+    /// Upload resource.
+    /**
+     * @param[in] uuid  uuid
+     * @param[in] url  url to download
+     * @param[in] request  request
+     * @param[in] timeout  >0 to for request timeout (ms)
+     * @param[in] maxAttempts  number of attempts
+     */
+    virtual void upload( const QUuid& uuid, const QUrl& url, const QJsonDocument& request, unsigned int timeout, unsigned int maxAttempts );
+
+    /// Upload resource.
+    /**
+     * @param[in] uuid  uuid
+     * @param[in] url  url to download
+     * @param[in] request  request
+     * @param[in] requestType  request type
+     * @param[in] timeout  >0 to for request timeout (ms)
+     * @param[in] maxAttempts  number of attempts
+     */
+    virtual void upload( const QUuid& uuid, const QUrl& url, const QByteArray& request, const QString& requestType, unsigned int timeout, unsigned int maxAttempts ) override {
+        _Mybase::upload( uuid, url, request, requestType, timeout, maxAttempts );
+    }
+
 protected:
 
     // ========================================================================

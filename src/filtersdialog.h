@@ -31,6 +31,7 @@ class QListWidget;
 class QListWidgetItem;
 class QPlainTextEdit;
 class QPushButton;
+class QTimer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -79,11 +80,15 @@ protected:
 
     QPushButton *createFilter_;
     QPushButton *editFilter_;
+    QPushButton *renameFilter_;
     QPushButton *removeFilter_;
 
     QPushButton *okay_;
 
 private slots:
+
+    /// Close any open peristent editor.
+    void closePersistentEditor();
 
     /// Slot for button clicked.
     void onButtonClicked();
@@ -100,6 +105,8 @@ private slots:
 private:
 
     QString currentFilterName_;
+
+    QTimer *closeEditorTimer_;
 
     /// Initialize.
     void initialize();

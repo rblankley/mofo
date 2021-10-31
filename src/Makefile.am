@@ -30,6 +30,7 @@ mofo_LDADD = \
 
 BUILT_SOURCES = \
 	moc_abstractdaemon.cpp \
+	moc_analysiswidget.cpp \
 	moc_configdialog.cpp \
 	moc_filtereditordialog.cpp \
 	moc_filtersdialog.cpp \
@@ -40,6 +41,8 @@ BUILT_SOURCES = \
 	moc_hoveritemdelegate.cpp \
 	moc_mainwindow.cpp \
 	moc_networkaccess.cpp \
+	moc_optionanalyzer.cpp \
+	moc_optionanalyzerthread.cpp \
 	moc_optionchainview.cpp \
 	moc_optiontradingview.cpp \
 	moc_optionviewertabwidget.cpp \
@@ -51,6 +54,7 @@ BUILT_SOURCES = \
 mofo_SOURCES = \
 	$(BUILT_SOURCES) \
 	abstractdaemon.cpp \
+	analysiswidget.cpp \
 	configdialog.cpp \
 	filtereditordialog.cpp \
 	filtersdialog.cpp \
@@ -62,6 +66,8 @@ mofo_SOURCES = \
 	main.cpp \
 	mainwindow.cpp \
 	networkaccess.cpp \
+	optionanalyzer.cpp \
+	optionanalyzerthread.cpp \
 	optionchainview.cpp \
 	optionprofitcalc.cpp \
 	optionprofitcalcfilter.cpp \

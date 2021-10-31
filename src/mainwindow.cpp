@@ -19,14 +19,18 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "analysiswidget.h"
 #include "common.h"
 #include "configdialog.h"
 #include "filtersdialog.h"
+#include "filterselectiondialog.h"
 #include "mainwindow.h"
+#include "optionanalyzer.h"
 #include "optionviewertabwidget.h"
 #include "watchlistdialog.h"
 
 #include "db/appdb.h"
+#include "db/optiontradingitemmodel.h"
 
 #include "util/tests.h"
 
@@ -43,13 +47,15 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.3" );
+static const QString applicationVersion( "0.0.4" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
     _Mybase( parent ),
     daemon_( AbstractDaemon::instance() ),
-    db_( AppDatabase::instance() )
+    db_( AppDatabase::instance() ),
+    analysis_( nullptr ),
+    analysisModel_( new OptionTradingItemModel( this ) )
 {    
     // init
     initialize();
@@ -71,6 +77,10 @@ MainWindow::MainWindow( QWidget *parent ) :
     connect( daemon_, &AbstractDaemon::statusMessageChanged, statusBar_, &QStatusBar::showMessage );
 
     connect( db_, &AppDatabase::accountsChanged, this, &_Myt::onAccountsChanged );
+
+    connect( analysis_, &OptionAnalyzer::activeChanged, this, &_Myt::updateMenuState );
+    connect( analysis_, &OptionAnalyzer::complete, this, &_Myt::updateMenuState );
+    connect( analysis_, &OptionAnalyzer::statusMessageChanged, statusBar_, &QStatusBar::showMessage );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -100,11 +110,15 @@ void MainWindow::translate()
     marketDaemonMenu_->setTitle( daemon_->name() );
     authenticate_->setText( tr( "&Authenticate (Login)" ) );
     refreshAccountData_->setText( tr( "&Refresh Account" ) );
-    singleOptionChain_->setText( tr( "View &Option Chain" ) );
+    singleOptionChain_->setText( tr( "View &Option Chain..." ) );
     startDaemon_->setText( tr( "&Start Daemon" ) );
     stopDaemon_->setText( tr( "St&op Daemon" ) );
     pauseDaemon_->setText( tr( "&Pause Daemon" ) );
     runWhenMarketsClosed_->setText( tr( "Allow When Markets &Closed" ) );
+
+    results_->setTitle( tr( "&Analysis" ) );
+    viewAnalysis_->setText( tr( "&View Results" ) );
+    customScan_->setText( tr( "&Custom Scan..." ) );
 
     helpMenu_->setTitle( tr( "&Help" ) );
     about_->setText( tr( "&About" ) );
@@ -134,6 +148,8 @@ void MainWindow::updateMenuState()
     pauseDaemon_->setEnabled( online && active );
 
     accounts_->setEnabled( accountsExist );
+
+    customScan_->setEnabled( online && active && !analysis_->isActive() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -263,17 +279,35 @@ void MainWindow::onActionTriggered()
             daemon_->getOptionChain( symbol );
         }
     }
-/*
+
     // option analysis results
-    else if ( optionAnalysisResults_ == sender() )
+    else if ( viewAnalysis_ == sender() )
     {
-        OptionTradingView *w( qobject_cast<OptionTradingView*>( centralWidget() ) );
+        AnalysisWidget *w( qobject_cast<AnalysisWidget*>( centralWidget() ) );
 
         // set central widget
         if ( !w )
-            setCentralWidget( w = new OptionTradingView( optionAnalysis_->model(), this ) );
+            setCentralWidget( w = new AnalysisWidget( analysisModel_, this ) );
     }
-*/
+
+    // custom scan and analysis
+    else if ( customScan_ == sender() )
+    {
+        LOG_INFO << "custom scan...";
+
+        FilterSelectionDialog d( this );
+        d.setDefaultFilter( AppDatabase::instance()->optionAnalysisFilter() );
+        d.setDefaultWatchLists( AppDatabase::instance()->optionAnalysisWatchLists() );
+        d.setWatchListsVisible( true );
+
+        if ( QDialog::Accepted != d.exec() )
+            return;
+
+        analysis_->setCustomFilter( d.selected() );
+
+        daemon_->scan( d.watchLists() );
+    }
+
     // about app
     else if ( about_ == sender() )
     {
@@ -393,12 +427,20 @@ void MainWindow::onRequestsPendingChanged( int pending )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void MainWindow::initialize()
 {
+    // icons from:
+    // https://www.flaticon.com/packs/ecommerce-33
+    // https://www.flaticon.com/packs/music-225
+    // https://www.flaticon.com/packs/web-essentials-8
+
     setWindowIcon( QIcon( ":/res/icon.png" ) );
+
+    // setup analyzer
+    analysis_ = new OptionAnalyzer( analysisModel_, this );
 
     // file menu
     // ---------
 
-    exit_ = new QAction( style()->standardIcon( QStyle::SP_BrowserStop ), QString(), this );
+    exit_ = new QAction( QIcon( ":/res/cancel.png" ), QString(), this );
     exit_->setShortcuts( QKeySequence::Quit );
 
     connect( exit_, &QAction::triggered, this, &_Myt::close );
@@ -409,11 +451,11 @@ void MainWindow::initialize()
     // view menu
     // ------------
 
-    config_ = new QAction( QString(), this );
+    config_ = new QAction( QIcon( ":/res/cogwheel.png" ), QString(), this );
 
-    filters_ = new QAction( QString(), this );
+    filters_ = new QAction( QIcon( ":/res/filter.png" ), QString(), this );
 
-    watchlists_ = new QAction( QString(), this );
+    watchlists_ = new QAction( QIcon( ":/res/view.png" ), QString(), this );
 
     connect( config_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( filters_, &QAction::triggered, this, &_Myt::onActionTriggered );
@@ -427,17 +469,17 @@ void MainWindow::initialize()
     // market daemon menu
     // ------------------
 
-    authenticate_ = new QAction( QIcon( ":/res/lock.png" ), QString(), this );
+    authenticate_ = new QAction( QIcon( ":/res/padlock.png" ), QString(), this );
 
-    refreshAccountData_ = new QAction( QIcon( ":/res/refresh.jpg" ), QString(), this );
+    refreshAccountData_ = new QAction( QIcon( ":/res/refresh.png" ), QString(), this );
 
-    singleOptionChain_ = new QAction( QIcon(), QString(), this );
+    singleOptionChain_ = new QAction( QIcon( ":/res/chains.png" ), QString(), this );
 
-    startDaemon_ = new QAction( style()->standardIcon( QStyle::SP_MediaPlay ), QString(), this );
+    startDaemon_ = new QAction( QIcon( ":/res/play-button.png" ), QString(), this );
 
-    stopDaemon_ = new QAction( style()->standardIcon( QStyle::SP_MediaStop ), QString(), this );
+    stopDaemon_ = new QAction( QIcon( ":/res/stop-button.png" ), QString(), this );
 
-    pauseDaemon_ = new QAction( style()->standardIcon( QStyle::SP_MediaPause ), QString(), this );
+    pauseDaemon_ = new QAction( QIcon( ":/res/pause-button.png" ), QString(), this );
     pauseDaemon_->setCheckable( true );
 
     runWhenMarketsClosed_ = new QAction( QIcon(), QString(), this );
@@ -464,21 +506,26 @@ void MainWindow::initialize()
     marketDaemonMenu_->addAction( stopDaemon_ );
     marketDaemonMenu_->addAction( pauseDaemon_ );
     marketDaemonMenu_->addAction( runWhenMarketsClosed_ );
-/*
-    // trade bot menu
-    // --------------
 
-    autoTradeActive_ = new QAction( QIcon(), QString(), this );
-    autoTradeActive_->setCheckable( true );
+    // analysis menu
+    // -------------
 
-    tradeBotMenu_ = menuBar()->addMenu( QString() );
-    tradeBotMenu_->addAction( autoTradeActive_ );
-    tradeBotMenu_->setEnabled( false );
-*/
+    viewAnalysis_ = new QAction( QIcon( ":/res/bar-chart.png" ), QString(), this );
+
+    customScan_ = new QAction( QIcon( ":/res/loupe.png" ), QString(), this );
+    customScan_->setEnabled( false );
+
+    connect( viewAnalysis_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( customScan_, &QAction::triggered, this, &_Myt::onActionTriggered );
+
+    results_ = menuBar()->addMenu( QString() );
+    results_->addAction( viewAnalysis_ );
+    results_->addAction( customScan_ );
+
     // help menu
     // ---------
 
-    about_ = new QAction( style()->standardIcon( QStyle::SP_MessageBoxInformation ), QString(), this );
+    about_ = new QAction( QIcon( ":/res/information.png" ), QString(), this );
 
     validate_ = new QAction( QIcon(), QString(), this );
     testPerf_ = new QAction( QIcon(), QString(), this );

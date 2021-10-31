@@ -234,15 +234,10 @@ bool ExpectedValueCalculator::generateProbCurve()
                 return false;
             }
 
-            // put
-            if ( probCurveCall_.contains( strike ) )
-                generateProbCurveParity( strike, false );
-
-            // call
-            else if ( probCurvePut_.contains( strike ) )
-                generateProbCurveParity( strike, true );
-
             LOG_INFO << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " generating probability using put/call parity";
+
+            // use parity to generate other side of curve
+            generateProbCurveParity( strike, probCurvePut_.contains( strike ) );
         }
     }
 
@@ -353,11 +348,11 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
         populateResultModelGreeks( greeksCall_[strike], result );
 
     // ---- //
-
+/*
     // check for active trading
     if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
         return;
-
+*/
     // ensure we have probabilities
     if ( !probCurve_.contains( strike ) )
         return;
@@ -374,40 +369,54 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
 
     // ---- //
 
-    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
-
-    // return on investment
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
+
+    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
     const double mark( result[item_model_type::INVESTMENT_OPTION_PRICE].toDouble() );
+
+    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;                  // when selling, favorable when mark price above theo price
 
     // when cost basis provided, use that for calculations
     // otherwise we need to purchase the shares at market price
-    const double costBasis( (0.0 < costBasis_) ? costBasis_ : (underlying_ + (equityTradeCost_ / multiplier)) );
+    const double equitySharePrice( (0.0 < costBasis_) ? costBasis_ : (underlying_ + (equityTradeCost_ / multiplier)) );
 
-    const double maxGain( (multiplier * mark) - optionTradeCost_ );
-    const double maxLoss( (multiplier * costBasis) - maxGain );
-    const double investmentValue( maxLoss );
+    // return on investment
+    const double premium( (multiplier * mark) - optionTradeCost_ );                                     // how much you get for selling the option
 
+    const double investmentValue( (multiplier * equitySharePrice) - premium );                          // how much money is locked up
+    const double maxGain( premium + (multiplier * (strike - equitySharePrice)) - equityTradeCost_ );    // maximum amount of money you can possibly make
+    const double maxLoss( investmentValue );                                                            // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
+/*
     // nothing to gain
     if ( maxGain <= 0.0 )
         return;
-
-    const double roi( maxGain / investmentValue );
-
-    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;          // when selling, favorable when mark price above theo price
-
-    result[item_model_type::INVESTMENT_VALUE] = investmentValue;
+*/
+    result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
+    result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = round2( 100.0 * roi );
     result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
 
+    const double costBasis( equitySharePrice - (premium / multiplier) );
+
+    if ( maxGain <= 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 0.0;
+    else if ( investmentValue < 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0;
+    else
+        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * calcProbInTheMoney( costBasis, true ) );
+
     // ---- //
 
     // expected value
-    double ev( otmProb * maxGain );
-    ev -= calcExpectedLossCall( multiplier, strike, 999999.0, costBasis, otmProb );
+    //   prob. of max gain minus contract fees
+    // - prob. of loss when selling assigned shares below strike (plus fees to sell those shares)
+    double ev( itmProb * maxGain );
+    ev -= calcExpectedLoss( multiplier, 0.0, strike, costBasis, itmProb, false );
 
     const double ev_roi( ev / investmentValue );
 
@@ -444,11 +453,11 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
         populateResultModelGreeks( greeksPut_[strike], result );
 
     // ---- //
-
+/*
     // check for active trading
     if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
         return;
-
+*/
     // ensure we have probabilities
     if ( !probCurve_.contains( strike ) )
         return;
@@ -465,38 +474,50 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
 
     // ---- //
 
-    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
-
-    // return on investment
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
+
+    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
     const double mark( result[item_model_type::INVESTMENT_OPTION_PRICE].toDouble() );
 
-    const double maxGain( (multiplier * mark) - optionTradeCost_ );
-    const double maxLoss( (multiplier * strike) - maxGain );
-    const double investmentValue( maxLoss );
+    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;                  // when selling, favorable when mark price above theo price
 
-    const double costBasis( investmentValue / multiplier );
+    // return on investment
+    const double premium( (multiplier * mark) - optionTradeCost_ );                                     // how much you get for selling the option
 
+    const double investmentValue( (multiplier * strike) - premium );                                    // how much money is locked up
+    const double maxGain( premium );                                                                    // maximum amount of money you can possibly make
+    const double maxLoss( investmentValue + equityTradeCost_ );                                         // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
+/*
     // nothing to gain
     if ( maxGain <= 0.0 )
         return;
-
-    const double roi( maxGain / investmentValue );
-
-    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;          // when selling, favorable when mark price above theo price
-
-    result[item_model_type::INVESTMENT_VALUE] = investmentValue;
+*/
+    result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
+    result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = round2( 100.0 * roi );
     result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
 
+    const double costBasis( maxLoss / multiplier );
+
+    if ( maxGain <= 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 0.0;
+    else if ( investmentValue < 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0;
+    else
+        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * calcProbInTheMoney( costBasis, true ) );
+
     // ---- //
 
     // expected value
+    //   prob. of max gain minus contract fees
+    // - prob. of loss when selling assigned shares below strike (plus fees to sell those shares)
     double ev( otmProb * maxGain );
-    ev -= calcExpectedLossPut( multiplier, 0.0, strike, costBasis, otmProb );
+    ev -= calcExpectedLoss( multiplier, 0.0, strike, costBasis, otmProb, false );
 
     const double ev_roi( ev / investmentValue );
 
@@ -535,11 +556,11 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
         populateResultModelGreeksSpread( greeksCall_[strikeLong], greeksCall_[strikeShort], result );
 
     // ---- //
-
+/*
     // check for active trading
     if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
         return;
-
+*/
     // ensure we have probabilities
     if (( !probCurve_.contains( strikeLong ) ) || ( !probCurve_.contains( strikeShort )))
         return;
@@ -558,44 +579,62 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
 
     // ---- //
 
-    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
-
-    // return on investment
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
+
+    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
     const double mark( result[item_model_type::INVESTMENT_OPTION_PRICE].toDouble() );
 
-    // when cost basis provided, use that for calculations
-    // otherwise we need to purchase the shares at market price
-    const double costBasis( (0.0 < costBasis_) ? costBasis_ : (underlying_ + (equityTradeCost_ / multiplier)) );
+    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;              // when selling, favorable when mark price above theo price
 
-    const double maxGain( (multiplier * mark) - (2.0 * optionTradeCost_) );
-    const double maxLoss( (multiplier * (strikeLong - strikeShort)) + (2.0 * optionTradeCost_) );
-    const double investmentValue( (multiplier * costBasis) - maxGain );
+    // return on investment
+    const double premium( (multiplier * mark) - (2.0 * optionTradeCost_) );                         // how much you get for selling the option
+    const double spread( strikeLong - strikeShort );                                                // difference between long and short strikes
 
+    const double investmentValue( (multiplier * spread) - premium );                                // how much money is locked up
+    const double maxGain( premium );                                                                // maximum amount of money you can possibly make
+    const double maxLoss( investmentValue + (2.0 * equityTradeCost_) );                             // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
+/*
     // nothing to gain
     if ( maxGain <= 0.0 )
         return;
-
-    const double roi( maxGain / investmentValue );
-
-    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;          // when selling, favorable when mark price above theo price
-
-    result[item_model_type::INVESTMENT_VALUE] = investmentValue;
+*/
+    result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
+    result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = round2( 100.0 * roi );
     result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
 
+    const double costBasis( strikeShort + ((premium - equityTradeCost_) / multiplier) );
+
+    if ( maxGain <= 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 0.0;
+    else if ( investmentValue < 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0;
+    else
+        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * (1.0 - calcProbInTheMoney( costBasis, true )) );
+
     // ---- //
 
     const double itmProbLong( calcProbInTheMoney( strikeLong, true ) );
-    const double otmProbShort( 1.0 - calcProbInTheMoney( strikeShort, true ) );
+    const double itmProbShort( calcProbInTheMoney( strikeShort, true ) );
+    const double otmProbShort( 1.0 - itmProbShort );
 
     // expected value
+    //   prob. of max gain minus contract fees
+    // - prob. of max loss plus fees to sell those shares
+    // - prob. of loss having to buy shares in between strikes and sell them at loss
+    // - prob. of fees to buy those shares
     double ev( otmProbShort * maxGain );
-    ev -= itmProbLong * maxLoss;
-    ev -= calcExpectedLossCall( multiplier, strikeShort, strikeLong, costBasis, (itmProbLong + otmProbShort) );
+    ev -= itmProbLong * ((multiplier * spread) + equityTradeCost_);
+    ev -= calcExpectedLoss( multiplier, strikeShort, strikeLong, strikeShort, (itmProbLong + otmProbShort), true );
+    ev -= itmProbShort * equityTradeCost_;
+
+    if ( investmentValue < 0.0 )
+        ev *= -1.0;
 
     const double ev_roi( ev / investmentValue );
 
@@ -634,11 +673,11 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
         populateResultModelGreeksSpread( greeksPut_[strikeLong], greeksPut_[strikeShort], result );
 
     // ---- //
-
+/*
     // check for active trading
     if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
         return;
-
+*/
     // ensure we have probabilities
     if (( !probCurve_.contains( strikeLong ) ) || ( !probCurve_.contains( strikeShort )))
         return;
@@ -657,42 +696,62 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
 
     // ---- //
 
-    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
-
-    // return on investment
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
+
+    const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
     const double mark( result[item_model_type::INVESTMENT_OPTION_PRICE].toDouble() );
 
-    const double maxGain( (multiplier * mark) - (2.0 * optionTradeCost_) );
-    const double maxLoss( (multiplier * (strikeShort - strikeLong)) + (2.0 * optionTradeCost_) );
-    const double investmentValue( (multiplier * strikeShort) - maxGain );
+    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;              // when selling, favorable when mark price above theo price
 
-    const double costBasis( investmentValue / multiplier );
+    // return on investment
+    const double premium( (multiplier * mark) - (2.0 * optionTradeCost_) );                         // how much you get for selling the option
+    const double spread( strikeShort - strikeLong );                                                // difference between long and short strikes
 
+    const double investmentValue( (multiplier * spread) - premium );                                // how much money is locked up
+    const double maxGain( premium );                                                                // maximum amount of money you can possibly make
+    const double maxLoss( investmentValue + (2.0 * equityTradeCost_) );                             // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
+/*
     // nothing to gain
     if ( maxGain <= 0.0 )
         return;
-
-    const double roi( maxGain / investmentValue );
-
-    result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO] = mark - theoOptionValue;          // when selling, favorable when mark price above theo price
-
-    result[item_model_type::INVESTMENT_VALUE] = investmentValue;
+*/
+    result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
+    result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = round2( 100.0 * roi );
     result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
 
+    const double costBasis( strikeShort - ((premium - equityTradeCost_) / multiplier) );
+
+    if ( maxGain <= 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 0.0;
+    else if ( investmentValue < 0.0 )
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0;
+    else
+        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * (1.0 - calcProbInTheMoney( costBasis, false )) );
+
     // ---- //
 
     const double itmProbLong( calcProbInTheMoney( strikeLong, false ) );
-    const double otmProbShort( 1.0 - calcProbInTheMoney( strikeShort, false ) );
+    const double itmProbShort( calcProbInTheMoney( strikeShort, false ) );
+    const double otmProbShort( 1.0 - itmProbShort );
 
     // expected value
+    //   prob. of max gain minus contract fees
+    // - prob. of max loss plus fees to sell those shares
+    // - prob. of loss when selling assigned shares in between strikes
+    // - prob. of fees to sell those shares
     double ev( otmProbShort * maxGain );
-    ev -= itmProbLong * maxLoss;
-    ev -= calcExpectedLossPut( multiplier, strikeLong, strikeShort, costBasis, (itmProbLong + otmProbShort) );
+    ev -= itmProbLong * ((multiplier * spread) + equityTradeCost_);
+    ev -= calcExpectedLoss( multiplier, strikeLong, strikeShort, costBasis, (itmProbLong + otmProbShort), false );
+    ev -= itmProbShort * equityTradeCost_;
+
+    if ( investmentValue < 0.0 )
+        ev *= -1.0;
 
     const double ev_roi( ev / investmentValue );
 
@@ -863,6 +922,11 @@ bool ExpectedValueCalculator::calcProbCurvePrices( OptionProbCurve& curve, const
 
         g.marketPrice = c.min + ((c.max - c.min) / 2.0);
 
+        if ( g.ask < g.marketPrice )
+            g.marketPrice = g.ask;
+        else if ( g.marketPrice < g.bid )
+            g.marketPrice = g.bid;
+
         if ( isCall )
         {
             probCurveCall_[strike] = c;
@@ -895,48 +959,16 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
     c.max = g.ask;
     c.maxvi = g.askvi;
 
-    // invalid max vi
-    if ( c.maxvi <= 0.0 )
-    {
-        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry ) );
-
-        // reduce max until we get a valid maxvi
-        do
-        {
-            c.max -= 0.01;
-
-            if (( c.max <= 0.0 ) || ( c.max < c.min ))
-                break;
-
-            c.maxvi = calcImplVol( o, type, strike, c.max );
-
-        } while ( c.maxvi <= 0.0 );
-
-        destroyPricingMethod( o );
-
-        // invalid max vi
-        if ( c.maxvi <= 0.0 )
-        {
-            LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " invalid max " << c.max << " " << c.maxvi;
-            return false;
-        }
-    }
-
-    // check for invalid min vi
+    // invalid min vi
     if ( c.minvi <= 0.0 )
     {
-        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry ) );
+        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0001, g.timeToExpiry ) );
 
-        do
-        {
-            c.min += 0.01;
+        // determine value for min
+        const double v( std::ceil( 100.0 * o->optionPrice( type, strike ) ) / 100.0 );
 
-            if ( c.max < c.min )
-                break;
-
-            c.minvi = calcImplVol( o, type, strike, c.min );
-
-        } while ( c.minvi <= 0.0 );
+        if (( std::isnormal( v ) ) && ( v <= c.max ))
+            c.minvi = calcImplVol( o, type, strike, (c.min = v) );
 
         destroyPricingMethod( o );
 
@@ -944,6 +976,55 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
         if ( c.minvi <= 0.0 )
         {
             LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " invalid min " << c.min << " " << c.minvi;
+            return false;
+        }
+    }
+
+    // invalid max vi
+    if ( c.maxvi <= 0.0 )
+    {
+        double vi( c.minvi );
+        double a( 100.0 );
+
+        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry ) );
+
+        // keep increasing vi until we get a valid max
+        double max( 0.0 );
+
+        for ( ;; )
+        {
+            vi += a;
+
+            // set new vi
+            o->setSigma( vi );
+
+            const double v( std::floor( 100.0 * o->optionPrice( type, strike ) ) / 100.0 );
+
+            // found new value
+            if (( std::isnormal( v ) ) && ( v < c.max ) && ( vi <= 1000.0 ))
+                max = v;
+
+            // reduce
+            else
+            {
+                vi -= a;
+                a /= 10.0;
+
+                if ( a < 0.00005 )
+                    break;
+            }
+        }
+
+        // valid max, use it
+        if ( 0.0 < max )
+            c.maxvi = calcImplVol( o, type, strike, (c.max = max) );
+
+        destroyPricingMethod( o );
+
+        // invalid max vi
+        if ( c.maxvi <= 0.0 )
+        {
+            LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " invalid max " << c.max << " " << c.maxvi;
             return false;
         }
     }
@@ -1076,60 +1157,11 @@ double ExpectedValueCalculator::calcProbInTheMoney( double price, bool isCall ) 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double ExpectedValueCalculator::calcExpectedLossCall( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb ) const
+double ExpectedValueCalculator::calcExpectedLoss( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb, bool isCall ) const
 {
-    bool done( false );
+    // when call flag set we are buying at probability and selling at cost basis
+    const double z( isCall ? -1.0 : 1.0 );
 
-    double prevStrike( 999999.0 );
-    double prevProb( 0.0 );
-
-    double loss( 0.0 );
-
-    // iterate each strike price
-    foreach ( const double& strike, desc_ )
-    {
-        const double prob( calcProbInTheMoney( strike, true ) );
-
-        // check this strike within our min/max
-        if ( strike < priceMax )
-        {
-            const double probDelta( prob - prevProb );
-
-            const double ceil( qMin( underlyingMax_, prevStrike ) );
-            const double price( ceil - ((ceil - strike) / 2.0) );
-
-            // accumulate loss at this possibility
-            loss += multiplier * probDelta * (price - costBasis);
-            totalProb += probDelta;
-
-            if ( (done = (strike <= priceMin)) )
-                break;
-        }
-
-        prevStrike = strike;
-        prevProb = prob;
-    }
-
-    // last strike was above min price... add in remaining loss at min price
-    if ( !done )
-    {
-        const double probDelta( 1.0 - prevProb );
-
-        const double ceil( qMin( underlyingMax_, prevStrike ) );
-        const double price( ceil - ((ceil - priceMin) / 2.0) );
-
-        // accumulate loss at this possibility
-        loss += multiplier * probDelta * (price - costBasis);
-        totalProb += probDelta;
-    }
-
-    assert(( 0.999 <= totalProb ) && ( totalProb <= 1.001 ));
-    return loss;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double ExpectedValueCalculator::calcExpectedLossPut( double multiplier, double priceMin, double priceMax, double costBasis, double totalProb ) const
-{
     bool done( false );
 
     double prevStrike( 0.0 );
@@ -1151,7 +1183,7 @@ double ExpectedValueCalculator::calcExpectedLossPut( double multiplier, double p
             const double price( floor + ((strike - floor) / 2.0) );
 
             // accumulate loss at this possibility
-            loss += multiplier * probDelta * (costBasis - price);
+            loss += multiplier * probDelta * z * (costBasis - price);
             totalProb += probDelta;
 
             if ( (done = (priceMax <= strike)) )
@@ -1171,7 +1203,7 @@ double ExpectedValueCalculator::calcExpectedLossPut( double multiplier, double p
         const double price( floor + ((priceMax - floor) / 2.0) );
 
         // accumulate loss at this possibility
-        loss += multiplier * probDelta * (costBasis - price);
+        loss += multiplier * probDelta * z * (costBasis - price);
         totalProb += probDelta;
     }
 
