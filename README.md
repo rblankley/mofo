@@ -4,6 +4,8 @@ Money4Options is a cross-platform stock options evaluation tool.
 
 ## Building
 
+This project requires Qt libraries for the user interface. For Windows I have used both 5.15.2 and 6.2.1. For Linux I have used whatever comes with Ubuntu 20.04 which I believe is 5.12.8.
+
 ### Windows
 
 A Qt solution file is provided in the `src` folder. Simply open it up in Qt Creator and build.
@@ -55,9 +57,17 @@ logging.config
 For TDA api access you need to create a development account. Signup and add your app here:
 https://developer.tdameritrade.com/user/me/apps/add
 
-Then, after running the application, update the `credentials.json` file with your app information. On Linux this is in `~/.config/mofo` or in your build folder on Windows.
+When you run the application enter your credentials into the TDA API > Credentials dialog and save. Optionally you may simply update the `credentials.json` file with your app information. On Linux this is in `~/.config/mofo` or in your build folder on Windows.
 
-There is a bug with Qt Network Auth where after TDA OAuth you will get redirected to an https URL. Because https is not supported by Qt it will fail. Simply change the URL you get redirected to http versus https to workaround this issue.
+![alt text](./docs/credentials.png?raw=true)
+
+After doing this you need to sign into your account using the TDA API > Authenticate option. Follow the instructions to login to your TDA account. After logging in you will eventually get an error about localhost (or whatever your redirect URL is) not being found.
+
+This is due to TDA OAuth requiring HTTPS domains for callbacks. Since HTTPS is not supported by Qt it will fail and you are shown something similar to this:
+
+![alt text](./docs/redirecturi.png?raw=true)
+
+To resolve this simply change the URL you get redirected to HTTP instead of HTTPS to workaround this issue. After doing this it will say your good to go and to close the window.
 
 ## Documentation
 
