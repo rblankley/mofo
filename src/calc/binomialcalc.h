@@ -88,7 +88,7 @@ protected:
 
 private:
 
-    enum {BINOM_DEPTH = 256};
+    static constexpr int BINOM_DEPTH = 256;
 
     // not implemented
     BinomialCalculator( const _Myt& ) = delete;

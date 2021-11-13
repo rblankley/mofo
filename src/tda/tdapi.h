@@ -226,8 +226,8 @@ private slots:
 
 private:
 
-    enum {REQUEST_TIMEOUT = 30 * 1000};             // 30s
-    enum {REQUEST_RETRIES = 3};
+    static constexpr int REQUEST_TIMEOUT = 30 * 1000;       // 30s
+    static constexpr int REQUEST_RETRIES = 3;
 
     enum Endpoint
     {

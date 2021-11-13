@@ -232,12 +232,6 @@ void FilterEditorDialog::onButtonClicked()
 
         accept();
     }
-
-    // cancel
-    else if ( cancel_ == sender() )
-    {
-        reject();
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -392,13 +386,14 @@ void FilterEditorDialog::initialize()
 
     // okay
     okay_ = new QPushButton( this );
+    okay_->setDefault( true );
 
     connect( okay_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     // cancel
     cancel_ = new QPushButton( this );
 
-    connect( cancel_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( cancel_, &QPushButton::clicked, this, &_Myt::reject );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

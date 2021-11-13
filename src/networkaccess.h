@@ -105,8 +105,10 @@ private slots:
     /// Slot for finished.
     void onFinished( QNetworkReply *reply );
 
+#if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
     /// Slot for network accessible changed.
     void onNetworkAccessibleChanged( QNetworkAccessManager::NetworkAccessibility accessible );
+#endif
 
     /// Slot for pre-shared key authentication required.
     void onPreSharedKeyAuthenticationRequired( QNetworkReply *reply, QSslPreSharedKeyAuthenticator *authenticator );

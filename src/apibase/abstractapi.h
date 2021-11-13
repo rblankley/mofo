@@ -186,7 +186,7 @@ private slots:
 
 private:
 
-    enum {DEFAULT_TIMEOUT = 5 * 60 * 1000}; // 5m
+    static constexpr int DEFAULT_TIMEOUT = 5 * 60 * 1000;   // 5m
 
     enum Method
     {
@@ -204,7 +204,7 @@ private:
         QTimer *timeout;
     };
 
-    using RequestMap = QMap<QNetworkReply*, RequestControl>;
+    using RequestMap = QHash<QNetworkReply*, RequestControl>;
 
     mutable QMutex m_;
 

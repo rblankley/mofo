@@ -374,13 +374,13 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
         result[item_model_type::DESC] = chains_->tableData( rowShort, table_model_type::CALL_DESC ).toString() + "-" + chains_->tableData( rowLong, table_model_type::CALL_DESC ).toString();
 
         result[item_model_type::BID_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_BID_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_ASK_PRICE ).toDouble();
-        result[item_model_type::BID_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_BID_SIZE ), chains_->tableData( rowLong, table_model_type::CALL_BID_SIZE ) );
+        result[item_model_type::BID_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_BID_SIZE ).toInt(), chains_->tableData( rowLong, table_model_type::CALL_BID_SIZE ).toInt() );
         result[item_model_type::ASK_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_ASK_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_BID_PRICE ).toDouble();
-        result[item_model_type::ASK_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_ASK_SIZE ), chains_->tableData( rowLong, table_model_type::CALL_ASK_SIZE ) );
+        result[item_model_type::ASK_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_ASK_SIZE ).toInt(), chains_->tableData( rowLong, table_model_type::CALL_ASK_SIZE ).toInt() );
         result[item_model_type::BID_ASK_SIZE] = result[item_model_type::BID_SIZE].toString() + " x " + result[item_model_type::ASK_SIZE].toString();
 
         result[item_model_type::LAST_PRICE] = chains_->tableData( rowShort, table_model_type::CALL_LAST_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_LAST_PRICE ).toDouble();
-        result[item_model_type::LAST_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_LAST_SIZE ), chains_->tableData( rowLong, table_model_type::CALL_LAST_SIZE ) );
+        result[item_model_type::LAST_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::CALL_LAST_SIZE ).toInt(), chains_->tableData( rowLong, table_model_type::CALL_LAST_SIZE ).toInt() );
 
         double breakEvenPrice = chains_->tableData( rowShort, table_model_type::CALL_MULTIPLIER ).toDouble() * (chains_->tableData( rowShort, table_model_type::CALL_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK ).toDouble());
         breakEvenPrice -= 2.0 * AppDatabase::instance()->optionTradeCost();
@@ -397,9 +397,9 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
         result[item_model_type::CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_CHANGE ).toDouble();
         result[item_model_type::PERCENT_CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_PERCENT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_PERCENT_CHANGE ).toDouble();
 
-        result[item_model_type::TOTAL_VOLUME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_TOTAL_VOLUME ), chains_->tableData( rowLong, table_model_type::CALL_TOTAL_VOLUME ) );
-        result[item_model_type::QUOTE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_QUOTE_TIME ), chains_->tableData( rowLong, table_model_type::CALL_QUOTE_TIME ) );
-        result[item_model_type::TRADE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_TRADE_TIME ), chains_->tableData( rowLong, table_model_type::CALL_TRADE_TIME ) );
+        result[item_model_type::TOTAL_VOLUME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_TOTAL_VOLUME ).toInt(), chains_->tableData( rowLong, table_model_type::CALL_TOTAL_VOLUME ).toInt() );
+        result[item_model_type::QUOTE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_QUOTE_TIME ).toDateTime(), chains_->tableData( rowLong, table_model_type::CALL_QUOTE_TIME ).toDateTime() );
+        result[item_model_type::TRADE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::CALL_TRADE_TIME ).toDateTime(), chains_->tableData( rowLong, table_model_type::CALL_TRADE_TIME ).toDateTime() );
 
         result[item_model_type::MARK] = chains_->tableData( rowShort, table_model_type::CALL_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK ).toDouble();
         result[item_model_type::MARK_CHANGE] = chains_->tableData( rowShort, table_model_type::CALL_MARK_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_MARK_CHANGE ).toDouble();
@@ -420,7 +420,7 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
         result[item_model_type::RHO] = chains_->tableData( rowLong, table_model_type::CALL_RHO ).toDouble() - chains_->tableData( rowShort, table_model_type::CALL_RHO ).toDouble();
 
         result[item_model_type::TIME_VALUE] = chains_->tableData( rowShort, table_model_type::CALL_TIME_VALUE ).toDouble() - chains_->tableData( rowLong, table_model_type::CALL_TIME_VALUE ).toDouble();
-        result[item_model_type::OPEN_INTEREST] = qMin( chains_->tableData( rowShort, table_model_type::CALL_OPEN_INTEREST ), chains_->tableData( rowLong, table_model_type::CALL_OPEN_INTEREST ) );
+        result[item_model_type::OPEN_INTEREST] = qMin( chains_->tableData( rowShort, table_model_type::CALL_OPEN_INTEREST ).toInt(), chains_->tableData( rowLong, table_model_type::CALL_OPEN_INTEREST ).toInt() );
         result[item_model_type::IS_IN_THE_MONEY] = (chains_->tableData( rowShort, table_model_type::CALL_IS_IN_THE_MONEY ).toBool() || chains_->tableData( rowLong, table_model_type::CALL_IS_IN_THE_MONEY ).toBool());
         result[item_model_type::IS_OUT_OF_THE_MONEY] = !(chains_->tableData( rowShort, table_model_type::CALL_IS_IN_THE_MONEY ).toBool() && chains_->tableData( rowLong, table_model_type::CALL_IS_IN_THE_MONEY ).toBool());
 
@@ -455,13 +455,13 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
         result[item_model_type::DESC] = chains_->tableData( rowShort, table_model_type::PUT_DESC ).toString() + "-" + chains_->tableData( rowLong, table_model_type::PUT_DESC ).toString();
 
         result[item_model_type::BID_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_BID_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_ASK_PRICE ).toDouble();
-        result[item_model_type::BID_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_BID_SIZE ), chains_->tableData( rowLong, table_model_type::PUT_BID_SIZE ) );
+        result[item_model_type::BID_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_BID_SIZE ).toInt(), chains_->tableData( rowLong, table_model_type::PUT_BID_SIZE ).toInt() );
         result[item_model_type::ASK_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_ASK_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_BID_PRICE ).toDouble();
-        result[item_model_type::ASK_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_ASK_SIZE ), chains_->tableData( rowLong, table_model_type::PUT_ASK_SIZE ) );
+        result[item_model_type::ASK_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_ASK_SIZE ).toInt(), chains_->tableData( rowLong, table_model_type::PUT_ASK_SIZE ).toInt() );
         result[item_model_type::BID_ASK_SIZE] = result[item_model_type::BID_SIZE].toString() + " x " + result[item_model_type::ASK_SIZE].toString();
 
         result[item_model_type::LAST_PRICE] = chains_->tableData( rowShort, table_model_type::PUT_LAST_PRICE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_LAST_PRICE ).toDouble();
-        result[item_model_type::LAST_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_LAST_SIZE ), chains_->tableData( rowLong, table_model_type::PUT_LAST_SIZE ) );
+        result[item_model_type::LAST_SIZE] = qMin( chains_->tableData( rowShort, table_model_type::PUT_LAST_SIZE ).toInt(), chains_->tableData( rowLong, table_model_type::PUT_LAST_SIZE ).toInt() );
 
         double breakEvenPrice = chains_->tableData( rowShort, table_model_type::PUT_MULTIPLIER ).toDouble() * (chains_->tableData( rowShort, table_model_type::PUT_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK ).toDouble());
         breakEvenPrice -= 2.0 * AppDatabase::instance()->optionTradeCost();
@@ -478,9 +478,9 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
         result[item_model_type::CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_CHANGE ).toDouble();
         result[item_model_type::PERCENT_CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_PERCENT_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_PERCENT_CHANGE ).toDouble();
 
-        result[item_model_type::TOTAL_VOLUME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_TOTAL_VOLUME ), chains_->tableData( rowLong, table_model_type::PUT_TOTAL_VOLUME ) );
-        result[item_model_type::QUOTE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_QUOTE_TIME ), chains_->tableData( rowLong, table_model_type::PUT_QUOTE_TIME ) );
-        result[item_model_type::TRADE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_TRADE_TIME ), chains_->tableData( rowLong, table_model_type::PUT_TRADE_TIME ) );
+        result[item_model_type::TOTAL_VOLUME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_TOTAL_VOLUME ).toInt(), chains_->tableData( rowLong, table_model_type::PUT_TOTAL_VOLUME ).toInt() );
+        result[item_model_type::QUOTE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_QUOTE_TIME ).toDateTime(), chains_->tableData( rowLong, table_model_type::PUT_QUOTE_TIME ).toDateTime() );
+        result[item_model_type::TRADE_TIME] = qMin( chains_->tableData( rowShort, table_model_type::PUT_TRADE_TIME ).toDateTime(), chains_->tableData( rowLong, table_model_type::PUT_TRADE_TIME ).toDateTime() );
 
         result[item_model_type::MARK] = chains_->tableData( rowShort, table_model_type::PUT_MARK ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK ).toDouble();
         result[item_model_type::MARK_CHANGE] = chains_->tableData( rowShort, table_model_type::PUT_MARK_CHANGE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_MARK_CHANGE ).toDouble();
@@ -501,7 +501,7 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
         result[item_model_type::RHO] = chains_->tableData( rowLong, table_model_type::PUT_RHO ).toDouble() - chains_->tableData( rowShort, table_model_type::PUT_RHO ).toDouble();
 
         result[item_model_type::TIME_VALUE] = chains_->tableData( rowShort, table_model_type::PUT_TIME_VALUE ).toDouble() - chains_->tableData( rowLong, table_model_type::PUT_TIME_VALUE ).toDouble();
-        result[item_model_type::OPEN_INTEREST] = qMin( chains_->tableData( rowShort, table_model_type::PUT_OPEN_INTEREST ), chains_->tableData( rowLong, table_model_type::PUT_OPEN_INTEREST ) );
+        result[item_model_type::OPEN_INTEREST] = qMin( chains_->tableData( rowShort, table_model_type::PUT_OPEN_INTEREST ).toInt(), chains_->tableData( rowLong, table_model_type::PUT_OPEN_INTEREST ).toInt() );
         result[item_model_type::IS_IN_THE_MONEY] = (chains_->tableData( rowShort, table_model_type::PUT_IS_IN_THE_MONEY ).toBool() || chains_->tableData( rowLong, table_model_type::PUT_IS_IN_THE_MONEY ).toBool());
         result[item_model_type::IS_OUT_OF_THE_MONEY] = !(chains_->tableData( rowShort, table_model_type::PUT_IS_IN_THE_MONEY ).toBool() && chains_->tableData( rowLong, table_model_type::PUT_IS_IN_THE_MONEY ).toBool());
 

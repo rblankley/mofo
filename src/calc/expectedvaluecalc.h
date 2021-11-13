@@ -129,22 +129,6 @@ protected:
      */
     virtual void destroyPricingMethod( AbstractOptionPricing *doomed ) const = 0;
 
-    // ========================================================================
-    // Static Methods
-    // ========================================================================
-
-    /// Round a number.
-    /**
-     * @return  number rounded to two decimal places
-     */
-    static double round2( double value );
-
-    /// Round a number.
-    /**
-     * @return  number rounded to four decimal places
-     */
-    static double round4( double value );
-
 private:
 
     struct Greeks

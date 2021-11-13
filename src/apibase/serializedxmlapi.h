@@ -149,7 +149,7 @@ protected:
 
 private:
 
-    enum {INDENT = 4};
+    static constexpr int INDENT = 4;
 
     /// Save document for debugging purposes.
     static void saveDocument( const QDomDocument& content, const QString& filename );

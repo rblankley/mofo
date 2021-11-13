@@ -1,6 +1,6 @@
 /**
- * @file watchlistdialog.h
- * Dialog for editing watchlists.
+ * @file widgetstatesdialog.h
+ * Dialog for editing widget states (layouts).
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,29 +20,27 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WATCHLISTDIALOG_H
-#define WATCHLISTDIALOG_H
+#ifndef WIDGETSTATESDIALOG_H
+#define WIDGETSTATESDIALOG_H
 
 #include <QDialog>
-#include <QMap>
-#include <QString>
 
 class AppDatabase;
 
+class QComboBox;
 class QLabel;
 class QListWidget;
 class QListWidgetItem;
-class QPlainTextEdit;
 class QPushButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for editing watchlists.
-class WatchlistDialog : public QDialog
+/// Dialog for editing widget states (layouts).
+class WidgetStatesDialog : public QDialog
 {
     Q_OBJECT
 
-    using _Myt = WatchlistDialog;
+    using _Myt = WidgetStatesDialog;
     using _Mybase = QDialog;
 
 public:
@@ -56,7 +54,10 @@ public:
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    WatchlistDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    WidgetStatesDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+
+    /// Destructor.
+    ~WidgetStatesDialog();
 
     // ========================================================================
     // Properties
@@ -77,16 +78,15 @@ public:
 
 protected:
 
-    QLabel *watchlistLabel_;
-    QListWidget *watchlist_;
+    QLabel *groupNameLabel_;
+    QComboBox *groupName_;
 
-    QPushButton *createList_;
-    QPushButton *copyList_;
-    QPushButton *renameList_;
-    QPushButton *deleteList_;
+    QLabel *statesLabel_;
+    QListWidget *states_;
 
-    QLabel *symbolsLabel_;
-    QPlainTextEdit *symbols_;
+    QPushButton *copyState_;
+    QPushButton *renameState_;
+    QPushButton *deleteState_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
@@ -96,15 +96,17 @@ private slots:
     /// Slot for button clicked.
     void onButtonClicked();
 
+    /// Slot for current index changed.
+    void onCurrentIndexChanged( int index );
+
     /// Slot for item selection changed.
     void onItemSelectionChanged();
-
-    /// Slot for text changed.
-    void onTextChanged();
 
 private:
 
     AppDatabase *db_;
+
+    QString currentGroupName_;
 
     /// Initialize.
     void initialize();
@@ -121,14 +123,11 @@ private:
     /// Save to database.
     void saveForm();
 
-    /// Generate list from text.
-    static QStringList generateList( const QString& data );
+    // not implemented
+    WidgetStatesDialog( const _Myt& ) = delete;
 
     // not implemented
-    WatchlistDialog( const _Myt& ) = delete;
-
-    // not implemented
-    WatchlistDialog( const _Myt&& ) = delete;
+    WidgetStatesDialog( const _Myt&& ) = delete;
 
     // not implemented
     _Myt& operator = ( const _Myt& ) = delete;
@@ -140,4 +139,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // WATCHLISTDIALOG_H
+#endif // WIDGETSTATESDIALOG_H

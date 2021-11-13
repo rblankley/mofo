@@ -118,12 +118,19 @@ protected:
 
     QLabel *watchListsLabel_;
     QLineEdit *watchLists_;
+    QPushButton *watchListsDialog_;
 
     QLabel *filtersLabel_;
     QComboBox *filters_;
+    QPushButton *filtersDialog_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
+
+private slots:
+
+    /// Slot for button clicked.
+    void onButtonClicked();
 
 private:
 

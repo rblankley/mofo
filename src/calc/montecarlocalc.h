@@ -88,7 +88,7 @@ protected:
 
 private:
 
-    enum {NUM_SIMULATIONS = 1024};
+    static constexpr int NUM_SIMULATIONS = 1024;
 
     // not implemented
     MonteCarloCalculator( const _Myt& ) = delete;

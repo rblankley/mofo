@@ -22,12 +22,14 @@
 #include "common.h"
 #include "sqltablemodel.h"
 
+#include <QLocale>
 #include <QSqlError>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SqlTableModel::SqlTableModel( int columns, QObject *parent, QSqlDatabase db ) :
     _Mybase( parent, db ),
-    columnIsCurrency_( columns, false )
+    columnIsText_( columns, false ),
+    numDecimalPlaces_( columns, 0 )
 {
 }
 
@@ -39,13 +41,13 @@ SqlTableModel::~SqlTableModel()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QVariant SqlTableModel::data( int row, int col, int role ) const
 {
-    return index( row, col ).data( role );
+    return _Mybase::data( createIndex( row, col ), role );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QVariant SqlTableModel::data0( int col, int role ) const
 {
-    return index( 0, col ).data( role );
+    return _Mybase::data( createIndex( 0, col ), role );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -60,4 +62,45 @@ bool SqlTableModel::refreshTableData()
     }
 
     return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString SqlTableModel::formatValue( const QVariant& v, int numDecimalPlaces )
+{
+    if ( QVariant::String == v.type() )
+        return v.toString();
+    else if ( QVariant::Date == v.type() )
+    {
+        const QDate result( v.toDate() );
+
+        return result.toString();
+    }
+    else if ( QVariant::DateTime == v.type() )
+    {
+        const QDateTime result( v.toDateTime() );
+
+        return result.toString();
+    }
+    else if ( QVariant::Time == v.type() )
+    {
+        const QTime result( v.toTime() );
+
+        return result.toString();
+    }
+
+    const double doubleValue( v.toDouble() );
+
+    if ( numDecimalPlaces )
+        return QString::number( doubleValue, 'f', numDecimalPlaces );
+
+    // check for integer
+    const qlonglong intValue( v.toLongLong() );
+
+    if ( doubleValue == (double) intValue )
+    {
+        const QLocale l( QLocale::system() );
+        return l.toString( intValue );
+    }
+
+    return QString::number( doubleValue );
 }

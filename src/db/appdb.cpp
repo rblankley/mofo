@@ -33,7 +33,7 @@
 #include <QSqlRecord>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "5" );
+static const QString DB_VERSION( "7" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -158,7 +158,7 @@ QByteArray AppDatabase::filter( const QString& name ) const
         model.setQuery( query );
 
         if ( !model.rowCount() )
-             LOG_WARN << "no row(s)s found";
+             LOG_WARN << "no row(s) found";
         else
         {
             const QSqlRecord rec( model.record( 0 ) );
@@ -201,17 +201,6 @@ QStringList AppDatabase::filters() const
     }
 
     return result;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QByteArray AppDatabase::headerState( const QString& name ) const
-{
-    QVariant v;
-
-    if (( readSetting( name, v ) ) && ( v.isValid() ))
-        return v.toByteArray();
-
-    return QByteArray();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -426,6 +415,37 @@ void AppDatabase::removeWatchlist( const QString& name )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::removeWidgetState( WidgetType type, const QString& groupName, const QString& name )
+{
+    static const QString sql( "DELETE FROM %1 WHERE groupName=:groupName AND name=:name" );
+
+    QString table;
+
+    // determine table
+    if ( HeaderView == type )
+        table = "headerStates";
+    else if ( Splitter == type )
+        table = "splitterStates";
+
+    if ( table.length() )
+    {
+        // create new filter
+        QSqlQuery query( db_ );
+        query.prepare( sql.arg( table ) );
+        query.bindValue( ":groupName", groupName );
+        query.bindValue( ":name", name );
+
+        // exec sql
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_WARN << "error during delete " << e.type() << " " << qPrintable( e.text() );
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double AppDatabase::riskFreeRate( double term ) const
 {
     const QString sql( "SELECT * FROM riskFreeInterestRates WHERE "
@@ -529,14 +549,6 @@ void AppDatabase::setFilter( const QString& name, const QByteArray& value )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::setHeaderState( const QString& name, const QByteArray& state )
-{
-    const QVariant v( state );
-
-    writeSetting( name, state );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 void AppDatabase::setWatchlist( const QString& name, const QStringList& symbols )
 {
     static const QString sql( "INSERT INTO watchlist (name,symbol) "
@@ -559,6 +571,39 @@ void AppDatabase::setWatchlist( const QString& name, const QStringList& symbols 
             const QSqlError e( query.lastError() );
 
             LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::setWidgetState( WidgetType type, const QString& groupName, const QString& name, const QByteArray& state )
+{
+    static const QString sql( "REPLACE INTO %1 (groupName,name,state) "
+            "VALUES (:groupName,:name,:state)" );
+
+    QString table;
+
+    // determine table
+    if ( HeaderView == type )
+        table = "headerStates";
+    else if ( Splitter == type )
+        table = "splitterStates";
+
+    if ( table.length() )
+    {
+        // create new filter
+        QSqlQuery query( db_ );
+        query.prepare( sql.arg( table ) );
+        query.bindValue( ":groupName", groupName );
+        query.bindValue( ":name", name );
+        query.bindValue( ":state", state );
+
+        // exec sql
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
         }
     }
 }
@@ -681,6 +726,140 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
 
                 if ( result.contains( name ) )
                     result.removeAll( name );
+            }
+        }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
+{
+    static const QString sql( "SELECT DISTINCT groupName FROM %1" );
+
+    QString table;
+    QStringList result;
+
+    // determine table
+    if ( HeaderView == type )
+        table = "headerStates";
+    else if ( Splitter == type )
+        table = "splitterStates";
+
+    if ( table.length() )
+    {
+        QSqlQuery query( db_ );
+        query.prepare( sql.arg( table ) );
+
+        // exec sql
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        }
+        else
+        {
+            QSqlQueryModel model;
+            model.setQuery( query );
+
+            for ( int i( 0 ); i < model.rowCount(); ++i )
+            {
+                const QSqlRecord rec( model.record( i ) );
+
+                result.append( rec.value( "groupName" ).toString() );
+            }
+        }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, const QString& name ) const
+{
+    static const QString sql( "SELECT state FROM %1 WHERE groupName=:groupName AND name=:name" );
+
+    QString table;
+    QByteArray result;
+
+    // determine table
+    if ( HeaderView == type )
+        table = "headerStates";
+    else if ( Splitter == type )
+        table = "splitterStates";
+
+    if ( table.length() )
+    {
+        QSqlQuery query( db_ );
+        query.prepare( sql.arg( table ) );
+        query.bindValue( ":groupName", groupName );
+        query.bindValue( ":name", name );
+
+        // exec sql
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        }
+        else
+        {
+            QSqlQueryModel model;
+            model.setQuery( query );
+
+            if ( !model.rowCount() )
+                 LOG_WARN << "no row(s) found";
+            else
+            {
+                const QSqlRecord rec( model.record( 0 ) );
+
+                result = rec.value( "state" ).toByteArray();
+            }
+        }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName ) const
+{
+    static const QString sql( "SELECT name FROM %1 WHERE groupName=:groupName AND name NOT LIKE '[[%]]' ORDER BY name ASC" );
+
+    QString table;
+    QStringList result;
+
+    // determine table
+    if ( HeaderView == type )
+        table = "headerStates";
+    else if ( Splitter == type )
+        table = "splitterStates";
+
+    if ( table.length() )
+    {
+        QSqlQuery query( db_ );
+        query.prepare( sql.arg( table ) );
+        query.bindValue( ":groupName", groupName );
+
+        // exec sql
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        }
+        else
+        {
+            QSqlQueryModel model;
+            model.setQuery( query );
+
+            for ( int i( 0 ); i < model.rowCount(); ++i )
+            {
+                const QSqlRecord rec( model.record( i ) );
+
+                result.append( rec.value( "name" ).toString() );
             }
         }
     }

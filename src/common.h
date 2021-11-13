@@ -64,7 +64,7 @@
 // Qt Backward Compat
 // ============================================================================
 
-#if QT_VERSION >= 0x050e00
+#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
 #define KEEP_EMPTY_PARTS Qt::KeepEmptyParts
 #define SKIP_EMPTY_PARTS Qt::SkipEmptyParts
 #else
@@ -73,7 +73,7 @@
 #endif
 
 // backward compatible support for streaming of QJsonObject
-#if QT_VERSION < 0x050d00
+#if QT_VERSION < QT_VERSION_CHECK( 5, 13, 0 )
 
 #include <QByteArray>
 #include <QDataStream>

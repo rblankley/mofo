@@ -28,8 +28,10 @@
 #include <QColor>
 #include <QDate>
 #include <QDateTime>
+#include <QJsonObject>
 #include <QList>
 #include <QMutex>
+#include <QStringList>
 
 class SymbolDatabase;
 
@@ -40,8 +42,18 @@ class AppDatabase : public SqlDatabase
 {
     Q_OBJECT
     Q_PROPERTY( QStringList accounts READ accounts NOTIFY accountsChanged STORED true )
+    Q_PROPERTY( QJsonObject configs READ configs WRITE setConfigs NOTIFY configurationChanged STORED true )
     Q_PROPERTY( QDateTime currentDateTime READ currentDateTime WRITE setCurrentDateTime )
+    Q_PROPERTY( QStringList filters READ filters STORED true )
     Q_PROPERTY( QStringList marketTypes READ marketTypes STORED true )
+    Q_PROPERTY( double numDays READ numDays STORED true )
+    Q_PROPERTY( double numTradingDays READ numDays STORED true )
+    Q_PROPERTY( QString optionAnalysisFilter READ optionAnalysisFilter STORED true )
+    Q_PROPERTY( QString optionAnalysisWatchLists READ optionAnalysisWatchLists STORED true )
+    Q_PROPERTY( QString optionCalcMethod READ optionCalcMethod STORED true )
+    Q_PROPERTY( double optionTradeCost READ optionTradeCost STORED true )
+    Q_PROPERTY( QString palette READ palette STORED true )
+    Q_PROPERTY( QColor paletteHighlight READ paletteHighlight STORED true )
 
     using _Myt = AppDatabase;
     using _Mybase = SqlDatabase;
@@ -84,11 +96,21 @@ signals:
 
 public:
 
+    /// Widget types.
+    enum WidgetType
+    {
+        HeaderView,                                 ///< Header View Widget.
+        Splitter,                                   ///< Splitter Widget.
+    };
+
     // ========================================================================
     // Properties
     // ========================================================================
 
     /// Retrieve accounts.
+    /**
+     * @return  list of accounts
+     */
     virtual QStringList accounts() const;
 
     /// Retrieve configuration.
@@ -111,14 +133,10 @@ public:
     virtual QByteArray filter( const QString& name ) const;
 
     /// Retrieve filters.
-    virtual QStringList filters() const;
-
-    /// Retrieve header state.
     /**
-     * @param[in] name  header name
-     * @return  state
+     * @return  list of filters
      */
-    virtual QByteArray headerState( const QString& name ) const;
+    virtual QStringList filters() const;
 
     /// Retrieve historical volatility.
     /**
@@ -245,19 +263,21 @@ public:
      */
     virtual void setFilter( const QString& name, const QByteArray& value = QByteArray() );
 
-    /// Set header state.
-    /**
-     * @param[in] name  header name
-     * @param[in] state  state
-     */
-    virtual void setHeaderState( const QString& name, const QByteArray& state );
-
     /// Set watchlist.
     /**
      * @param[in] name  watchlist name
      * @param[in] symbols  symbols
      */
     virtual void setWatchlist( const QString& name, const QStringList& symbols );
+
+    /// Set widget state.
+    /**
+     * @param[in] type  widget type
+     * @param[in] groupName  group name
+     * @param[in] name  state name
+     * @param[in] state  state
+     */
+    virtual void setWidgetState( WidgetType type, const QString& groupName, const QString& name, const QByteArray& state );
 
     /// Retrieve treasury yield curve date range.
     /**
@@ -279,6 +299,30 @@ public:
      * @return  list of watchlists
      */
     virtual QStringList watchlists( bool includeIndices = true ) const;
+
+    /// Retrieve list of widget state group names.
+    /**
+     * @param[in] type  widget type
+     * @return  list of group names
+     */
+    virtual QStringList widgetGroupNames( WidgetType type ) const;
+
+    /// Retrieve widget state.
+    /**
+     * @param[in] type  widget type
+     * @param[in] groupName  group name
+     * @param[in] name  state name
+     * @return  state
+     */
+    virtual QByteArray widgetState( WidgetType type, const QString& groupName, const QString& name ) const;
+
+    /// Retrieve widget states.
+    /**
+     * @param[in] type  widget type
+     * @param[in] groupName  group name
+     * @return  list of state names
+     */
+    virtual QStringList widgetStates( WidgetType type, const QString& groupName ) const;
 
     // ========================================================================
     // Methods
@@ -308,6 +352,14 @@ public:
      * @param[in] name  watchlist name
      */
     virtual void removeWatchlist( const QString& name );
+
+    /// Remove widget state.
+    /**
+     * @param[in] type  widget type
+     * @param[in] groupName  group name
+     * @param[in] name  state name
+     */
+    virtual void removeWidgetState( WidgetType type, const QString& groupName, const QString& name );
 
     // ========================================================================
     // Static Methods

@@ -29,12 +29,14 @@
 
 #include <QAction>
 #include <QHeaderView>
+#include <QInputDialog>
 #include <QMenu>
 #include <QMouseEvent>
 #include <QScrollBar>
 #include <QVBoxLayout>
 
-static const QString HEADER_STATE( "optionTradingViewHeaderState" );
+const QString OptionTradingView::STATE_GROUP_NAME( "optionTradingView" );
+const QString OptionTradingView::STATE_NAME( "[[default]]" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionTradingView::OptionTradingView( model_type *model, QWidget *parent ) :
@@ -141,34 +143,67 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
     if ( !hheader )
         return;
 
-    // ---- //
+    // ----------------------
+    // create menu of actions
+    // ----------------------
 
-    QMap<QAction*, int> columnMap;
-
-    QMap<QAction*, int> sortAscMap;
-    QMap<QAction*, int> sortDescMap;
+    QHash<QAction*, int> columnMap;
+    QHash<QAction*, QString> headerStateMap;
 
     QMenu contextMenu;
     QAction *a;
 
     // hide whats underneath cursor
-    a = contextMenu.addAction( QIcon( ":/res/prohibition.png" ), tr( "&Hide" ) + " \"" + columnHeaderText( from ) + "\"" );
+    a = contextMenu.addAction( QIcon( ":/res/hide.png" ), tr( "&Hide" ) + " \"" + columnHeaderText( from ) + "\"" );
     columnMap[a] = from;
 
+    // show all columns
+    QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w All Columns" ) ) );
+
     // sort ascending
-    a = contextMenu.addAction( QIcon( ":/res/sort-asc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&ASC" ) );
-    sortAscMap[a] = from;
+    QAction *sortAsc( contextMenu.addAction( QIcon( ":/res/sort-asc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&ASC" ) ) );
 
     // sort descending
-    a = contextMenu.addAction( QIcon( ":/res/sort-desc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&DESC" ) );
-    sortDescMap[a] = from;
+    QAction *sortDesc( contextMenu.addAction( QIcon( ":/res/sort-desc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&DESC" ) ) );
 
-    QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "&Show All Columns" ) ) );
+    // resize column to content
+    QAction *resizeColumn( contextMenu.addAction( QIcon( ":/res/width.png" ), tr( "Resi&ze" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "to Content" ) ) );
 
+    // resize all column to content
+    QAction *resizeAllColumns( contextMenu.addAction( QIcon(), tr( "Resize All Co&lumns to Content" ) ) );
+
+    // save state as...
+    QAction *saveStateAs( contextMenu.addAction( QIcon( ":/res/disk.png" ), tr( "Save Layou&t As..." ) ) );
+
+    // save state
+    QAction *saveState( nullptr );
+
+    if ( currentState_.length() )
+        saveState = contextMenu.addAction( QIcon( ":/res/inbox.png" ), tr( "&Save" ) + " \"" + currentState_ + "\"" );
+
+    // restore state
+    const QStringList states( AppDatabase::instance()->widgetStates( AppDatabase::HeaderView, STATE_GROUP_NAME ) );
+
+    if ( states.size() )
+    {
+        QMenu *restoreState( contextMenu.addMenu( QIcon( ":/res/outbox.png" ), tr( "&Restore Layout" ) ) );
+
+        foreach ( const QString& state, states )
+        {
+            a = restoreState->addAction( QIcon(), state );
+            headerStateMap[a] = state;
+        }
+    }
+
+    // reset state
+    QAction *reset( contextMenu.addAction( QIcon(), tr( "R&eset Layout to Default" ) ) );
+
+    // cancel
     contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );
+
     contextMenu.addSeparator();
 
-    // show all columns
+    // show/hide column
     for ( int i( 0 ); i < model_type::_NUM_COLUMNS; ++i )
     {
         a = contextMenu.addAction( columnHeaderText( i ) );
@@ -178,10 +213,18 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
         columnMap[a] = i;
     }
 
+    // ---------
+    // show menu
+    // ---------
+
     // show context menu
     a = contextMenu.exec( hheader->mapToGlobal( pos ) );
 
-    // check result
+    // ---------------------
+    // process menu response
+    // ---------------------
+
+    // show all columns
     if ( showAll == a )
     {
         LOG_TRACE << "show all columns";
@@ -189,6 +232,8 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
         for ( int i( 0 ); i < model_type::_NUM_COLUMNS; ++i )
             setColumnHidden( i, false );
     }
+
+    // show/hide column
     else if ( columnMap.contains( a ) )
     {
         const int column( columnMap[a] );
@@ -202,24 +247,77 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
 
         setColumnHidden( column, hide );
     }
-    else if ( sortAscMap.contains( a ) )
+
+    // sort ascending
+    else if ( sortAsc == a )
     {
-        const int column( sortAscMap[a] );
+        LOG_TRACE << "sorting by column " << from << " ASC";
 
-        LOG_TRACE << "sorting by column " << column << " ASC";
-
-        sortByColumn( column, Qt::AscendingOrder );
+        sortByColumn( from, Qt::AscendingOrder );
         return;
     }
-    else if ( sortDescMap.contains( a ) )
+
+    // sort descending
+    else if ( sortDesc == a )
     {
-        const int column( sortDescMap[a] );
+        LOG_TRACE << "sorting by column " << from << " DESC";
 
-        LOG_TRACE << "sorting by column " << column << " DESC";
-
-        sortByColumn( column, Qt::DescendingOrder );
+        sortByColumn( from, Qt::DescendingOrder );
         return;
     }
+
+    // resize column to contents
+    else if ( resizeColumn == a )
+    {
+        resizeColumnToContents( from );
+    }
+
+    // resize all columns to contents
+    else if ( resizeAllColumns == a )
+    {
+        resizeColumnsToContents();
+    }
+
+    // save state as...
+    else if ( saveStateAs == a )
+    {
+        bool okay;
+
+        const QString name(
+            QInputDialog::getText(
+                this,
+                tr( "Enter Layout Name" ),
+                tr( "Please enter a name for this layout:" ),
+                QLineEdit::Normal,
+                QString(),
+                &okay ) );
+
+        if (( okay ) && ( name.length() ))
+            saveHeaderState( hheader, (currentState_ = name) );
+
+        return;
+    }
+
+    // save state
+    else if (( saveState ) && ( saveState == a ))
+    {
+        saveHeaderState( hheader, currentState_ );
+        return;
+    }
+
+    // restore state
+    else if ( headerStateMap.contains( a ) )
+    {
+        restoreHeaderState( hheader, (currentState_ = headerStateMap[a]) );
+    }
+
+    // reset state
+    else if ( reset == a )
+    {
+        resetHeaderState( hheader );
+    }
+
+    // cancel
     else
     {
         return;
@@ -485,18 +583,38 @@ QString OptionTradingView::columnHeaderText( int column ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void OptionTradingView::saveHeaderState( const QHeaderView *view )
+void OptionTradingView::saveHeaderState( const QHeaderView *view, const QString& name )
 {
-    AppDatabase::instance()->setHeaderState( HEADER_STATE, view->saveState() );
+    AppDatabase::instance()->setWidgetState( AppDatabase::HeaderView, STATE_GROUP_NAME, name, view->saveState() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void OptionTradingView::restoreHeaderState( QHeaderView *view )
+void OptionTradingView::restoreHeaderState( QHeaderView *view, const QString& name )
 {
-    const QByteArray a( AppDatabase::instance()->headerState( HEADER_STATE ) );
+    const QByteArray a( AppDatabase::instance()->widgetState(  AppDatabase::HeaderView, STATE_GROUP_NAME, name ) );
 
     if ( a.isNull() )
         return;
 
     view->restoreState( a );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingView::resetHeaderState( QHeaderView *view )
+{
+    // iterate each column
+    for ( int i( 0 ); i < model_type::_NUM_COLUMNS; ++i )
+    {
+        // show column
+        setColumnHidden( i, false );
+
+        // resize to default width
+        setColumnWidth( i, DEFAULT_WIDTH );
+
+        // move column to default location
+        const int vi( view->visualIndex( i ) );
+
+        if ( i != vi )
+            view->moveSection( vi, i );
+    }
 }

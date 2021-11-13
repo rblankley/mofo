@@ -125,14 +125,19 @@ private slots:
 
 private:
 
-    enum {DEFAULT_WIDTH = 75};
-    enum {DEFAULT_HEIGHT = 20};
+    static const QString STATE_GROUP_NAME;
+    static const QString STATE_NAME;
 
-    enum {STRIKE_COLUMN_WIDTH = 100};
+    static constexpr int DEFAULT_WIDTH = 75;
+    static constexpr int DEFAULT_HEIGHT = 20;
+
+    static constexpr int STRIKE_COLUMN_WIDTH = 100;
 
     model_type *model_;
 
     HoverItemDelegate *itemDelegate_;
+
+    QString currentState_;
 
     int prevRow_;
     int prevColFrom_;
@@ -148,10 +153,13 @@ private:
     QString columnHeaderText( int column ) const;
 
     /// Save header view state.
-    void saveHeaderState( const QHeaderView *view );
+    void saveHeaderState( const QHeaderView *view, const QString& name = STATE_NAME );
 
     /// Restore header view state.
-    void restoreHeaderState( QHeaderView *view );
+    void restoreHeaderState( QHeaderView *view, const QString& name = STATE_NAME );
+
+    /// Reset header view state.
+    void resetHeaderState( QHeaderView *view );
 
     // not implemented
     OptionChainView( const _Myt& ) = delete;

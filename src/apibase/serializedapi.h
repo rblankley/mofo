@@ -241,7 +241,7 @@ private:
         QString location;
     };
 
-    using RequestMap = QMap<QNetworkReply*, RequestControl>;
+    using RequestMap = QHash<QNetworkReply*, RequestControl>;
 
     mutable QMutex m_;
 

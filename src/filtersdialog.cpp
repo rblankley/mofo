@@ -34,7 +34,9 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FiltersDialog::FiltersDialog( QWidget *parent, Qt::WindowFlags f ) :
-    _Mybase( parent, f )
+    _Mybase( parent, f ),
+    cancelVisible_( false ),
+    db_( AppDatabase::instance() )
 {
     // remove the question mark button
     setWindowFlags( windowFlags() & ~Qt::WindowContextHelpButtonHint );
@@ -44,20 +46,47 @@ FiltersDialog::FiltersDialog( QWidget *parent, Qt::WindowFlags f ) :
     createLayout();
     translate();
 
-    // retrieve watchlists
-    AppDatabase *db( AppDatabase::instance() );
-
     // populate!
-    foreach ( const QString& name, db->filters() )
+    foreach ( const QString& name, db_->filters() )
     {
         QListWidgetItem *item( new QListWidgetItem( name ) );
         item->setData( Qt::UserRole, name );
-
-        // allow edit of item
-        item->setFlags( item->flags() | Qt::ItemIsEditable );
+        item->setFlags( item->flags() | Qt::ItemIsEditable ); // allow edit of item
 
         filters_->addItem( item );
     }
+
+    // select first item
+    selectItem( 0 );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString FiltersDialog::selected() const
+{
+    QListWidgetItem *item( selectedItem() );
+
+    if ( item )
+        return item->text();
+
+    return QString();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FiltersDialog::setCancelButtonVisible( bool value )
+{
+    cancel_->setVisible( (cancelVisible_ = value) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FiltersDialog::setSelected( const QString& value )
+{
+    // find and select passed in item
+    for ( int i( filters_->count() ); i--; )
+        if ( value == filters_->item( i )->text() )
+        {
+            selectItem( i );
+            break;
+        }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -75,16 +104,18 @@ void FiltersDialog::translate()
 
     createFilter_->setText( tr( "New" ) );
     editFilter_->setText( tr( "Edit" ) );
+    copyFilter_->setText( tr( "Copy" ) );
     renameFilter_->setText( tr( "Rename" ) );
-    removeFilter_->setText( tr( "Delete" ) );
+    deleteFilter_->setText( tr( "Delete" ) );
 
     okay_->setText( tr( "Okay" ) );
+    cancel_->setText( tr( "Cancel" ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void FiltersDialog::closePersistentEditor()
 {
-    QListWidgetItem *item( selected() );
+    QListWidgetItem *item( selectedItem() );
 
     if (( item ) && ( filters_->isPersistentEditorOpen( item ) ))
         filters_->closePersistentEditor( item );
@@ -105,47 +136,78 @@ void FiltersDialog::onButtonClicked()
 
             const QList<QListWidgetItem*> items( filters_->findItems( name, Qt::MatchFixedString ) );
 
-            if ( items.isEmpty() )
-            {
-                QListWidgetItem *item( new QListWidgetItem( name ) );
+            if ( items.size() )
+                continue;
 
-                // allow edit of item
-                item->setFlags( item->flags() | Qt::ItemIsEditable );
+            QListWidgetItem *item( new QListWidgetItem( name ) );
+            item->setFlags( item->flags() | Qt::ItemIsEditable ); // allow edit of item
 
-                filters_->addItem( item );
+            filters_->addItem( item );
 
-                // create
-                AppDatabase::instance()->setFilter( name );
+            // create
+            db_->setFilter( name );
 
-                // select item
-                selectItem( filters_->count() );
-                break;
-            }
+            // select item
+            selectItem( filters_->count() );
+            break;
         }
     }
 
     // edit selected filter
     else if ( editFilter_ == sender() )
     {
-        FilterEditorDialog d( currentFilterName_, AppDatabase::instance()->filter( currentFilterName_ ), this );
+        FilterEditorDialog d( currentFilterName_, db_->filter( currentFilterName_ ), this );
 
         if ( QDialog::Accepted == d.exec() )
-            AppDatabase::instance()->setFilter( currentFilterName_, d.filterValue() );
+            db_->setFilter( currentFilterName_, d.filterValue() );
+    }
+
+    // copy selected filter
+    else if ( copyFilter_ == sender() )
+    {
+        QListWidgetItem *origItem( selectedItem() );
+
+        if ( !origItem )
+            return;
+
+        const QString nameTemplate( "%1 (Copy %2)" );
+
+        // generate unique name
+        for ( int i( 1 ); ; ++i )
+        {
+            const QString name( nameTemplate.arg( origItem->text() ).arg( i ) );
+
+            const QList<QListWidgetItem*> items( filters_->findItems( name, Qt::MatchFixedString ) );
+
+            if ( items.size() )
+                continue;
+
+            QListWidgetItem *item( new QListWidgetItem( name ) );
+            item->setFlags( item->flags() | Qt::ItemIsEditable ); // allow edit of item
+
+            filters_->addItem( item );
+
+            // create
+            const QByteArray f( db_->filter( origItem->text() ) );
+
+            db_->setFilter( name, f );
+            break;
+        }
     }
 
     // rename selected filter
     else if ( renameFilter_ == sender() )
     {
-        QListWidgetItem *item( selected() );
+        QListWidgetItem *item( selectedItem() );
 
         if ( item )
             filters_->editItem( item );
     }
 
-    // remove selected filter
-    else if ( removeFilter_ == sender() )
+    // delete selected filter
+    else if ( deleteFilter_ == sender() )
     {
-        QListWidgetItem *item( selected() );
+        QListWidgetItem *item( selectedItem() );
 
         if ( item )
         {
@@ -154,19 +216,13 @@ void FiltersDialog::onButtonClicked()
             // remove
             filters_->takeItem( row );
 
-            AppDatabase::instance()->removeFilter( item->text() );
+            db_->removeFilter( item->text() );
 
             // select new item
             selectItem( row );
 
             delete item;
         }
-    }
-
-    // okay
-    else if ( okay_ == sender() )
-    {
-        accept();
     }
 }
 
@@ -186,10 +242,10 @@ void FiltersDialog::onItemChanged( QListWidgetItem *item )
 
         if ( 1 == items.size() )
         {
-            const QByteArray value( AppDatabase::instance()->filter( currentFilterName_ ) );
+            const QByteArray value( db_->filter( currentFilterName_ ) );
 
-            AppDatabase::instance()->removeFilter( currentFilterName_ );
-            AppDatabase::instance()->setFilter( name, value );
+            db_->removeFilter( currentFilterName_ );
+            db_->setFilter( name, value );
 
             currentFilterName_ = name;
 
@@ -207,10 +263,10 @@ void FiltersDialog::onItemDoubleClicked( QListWidgetItem *item )
     if ( !item )
         return;
 
-    FilterEditorDialog d( item->text(), AppDatabase::instance()->filter( item->text() ), this );
+    FilterEditorDialog d( item->text(), db_->filter( item->text() ), this );
 
     if ( QDialog::Accepted == d.exec() )
-        AppDatabase::instance()->setFilter( item->text(), d.filterValue() );
+        db_->setFilter( item->text(), d.filterValue() );
 
     // force close any editor
     closeEditorTimer_->start( 0 );
@@ -219,11 +275,12 @@ void FiltersDialog::onItemDoubleClicked( QListWidgetItem *item )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void FiltersDialog::onItemSelectionChanged()
 {
-    QListWidgetItem *item( selected() );
+    QListWidgetItem *item( selectedItem() );
 
     editFilter_->setEnabled( item );
+    copyFilter_->setEnabled( item );
     renameFilter_->setEnabled( item );
-    removeFilter_->setEnabled( item );
+    deleteFilter_->setEnabled( item );
 
     currentFilterName_ = (item ? item->text() : QString());
 }
@@ -258,22 +315,35 @@ void FiltersDialog::initialize()
 
     connect( editFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
+    // copy filter
+    copyFilter_ = new QPushButton( this );
+    copyFilter_->setEnabled( false );
+
+    connect( copyFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
     // rename filter
     renameFilter_ = new QPushButton( this );
     renameFilter_->setEnabled( false );
 
     connect( renameFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
-    // remove filter
-    removeFilter_ = new QPushButton( this );
-    removeFilter_->setEnabled( false );
+    // delete filter
+    deleteFilter_ = new QPushButton( this );
+    deleteFilter_->setEnabled( false );
 
-    connect( removeFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( deleteFilter_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     // okay
     okay_ = new QPushButton( this );
+    okay_->setDefault( true );
 
-    connect( okay_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( okay_, &QPushButton::clicked, this, &_Myt::accept );
+
+    // cancel
+    cancel_ = new QPushButton( this );
+    cancel_->setVisible( cancelVisible_ );
+
+    connect( cancel_, &QPushButton::clicked, this, &_Myt::reject );
 
     // close editor timer
     closeEditorTimer_ = new QTimer( this );
@@ -289,21 +359,27 @@ void FiltersDialog::createLayout()
     filters->addWidget( filtersLabel_ );
     filters->addWidget( filters_, 1 );
 
+    QHBoxLayout *filterButtons( new QHBoxLayout );
+    filterButtons->addWidget( createFilter_ );
+    filterButtons->addWidget( editFilter_ );
+    filterButtons->addWidget( copyFilter_ );
+    filterButtons->addWidget( renameFilter_ );
+    filterButtons->addWidget( deleteFilter_ );
+
     QHBoxLayout *buttons( new QHBoxLayout );
-    buttons->addWidget( createFilter_ );
-    buttons->addWidget( editFilter_ );
-    buttons->addWidget( renameFilter_ );
-    buttons->addWidget( removeFilter_ );
     buttons->addStretch();
+    buttons->addWidget( cancel_ );
     buttons->addWidget( okay_ );
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
     form->addLayout( filters, 1 );
+    form->addLayout( filterButtons );
+    form->addItem( new QSpacerItem( 16, 16 ) );
     form->addLayout( buttons );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QListWidgetItem *FiltersDialog::selected() const
+QListWidgetItem *FiltersDialog::selectedItem() const
 {
     const QList<QListWidgetItem*> items( filters_->selectedItems() );
 

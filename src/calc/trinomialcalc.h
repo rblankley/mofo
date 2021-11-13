@@ -88,7 +88,7 @@ protected:
 
 private:
 
-    enum {TRINOM_DEPTH = 128};
+    static constexpr int TRINOM_DEPTH = 128;
 
     // not implemented
     TrinomialCalculator( const _Myt& ) = delete;

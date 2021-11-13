@@ -119,8 +119,11 @@ int main( int argc, char *argv[] )
     CLIO_INIT_WITH_INTERVAL( SYS_CONF_DIR "logging.config", 30 * 1000 );
 #endif
 
+#if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
     QApplication::setAttribute( Qt::AA_DisableWindowContextHelpButton );
     QApplication::setAttribute( Qt::AA_EnableHighDpiScaling );
+#endif
+
     QApplication a( argc, argv );
 
 #if defined( Q_OS_WIN )

@@ -24,7 +24,11 @@
 
 #include "db/appdb.h"
 
+#include "tda/tdcredentialsdialog.h"
+
 #include "usdot/usdotapi.h"
+
+#include <QApplication>
 
 static const QString EQUITY_MARKET( "EQUITY" );
 static const QString OPTION_MARKET( "OPTION" );
@@ -75,6 +79,21 @@ AbstractDaemon::ConnectedState TDAmeritradeDaemon::connectedState() const
 QString TDAmeritradeDaemon::name() const
 {
     return tr( "T&DA API" );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritradeDaemon::editCredentials()
+{
+    TDCredentialsDialog d( QApplication::activeWindow() );
+    d.setConsumerId( api_->clientId() );
+    d.setCallbackUrl( api_->redirectUrl().toString() );
+
+    // prompt new credentials
+    if ( QDialog::Accepted == d.exec() )
+    {
+        api_->setClientId( d.consumerId() );
+        api_->setRedirectUrl( d.callbackUrl() );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

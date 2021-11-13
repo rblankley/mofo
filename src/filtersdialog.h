@@ -26,6 +26,8 @@
 #include <QDialog>
 #include <QStringList>
 
+class AppDatabase;
+
 class QLabel;
 class QListWidget;
 class QListWidgetItem;
@@ -60,6 +62,30 @@ public:
     // Properties
     // ========================================================================
 
+    /// Check if cancel button is visible.
+    /**
+     * @return  @c true if visible, @c false otherwise
+     */
+    virtual bool isCancelButtonVisible() const {return cancelVisible_;}
+
+    /// Retrieve selected filter.
+    /**
+     * @return  currently selected filter
+     */
+    virtual QString selected() const;
+
+    /// Set cancel button visible.
+    /**
+     * @param[in] value  @c true for visible, @c false otherwise
+     */
+    virtual void setCancelButtonVisible( bool value );
+
+    /// Set currently selected filter.
+    /**
+     * @param[in] value  selected filter
+     */
+    virtual void setSelected( const QString& value );
+
     /// Retrieve size hint.
     /**
      * @return  size hint
@@ -75,15 +101,19 @@ public:
 
 protected:
 
+    bool cancelVisible_;
+
     QLabel *filtersLabel_;
     QListWidget *filters_;
 
     QPushButton *createFilter_;
     QPushButton *editFilter_;
+    QPushButton *copyFilter_;
     QPushButton *renameFilter_;
-    QPushButton *removeFilter_;
+    QPushButton *deleteFilter_;
 
     QPushButton *okay_;
+    QPushButton *cancel_;
 
 private slots:
 
@@ -104,6 +134,8 @@ private slots:
 
 private:
 
+    AppDatabase *db_;
+
     QString currentFilterName_;
 
     QTimer *closeEditorTimer_;
@@ -115,7 +147,7 @@ private:
     void createLayout();
 
     /// Retrieve selected item.
-    QListWidgetItem *selected() const;
+    QListWidgetItem *selectedItem() const;
 
     /// Select item.
     void selectItem( int index );

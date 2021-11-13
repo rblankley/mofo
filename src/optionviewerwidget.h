@@ -101,6 +101,9 @@ private slots:
 
 private:
 
+    static const QString STATE_GROUP_NAME;
+    static const QString STATE_NAME;
+
     QString symbol_;
 
     QuoteTableModel *model_;

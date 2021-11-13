@@ -397,7 +397,7 @@ protected:
 
 private:
 
-    enum {DEFAULT_VERT_DEPTH = 3};
+    static constexpr int DEFAULT_VERT_DEPTH = 3;
 
 };
 

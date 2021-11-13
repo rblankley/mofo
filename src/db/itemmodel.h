@@ -79,7 +79,11 @@ public:
 
 protected:
 
+#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
+    mutable QRecursiveMutex m_;                     ///< Mutex.
+#else
     mutable QMutex m_;                              ///< Mutex.
+#endif
 
     QVector<bool> columnIsText_;                    ///< Column contains text data.
     QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.

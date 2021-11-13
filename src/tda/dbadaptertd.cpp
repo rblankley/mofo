@@ -380,10 +380,22 @@ bool TDAmeritradeDatabaseAdapter::transformOptionChain( const QJsonObject& tdobj
     QFuture<void> fputs;
 
     if (( tdobj.constEnd() != calls ) && ( calls->isObject() ))
+    {
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        fcalls = QtConcurrent::run( &_Myt::parseOptionChain, this, calls, underlyingPrice, &options, &m );
+#else
         fcalls = QtConcurrent::run( this, &_Myt::parseOptionChain, calls, underlyingPrice, &options, &m );
+#endif
+    }
 
     if (( tdobj.constEnd() != puts ) && ( puts->isObject() ))
+    {
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        fputs = QtConcurrent::run( &_Myt::parseOptionChain, this, puts, underlyingPrice, &options, &m );
+#else
         fputs = QtConcurrent::run( this, &_Myt::parseOptionChain, puts, underlyingPrice, &options, &m );
+#endif
+    }
 
     // transform!
     QJsonObject optionChain;
@@ -621,6 +633,15 @@ void TDAmeritradeDatabaseAdapter::parseMarketHours( const QJsonObject& market, Q
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDatabaseAdapter::parseOptionChain( const QJsonObject::const_iterator& it, double underlyingPrice, QJsonArray *result, QMutex *m ) const
 {
+    QStringList checkForBadValues;
+    checkForBadValues.append( DB_VOLATILITY );
+    checkForBadValues.append( DB_DELTA );
+    checkForBadValues.append( DB_GAMMA );
+    checkForBadValues.append( DB_THETA );
+    checkForBadValues.append( DB_VEGA );
+    checkForBadValues.append( DB_RHO );
+    checkForBadValues.append( DB_THEO_OPTION_VALUE );
+
     // iterate all expirations
     foreach ( const QJsonValue& expiry, it->toObject() )
         if ( expiry.isObject() )
@@ -635,6 +656,14 @@ void TDAmeritradeDatabaseAdapter::parseOptionChain( const QJsonObject::const_ite
                         {
                             const QJsonObject strike( strikeVal.toObject() );
 
+                            // check for bad/invalid option
+                            const int bidSize( strike[JSON_BID_SIZE].toInt() );
+                            const int askSize( strike[JSON_ASK_SIZE].toInt() );
+                            const qint64 quoteTime( strike[JSON_QUOTE_TIME_IN_LONG].toVariant().toLongLong() );
+
+                            if (( !bidSize ) && ( !askSize ) && ( !quoteTime ))
+                                continue;
+
                             // transform!
                             QJsonObject obj;
                             transform( strike, quoteFields_, obj );
@@ -643,7 +672,7 @@ void TDAmeritradeDatabaseAdapter::parseOptionChain( const QJsonObject::const_ite
                             const QString type( strike[JSON_PUT_CALL].toString() );
 
                             obj[DB_STAMP] = obj[DB_QUOTE_TIME];
-                            obj[DB_BID_ASK_SIZE] = QString::number( strike[JSON_BID_SIZE].toInt() ) + " x " + QString::number( strike[JSON_ASK_SIZE].toInt() );
+                            obj[DB_BID_ASK_SIZE] = QString::number( bidSize ) + " x " + QString::number( askSize );
                             obj[DB_IS_WEEKLY] = desc.contains( "(Weekly)" );
                             obj[DB_IS_QUARTERLY] = desc.contains( "(Quarterly)" );
 
@@ -651,6 +680,13 @@ void TDAmeritradeDatabaseAdapter::parseOptionChain( const QJsonObject::const_ite
                                 obj[DB_INTRINSIC_VALUE] = underlyingPrice - strike[JSON_STRIKE_PRICE].toDouble();
                             else if ( PUT == type )
                                 obj[DB_INTRINSIC_VALUE] = strike[JSON_STRIKE_PRICE].toDouble() - underlyingPrice;
+
+                            // fixup bad values
+                            foreach ( const QString& f, checkForBadValues )
+                                if (( "NaN" == obj[f].toString() ) ||
+                                    ( -999.0 == obj[f].toDouble() ) ||
+                                    ( -1.0 == obj[f].toDouble() && DB_THEO_OPTION_VALUE == f ))
+                                    obj[f] = QJsonValue();
 
                             QMutexLocker guard( m );
                             result->append( obj );

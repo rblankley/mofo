@@ -247,6 +247,8 @@ protected:
 
 private:
 
+    QMap<int, int> bidAskSize_;
+
     QColor inTheMoneyColor_;
     QColor strikeColor_;
 

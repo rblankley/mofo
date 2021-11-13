@@ -231,8 +231,8 @@ protected slots:
 
 private:
 
-    enum {DEFAULT_WIDTH = 50};
-    enum {DEFAULT_HEIGHT = 20};
+    static constexpr int DEFAULT_WIDTH = 50;
+    static constexpr int DEFAULT_HEIGHT = 20;
 
     using model_type = GridTableHeaderModel;
 

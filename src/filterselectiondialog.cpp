@@ -20,7 +20,9 @@
  */
 
 #include "common.h"
+#include "filtersdialog.h"
 #include "filterselectiondialog.h"
+#include "watchlistselectiondialog.h"
 
 #include "db/appdb.h"
 
@@ -99,12 +101,13 @@ void FilterSelectionDialog::setWatchListsVisible( bool value )
 
     watchListsLabel_->setVisible( watchListsVisible_ );
     watchLists_->setVisible( watchListsVisible_ );
+    watchListsDialog_->setVisible( watchListsVisible_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QSize FilterSelectionDialog::sizeHint() const
 {
-    return QSize( 250, watchListsVisible_ ? 150 : 100 );
+    return QSize( 350, watchListsVisible_ ? 200 : 150 );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -113,11 +116,55 @@ void FilterSelectionDialog::translate()
     setWindowTitle( tr( "Choose Filter" ) );
 
     watchListsLabel_->setText( tr( "Enter watchlists (comma separated):" ) );
+    watchListsDialog_->setText( "..." );
 
     filtersLabel_->setText( tr( "Select a filter:" ) );
+    filtersDialog_->setText( "..." );
 
     okay_->setText( tr( "Okay" ) );
     cancel_->setText( tr( "Cancel" ) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FilterSelectionDialog::onButtonClicked()
+{
+    // watchlists
+    if ( watchListsDialog_ == sender() )
+    {
+        WatchlistSelectionDialog d( this );
+        d.setSelected( watchLists_->text() );
+
+        if ( QDialog::Accepted == d.exec() )
+            watchLists_->setText( d.selected() );
+    }
+
+    // filters
+    else if ( filtersDialog_ == sender() )
+    {
+        // save off existing selection
+        const QString s( filters_->currentData().toString() );
+
+        // edit
+        FiltersDialog d( this );
+        d.setSelected( s );
+        d.setCancelButtonVisible( true );
+
+        // prompt
+        const int rc( d.exec() );
+
+        // remove existing filters and add new ones
+        while ( 1 < filters_->count() )
+            filters_->removeItem( filters_->count() - 1 );
+
+        foreach ( const QString& f, AppDatabase::instance()->filters() )
+            filters_->addItem( f, f );
+
+        // set back to existing selection; or the selected filter if they accepted the dialog
+        int i;
+
+        if ( 0 <= (i = filters_->findData( (QDialog::Accepted == rc) ? d.selected() : s )) )
+            filters_->setCurrentIndex( i );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -130,13 +177,23 @@ void FilterSelectionDialog::initialize()
     watchLists_ = new QLineEdit( this );
     watchLists_->setVisible( watchListsVisible_ );
 
+    watchListsDialog_ = new QPushButton( this );
+    watchListsDialog_->setVisible( watchListsVisible_ );
+
+    connect( watchListsDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
     // filters
     filtersLabel_ = new QLabel( this );
 
     filters_ = new QComboBox( this );
 
+    filtersDialog_ = new QPushButton( this );
+
+    connect( filtersDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
     // okay
     okay_ = new QPushButton( this );
+    okay_->setDefault( true );
 
     connect( okay_, &QPushButton::clicked, this, &_Myt::accept );
 
@@ -149,6 +206,16 @@ void FilterSelectionDialog::initialize()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void FilterSelectionDialog::createLayout()
 {
+    QHBoxLayout *watchLists( new QHBoxLayout );
+    watchLists->setContentsMargins( QMargins() );
+    watchLists->addWidget( watchLists_, 1 );
+    watchLists->addWidget( watchListsDialog_ );
+
+    QHBoxLayout *filters( new QHBoxLayout );
+    filters->setContentsMargins( QMargins() );
+    filters->addWidget( filters_, 1 );
+    filters->addWidget( filtersDialog_ );
+
     QHBoxLayout *buttons( new QHBoxLayout() );
     buttons->addStretch();
     buttons->addWidget( cancel_ );
@@ -156,9 +223,9 @@ void FilterSelectionDialog::createLayout()
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
     form->addWidget( watchListsLabel_ );
-    form->addWidget( watchLists_ );
+    form->addLayout( watchLists );
     form->addWidget( filtersLabel_ );
-    form->addWidget( filters_ );
+    form->addLayout( filters );
     form->addStretch();
     form->addLayout( buttons );
 }

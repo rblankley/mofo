@@ -41,28 +41,6 @@ QuoteTableModel::QuoteTableModel( const QString& symbol, const QDateTime& stamp,
     // setup view
     setTable( "quotes" );
     setFilter( filter );
-
-    // generate column is currency
-    columnIsCurrency_[BID_PRICE] = true;
-    columnIsCurrency_[ASK_PRICE] = true;
-    columnIsCurrency_[LAST_PRICE] = true;
-    columnIsCurrency_[CHANGE] = true;
-
-    columnIsCurrency_[MARK] = true;
-    columnIsCurrency_[MARK_CHANGE] = true;
-
-    columnIsCurrency_[OPEN_PRICE] = true;
-    columnIsCurrency_[HIGH_PRICE] = true;
-    columnIsCurrency_[LOW_PRICE] = true;
-    columnIsCurrency_[CLOSE_PRICE] = true;
-
-    columnIsCurrency_[FIFTY_TWO_WEEK_HIGH] = true;
-    columnIsCurrency_[FIFTY_TWO_WEEK_LOW] = true;
-
-    columnIsCurrency_[DIV_AMOUNT] = true;
-
-    columnIsCurrency_[REG_MARKET_LAST_PRICE] = true;
-    columnIsCurrency_[REG_MARKET_CHANGE] = true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

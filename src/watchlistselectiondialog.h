@@ -1,6 +1,6 @@
 /**
- * @file watchlistdialog.h
- * Dialog for editing watchlists.
+ * @file watchlistselectiondialog.h
+ * Dialog for selecting watchlists.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,29 +20,25 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WATCHLISTDIALOG_H
-#define WATCHLISTDIALOG_H
+#ifndef WATCHLISTSELECTIONDIALOG_H
+#define WATCHLISTSELECTIONDIALOG_H
 
 #include <QDialog>
 #include <QMap>
-#include <QString>
 
-class AppDatabase;
-
+class QCheckBox;
 class QLabel;
-class QListWidget;
-class QListWidgetItem;
-class QPlainTextEdit;
 class QPushButton;
+class QVBoxLayout;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for editing watchlists.
-class WatchlistDialog : public QDialog
+/// Dialog for selecting watchlists.
+class WatchlistSelectionDialog : public QDialog
 {
     Q_OBJECT
 
-    using _Myt = WatchlistDialog;
+    using _Myt = WatchlistSelectionDialog;
     using _Mybase = QDialog;
 
 public:
@@ -56,11 +52,29 @@ public:
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    WatchlistDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    WatchlistSelectionDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Retrieve if watchlists exist.
+    /**
+     * @return  @c true if watchlists exist, @c false otherwise
+     */
+    virtual bool watchlistsExist() const;
+
+    /// Retrieve selected watchlists.
+    /**
+     * @return  watchlists
+     */
+    virtual QString selected() const;
+
+    /// Set selected watchlists
+    /**
+     * @param[in] value  watchlists
+     */
+    virtual void setSelected( const QString& value );
 
     /// Retrieve size hint.
     /**
@@ -77,16 +91,9 @@ public:
 
 protected:
 
-    QLabel *watchlistLabel_;
-    QListWidget *watchlist_;
+    QLabel *watchListsLabel_;
 
-    QPushButton *createList_;
-    QPushButton *copyList_;
-    QPushButton *renameList_;
-    QPushButton *deleteList_;
-
-    QLabel *symbolsLabel_;
-    QPlainTextEdit *symbols_;
+    QPushButton *editWatchLists_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
@@ -96,15 +103,13 @@ private slots:
     /// Slot for button clicked.
     void onButtonClicked();
 
-    /// Slot for item selection changed.
-    void onItemSelectionChanged();
-
-    /// Slot for text changed.
-    void onTextChanged();
-
 private:
 
-    AppDatabase *db_;
+    using WatchlistCheckBoxMap = QMap<QString, QCheckBox*>;
+
+    WatchlistCheckBoxMap boxes_;
+
+    QVBoxLayout *boxesLayout_;
 
     /// Initialize.
     void initialize();
@@ -112,23 +117,14 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Retrieve selected item.
-    QListWidgetItem *selectedItem() const;
-
-    /// Select item.
-    void selectItem( int index );
-
-    /// Save to database.
-    void saveForm();
-
-    /// Generate list from text.
-    static QStringList generateList( const QString& data );
+    /// Generate watchlist check boxes.
+    void generateBoxes();
 
     // not implemented
-    WatchlistDialog( const _Myt& ) = delete;
+    WatchlistSelectionDialog( const _Myt& ) = delete;
 
     // not implemented
-    WatchlistDialog( const _Myt&& ) = delete;
+    WatchlistSelectionDialog( const _Myt&& ) = delete;
 
     // not implemented
     _Myt& operator = ( const _Myt& ) = delete;
@@ -140,4 +136,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // WATCHLISTDIALOG_H
+#endif // WATCHLISTSELECTIONDIALOG_H

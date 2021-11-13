@@ -1,6 +1,6 @@
 /**
- * @file watchlistdialog.h
- * Dialog for editing watchlists.
+ * @file tdcredentialsdialog.h
+ * TD Ameritrade Credentials editor.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,29 +20,23 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WATCHLISTDIALOG_H
-#define WATCHLISTDIALOG_H
+#ifndef TDCREDENTIALSDIALOG_H
+#define TDCREDENTIALSDIALOG_H
 
 #include <QDialog>
-#include <QMap>
-#include <QString>
-
-class AppDatabase;
 
 class QLabel;
-class QListWidget;
-class QListWidgetItem;
-class QPlainTextEdit;
+class QLineEdit;
 class QPushButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for editing watchlists.
-class WatchlistDialog : public QDialog
+/// TD Ameritrade Credentials editor.
+class TDCredentialsDialog : public QDialog
 {
     Q_OBJECT
 
-    using _Myt = WatchlistDialog;
+    using _Myt = TDCredentialsDialog;
     using _Mybase = QDialog;
 
 public:
@@ -56,11 +50,37 @@ public:
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    WatchlistDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    TDCredentialsDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Retrieve callback URL.
+    /**
+     * Callback URL from TDA site, in the form "http://localhost:8088/mofo"
+     * @return  callback url
+     */
+    virtual QString callbackUrl() const;
+
+    /// Retrieve consumer key id.
+    /**
+     * Consumer Id from TDA site, in the form "<YOUR TDA CLIENT ID>@AMER.OAUTHAP"
+     * @return  consumer id
+     */
+    virtual QString consumerId() const;
+
+    /// Set callback URL.
+    /**
+     * @param[in] value  callback url
+     */
+    virtual void setCallbackUrl( const QString& value );
+
+    /// Set consumer key id.
+    /**
+     * @param[in] value  consumer id
+     */
+    virtual void setConsumerId( const QString& value );
 
     /// Retrieve size hint.
     /**
@@ -77,34 +97,28 @@ public:
 
 protected:
 
-    QLabel *watchlistLabel_;
-    QListWidget *watchlist_;
+    QLabel *consumerIdLabel_;
+    QLineEdit *consumerId_;
 
-    QPushButton *createList_;
-    QPushButton *copyList_;
-    QPushButton *renameList_;
-    QPushButton *deleteList_;
+    QLabel *callbackUrlLabel_;
+    QLineEdit *callbackUrl_;
 
-    QLabel *symbolsLabel_;
-    QPlainTextEdit *symbols_;
+    QLabel *tdaDeveloperInfo_;
+    QLabel *tdaLink_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
 
-private slots:
+protected slots:
 
-    /// Slot for button clicked.
-    void onButtonClicked();
+    // ========================================================================
+    // Methods
+    // ========================================================================
 
-    /// Slot for item selection changed.
-    void onItemSelectionChanged();
-
-    /// Slot for text changed.
-    void onTextChanged();
+    /// Validate form entry fields.
+    virtual bool validateForm();
 
 private:
-
-    AppDatabase *db_;
 
     /// Initialize.
     void initialize();
@@ -112,23 +126,11 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Retrieve selected item.
-    QListWidgetItem *selectedItem() const;
-
-    /// Select item.
-    void selectItem( int index );
-
-    /// Save to database.
-    void saveForm();
-
-    /// Generate list from text.
-    static QStringList generateList( const QString& data );
+    // not implemented
+    TDCredentialsDialog( const _Myt& ) = delete;
 
     // not implemented
-    WatchlistDialog( const _Myt& ) = delete;
-
-    // not implemented
-    WatchlistDialog( const _Myt&& ) = delete;
+    TDCredentialsDialog( const _Myt&& ) = delete;
 
     // not implemented
     _Myt& operator = ( const _Myt& ) = delete;
@@ -140,4 +142,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // WATCHLISTDIALOG_H
+#endif // TDCREDENTIALSDIALOG_H

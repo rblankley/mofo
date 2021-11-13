@@ -28,6 +28,7 @@
 #include "optionanalyzer.h"
 #include "optionviewertabwidget.h"
 #include "watchlistdialog.h"
+#include "widgetstatesdialog.h"
 
 #include "db/appdb.h"
 #include "db/optiontradingitemmodel.h"
@@ -47,7 +48,7 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.4" );
+static const QString applicationVersion( "0.0.5" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -105,10 +106,12 @@ void MainWindow::translate()
     viewMenu_->setTitle( tr( "&View" ) );
     config_->setText( tr( "&Configuration..." ) );
     filters_->setText( tr( "&Filters..." ) );
+    layouts_->setText( tr( "&Layouts..." ) );
     watchlists_->setText( tr( "&Watchlists..." ) );
 
     marketDaemonMenu_->setTitle( daemon_->name() );
     authenticate_->setText( tr( "&Authenticate (Login)" ) );
+    credentials_->setText( tr( "Cre&dentials..." ) );
     refreshAccountData_->setText( tr( "&Refresh Account" ) );
     singleOptionChain_->setText( tr( "View &Option Chain..." ) );
     startDaemon_->setText( tr( "&Start Daemon" ) );
@@ -139,6 +142,7 @@ void MainWindow::updateMenuState()
     const bool accountsExist( accounts_->count() );
 
     authenticate_->setEnabled( offline );
+    credentials_->setEnabled( offline && daemon_->canEditCredentials() );
 
     refreshAccountData_->setEnabled( online && accountsExist );
     singleOptionChain_->setEnabled( online );
@@ -193,6 +197,15 @@ void MainWindow::onActionTriggered()
         d.exec();
     }
 
+    // layouts
+    else if ( layouts_ == sender() )
+    {
+        LOG_TRACE << "layouts dialog...";
+
+        WidgetStatesDialog d( this );
+        d.exec();
+    }
+
     // watchlists
     else if ( watchlists_ == sender() )
     {
@@ -207,6 +220,16 @@ void MainWindow::onActionTriggered()
     {
         LOG_TRACE << "authorize...";
         daemon_->authorize();
+    }
+
+    // credentials
+    else if ( credentials_ == sender() )
+    {
+        if ( daemon_->canEditCredentials() )
+        {
+            LOG_TRACE << "credentials...";
+            daemon_->editCredentials();
+        }
     }
 
     // start daemon
@@ -455,21 +478,28 @@ void MainWindow::initialize()
 
     filters_ = new QAction( QIcon( ":/res/filter.png" ), QString(), this );
 
-    watchlists_ = new QAction( QIcon( ":/res/view.png" ), QString(), this );
+    layouts_ = new QAction( QIcon( ":/res/picture.png" ), QString(), this );
+
+    watchlists_ = new QAction( QIcon( ":/res/list.png" ), QString(), this );
 
     connect( config_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( filters_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( layouts_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( watchlists_, &QAction::triggered, this, &_Myt::onActionTriggered );
 
     viewMenu_ = menuBar()->addMenu( QString() );
     viewMenu_->addAction( config_ );
     viewMenu_->addAction( filters_ );
+    viewMenu_->addAction( layouts_ );
     viewMenu_->addAction( watchlists_ );
 
     // market daemon menu
     // ------------------
 
     authenticate_ = new QAction( QIcon( ":/res/padlock.png" ), QString(), this );
+
+    credentials_ = new QAction( QIcon( ":/res/key.png" ), QString(), this );
+    credentials_->setVisible( daemon_->canEditCredentials() );
 
     refreshAccountData_ = new QAction( QIcon( ":/res/refresh.png" ), QString(), this );
 
@@ -486,6 +516,7 @@ void MainWindow::initialize()
     runWhenMarketsClosed_->setCheckable( true );
 
     connect( authenticate_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( credentials_, &QAction::triggered, this, &_Myt::onActionTriggered );
 
     connect( refreshAccountData_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( singleOptionChain_, &QAction::triggered, this, &_Myt::onActionTriggered );
@@ -498,6 +529,7 @@ void MainWindow::initialize()
 
     marketDaemonMenu_ = menuBar()->addMenu( QString() );
     marketDaemonMenu_->addAction( authenticate_ );
+    marketDaemonMenu_->addAction( credentials_ );
     marketDaemonMenu_->addSeparator();
     marketDaemonMenu_->addAction( refreshAccountData_ );
     marketDaemonMenu_->addAction( singleOptionChain_ );

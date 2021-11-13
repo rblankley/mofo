@@ -46,49 +46,54 @@ OptionChainTableModel::OptionChainTableModel( const QString& symbol, const QDate
     setTable( "optionChainView" );
     setFilter( filter );
 
-    // generate column is currency
-    columnIsCurrency_[CALL_BID_PRICE] = true;
-    columnIsCurrency_[CALL_ASK_PRICE] = true;
-    columnIsCurrency_[CALL_LAST_PRICE] = true;
+    // text columns
+    columnIsText_[STAMP] = true;
+    columnIsText_[UNDERLYING] = true;
 
-    columnIsCurrency_[CALL_BREAK_EVEN_PRICE] = true;
-    columnIsCurrency_[CALL_INTRINSIC_VALUE] = true;
+    columnIsText_[CALL_SYMBOL] = columnIsText_[PUT_SYMBOL] = true;
+    columnIsText_[CALL_DESC] = columnIsText_[PUT_DESC] = true;
 
-    columnIsCurrency_[CALL_OPEN_PRICE] = true;
-    columnIsCurrency_[CALL_HIGH_PRICE] = true;
-    columnIsCurrency_[CALL_LOW_PRICE] = true;
-    columnIsCurrency_[CALL_CLOSE_PRICE] = true;
+    columnIsText_[CALL_EXCHANGE_NAME] = columnIsText_[PUT_EXCHANGE_NAME] = true;
 
-    columnIsCurrency_[CALL_CHANGE] = true;
+    columnIsText_[CALL_SETTLEMENT_TYPE] = columnIsText_[PUT_SETTLEMENT_TYPE] = true;
+    columnIsText_[CALL_DELIVERABLE_NOTE] = columnIsText_[PUT_DELIVERABLE_NOTE] = true;
 
-    columnIsCurrency_[CALL_MARK] = true;
-    columnIsCurrency_[CALL_MARK_CHANGE] = true;
+    // number of decimal places
+    numDecimalPlaces_[CALL_BID_PRICE] = numDecimalPlaces_[PUT_BID_PRICE] = 2;
+    numDecimalPlaces_[CALL_ASK_PRICE] = numDecimalPlaces_[PUT_ASK_PRICE] = 2;
+    numDecimalPlaces_[CALL_LAST_PRICE] = numDecimalPlaces_[PUT_LAST_PRICE] = 2;
 
-    columnIsCurrency_[CALL_TIME_VALUE] = true;
-    columnIsCurrency_[CALL_THEO_OPTION_VALUE] = true;
+    numDecimalPlaces_[CALL_BREAK_EVEN_PRICE] = numDecimalPlaces_[PUT_BREAK_EVEN_PRICE] = 2;
+    numDecimalPlaces_[CALL_INTRINSIC_VALUE] = numDecimalPlaces_[PUT_INTRINSIC_VALUE] = 2;
 
-    columnIsCurrency_[STRIKE_PRICE] = true;
+    numDecimalPlaces_[CALL_OPEN_PRICE] = numDecimalPlaces_[PUT_OPEN_PRICE] = 2;
+    numDecimalPlaces_[CALL_HIGH_PRICE] = numDecimalPlaces_[PUT_HIGH_PRICE] = 2;
+    numDecimalPlaces_[CALL_LOW_PRICE] = numDecimalPlaces_[PUT_LOW_PRICE] = 2;
+    numDecimalPlaces_[CALL_CLOSE_PRICE] = numDecimalPlaces_[PUT_CLOSE_PRICE] = 2;
 
-    columnIsCurrency_[PUT_BID_PRICE] = true;
-    columnIsCurrency_[PUT_ASK_PRICE] = true;
-    columnIsCurrency_[PUT_LAST_PRICE] = true;
+    numDecimalPlaces_[CALL_CHANGE] = numDecimalPlaces_[PUT_CHANGE] = 2;
+    numDecimalPlaces_[CALL_PERCENT_CHANGE] = numDecimalPlaces_[PUT_PERCENT_CHANGE] = 1;
 
-    columnIsCurrency_[PUT_BREAK_EVEN_PRICE] = true;
-    columnIsCurrency_[PUT_INTRINSIC_VALUE] = true;
+    numDecimalPlaces_[CALL_MARK] = numDecimalPlaces_[PUT_MARK] = 2;
+    numDecimalPlaces_[CALL_MARK_CHANGE] = numDecimalPlaces_[PUT_MARK_CHANGE] = 2;
+    numDecimalPlaces_[CALL_MARK_PERCENT_CHANGE] = numDecimalPlaces_[PUT_MARK_PERCENT_CHANGE] = 1;
 
-    columnIsCurrency_[PUT_OPEN_PRICE] = true;
-    columnIsCurrency_[PUT_HIGH_PRICE] = true;
-    columnIsCurrency_[PUT_LOW_PRICE] = true;
-    columnIsCurrency_[PUT_CLOSE_PRICE] = true;
+    numDecimalPlaces_[CALL_VOLATILITY] = numDecimalPlaces_[PUT_VOLATILITY] = 4;
+    numDecimalPlaces_[CALL_DELTA] = numDecimalPlaces_[PUT_DELTA] = 4;
+    numDecimalPlaces_[CALL_GAMMA] = numDecimalPlaces_[PUT_GAMMA] = 4;
+    numDecimalPlaces_[CALL_THETA] = numDecimalPlaces_[PUT_THETA] = 4;
+    numDecimalPlaces_[CALL_VEGA] = numDecimalPlaces_[PUT_VEGA] = 4;
+    numDecimalPlaces_[CALL_RHO] = numDecimalPlaces_[PUT_RHO] = 4;
 
-    columnIsCurrency_[PUT_CHANGE] = true;
-    columnIsCurrency_[PUT_PERCENT_CHANGE] = true;
+    numDecimalPlaces_[CALL_TIME_VALUE] = numDecimalPlaces_[PUT_TIME_VALUE] = 2;
+    numDecimalPlaces_[CALL_THEO_OPTION_VALUE] = numDecimalPlaces_[PUT_THEO_OPTION_VALUE] = 2;
+    numDecimalPlaces_[CALL_THEO_VOLATILITY] = numDecimalPlaces_[PUT_THEO_VOLATILITY] = 4;
 
-    columnIsCurrency_[PUT_MARK] = true;
-    columnIsCurrency_[PUT_MARK_CHANGE] = true;
-
-    columnIsCurrency_[PUT_TIME_VALUE] = true;
-    columnIsCurrency_[PUT_THEO_OPTION_VALUE] = true;
+    // create mapping from bid/ask to bid/ask size
+    bidAskSize_[CALL_BID_PRICE] = CALL_BID_SIZE;
+    bidAskSize_[CALL_ASK_PRICE] = CALL_ASK_SIZE;
+    bidAskSize_[PUT_BID_PRICE] = PUT_BID_SIZE;
+    bidAskSize_[PUT_ASK_PRICE] = PUT_ASK_SIZE;
 
     // color of money!!!!
     inTheMoneyColor_ = Qt::green;
@@ -109,7 +114,28 @@ OptionChainTableModel::~OptionChainTableModel()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QVariant OptionChainTableModel::data( const QModelIndex& index, int role ) const
 {
-    if ( Qt::BackgroundRole == role )
+    if ( Qt::DisplayRole == role )
+    {
+        switch ( index.column() )
+        {
+        case CALL_BID_PRICE:
+        case CALL_ASK_PRICE:
+        case PUT_BID_PRICE:
+        case PUT_ASK_PRICE:
+
+            // no bid/ask size
+            if ( 0 == _Mybase::data( index.row(), bidAskSize_[index.column()], role ).toInt() )
+                return QVariant();
+
+            break;
+
+        default:
+            break;
+        }
+
+        return formatValue( _Mybase::data( index, role ), numDecimalPlaces_[index.column()] );
+    }
+    else if ( Qt::BackgroundRole == role )
     {
         if ( STRIKE_PRICE == index.column() )
             return QVariant( strikeColor_ );
@@ -132,6 +158,8 @@ QVariant OptionChainTableModel::data( const QModelIndex& index, int role ) const
     {
         if ( STRIKE_PRICE == index.column() )
             return QVariant( Qt::AlignCenter );
+        else if ( columnIsText_[index.column()] )
+            return QVariant( Qt::AlignLeft | Qt::AlignVCenter );
 
         return QVariant( Qt::AlignRight | Qt::AlignVCenter );
     }

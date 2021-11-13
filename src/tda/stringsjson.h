@@ -162,6 +162,7 @@ inline static const QString JSON_MARK_PERCENT_CHANGE                = "markPerce
 inline static const QString JSON_DIGITS                             = "digits";
 inline static const QString JSON_EXCHANGE_NAME                      = "exchangeName";
 inline static const QString JSON_QUOTE_TIME                         = "quoteTime";
+inline static const QString JSON_QUOTE_TIME_IN_LONG                 = "quoteTimeInLong";
 inline static const QString JSON_TOTAL_VOLUME                       = "totalVolume";
 inline static const QString JSON_TRADE_TIME                         = "tradeTime";
 inline static const QString JSON_MARGINABLE                         = "marginable";

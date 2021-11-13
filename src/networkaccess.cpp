@@ -34,18 +34,21 @@ NetworkAccess::NetworkAccess( QObject *parent ) :
     ignoreAllSslErrors_( false )
 {
     // connect slots
-    connect( this, SIGNAL(authenticationRequired(QNetworkReply*,QAuthenticator*)), SLOT(onAuthenticationRequired(QNetworkReply*,QAuthenticator*)) );
-    connect( this, SIGNAL(finished(QNetworkReply*)), SLOT(onFinished(QNetworkReply*)) );
-    connect( this, SIGNAL(networkAccessibleChanged(QNetworkAccessManager::NetworkAccessibility)), SLOT(onNetworkAccessibleChanged(QNetworkAccessManager::NetworkAccessibility)) );
-    connect( this, SIGNAL(preSharedKeyAuthenticationRequired(QNetworkReply*,QSslPreSharedKeyAuthenticator*)), SLOT(onPreSharedKeyAuthenticationRequired(QNetworkReply*,QSslPreSharedKeyAuthenticator*)) );
-    connect( this, SIGNAL(proxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)), SLOT(onProxyAuthenticationRequired(QNetworkProxy,QAuthenticator*)) );
-    connect( this, SIGNAL(sslErrors(QNetworkReply*,QList<QSslError>)), SLOT(onSslErrors(QNetworkReply*,QList<QSslError>)) );
+    connect( this, &_Myt::authenticationRequired, this, &_Myt::onAuthenticationRequired );
+    connect( this, &_Myt::finished, this, &_Myt::onFinished );
+    connect( this, &_Myt::preSharedKeyAuthenticationRequired, this, &_Myt::onPreSharedKeyAuthenticationRequired );
+    connect( this, &_Myt::proxyAuthenticationRequired, this, &_Myt::onProxyAuthenticationRequired );
+    connect( this, &_Myt::sslErrors, this, &_Myt::onSslErrors );
+
+#if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
+    connect( this, &_Myt::networkAccessibleChanged, this, &_Myt::onNetworkAccessibleChanged );
 
     // check access
     if ( QNetworkAccessManager::Accessible == networkAccessible() )
         LOG_DEBUG << "READY";
     else
         LOG_WARN << "network not accessible:" << networkAccessible();
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -85,10 +88,12 @@ void NetworkAccess::onFinished( QNetworkReply *reply )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+#if QT_VERSION < QT_VERSION_CHECK( 6, 0, 0 )
 void NetworkAccess::onNetworkAccessibleChanged( QNetworkAccessManager::NetworkAccessibility accessible )
 {
     LOG_DEBUG << "network accessible changed: " << accessible;
 }
+#endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void NetworkAccess::onPreSharedKeyAuthenticationRequired( QNetworkReply *reply, QSslPreSharedKeyAuthenticator *authenticator )

@@ -86,11 +86,34 @@ TDOpenAuthInterface::TDOpenAuthInterface( QObject *parent ) :
         // save
         saveCredentials();
     }
+
+    // load
+    loadCredentials();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TDOpenAuthInterface::~TDOpenAuthInterface()
 {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDOpenAuthInterface::setClientId( const QString& value )
+{
+    if ( value == clientId_ )
+        return;
+
+    clientId_ = value;
+    saveCredentials();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDOpenAuthInterface::setRedirectUrl( const QUrl& value )
+{
+    if ( value == redirectUrl_ )
+        return;
+
+    redirectUrl_ = value;
+    saveCredentials();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -532,7 +555,7 @@ bool TDOpenAuthInterface::saveCredentials()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDOpenAuthInterface::buildModifyParametersFunction( QAbstractOAuth::Stage stage, QVariantMap *params )
+void TDOpenAuthInterface::buildModifyParametersFunction( QAbstractOAuth::Stage stage, ModifyParametersMap *params )
 {
     // modify redirect uri
     if ( QAbstractOAuth::Stage::RequestingAuthorization == stage )

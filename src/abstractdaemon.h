@@ -41,6 +41,7 @@ class AbstractDaemon : public QObject
     Q_OBJECT
     Q_PROPERTY( bool active READ isActive WRITE setActive NOTIFY activeChanged )
     Q_PROPERTY( ConnectedState connectedState READ connectedState NOTIFY connectedStateChanged )
+    Q_PROPERTY( QString name READ name )
     Q_PROPERTY( bool paused READ isPaused WRITE setPaused NOTIFY pausedChanged )
     Q_PROPERTY( bool processOutsideMarketHours READ processOutsideMarketHours WRITE setProcessOutsideMarketHours )
 
@@ -62,6 +63,12 @@ public:
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Check if credentials can be edited (i.e. dialog implemented).
+    /**
+     * @return  @c true if credentials can be edited, @c false otherwise
+     */
+    virtual bool canEditCredentials() const;
 
     /// Retrieve connected state.
     /**
@@ -102,6 +109,9 @@ public:
     // ========================================================================
     // Methods
     // ========================================================================
+
+    /// Edit credentials.
+    virtual void editCredentials();
 
     /// Retrieve accounts.
     virtual void getAccounts();
@@ -305,7 +315,7 @@ private slots:
 
 private:
 
-    enum {DEFAULT_DEQUEUE_TIME = 100}; // 100ms
+    static constexpr int DEFAULT_DEQUEUE_TIME = 100;        // 100ms
 
     static QMutex instanceMutex_;
     static _Myt *instance_;

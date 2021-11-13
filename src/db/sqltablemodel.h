@@ -82,7 +82,8 @@ public slots:
 
 protected:
 
-    QVector<bool> columnIsCurrency_;
+    QVector<bool> columnIsText_;                    ///< Column contains text data.
+    QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.
 
     // ========================================================================
     // CTOR / DTOR
@@ -98,6 +99,18 @@ protected:
 
     /// Destructor.
     virtual ~SqlTableModel();
+
+    // ========================================================================
+    // Static Methods
+    // ========================================================================
+
+    /// Format value into string.
+    /**
+     * @param[in] value  value to format
+     * @param[in] numDecimalPlaces  number of decimal places (for numeric values)
+     * @return  formatted value
+     */
+    static QString formatValue( const QVariant& value, int numDecimalPlaces = 0 );
 
 private:
 

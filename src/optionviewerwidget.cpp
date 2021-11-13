@@ -42,7 +42,8 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
-static const QString SPLITTER_STATE( "optionViewerSplitterState" );
+const QString OptionViewerWidget::STATE_GROUP_NAME( "optionViewer" );
+const QString OptionViewerWidget::STATE_NAME( "[[default]]" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionViewerWidget::OptionViewerWidget( const QString& symbol, QWidget *parent ) :
@@ -322,7 +323,7 @@ void OptionViewerWidget::onSplitterMoved( int pos, int index )
     Q_UNUSED( pos );
     Q_UNUSED( index );
 
-    AppDatabase::instance()->setHeaderState( SPLITTER_STATE, splitter_->saveState() );
+    AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME, splitter_->saveState() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -429,7 +430,7 @@ void OptionViewerWidget::initialize()
 
     // ---- //
 
-    const QByteArray a( AppDatabase::instance()->headerState( SPLITTER_STATE ) );
+    const QByteArray a( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME ) );
 
     if ( !a.isNull() )
         splitter_->restoreState( a );

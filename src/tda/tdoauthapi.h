@@ -45,7 +45,9 @@ class QUrl;
 class TDOpenAuthInterface : public SerializedJsonWebInterface
 {
     Q_OBJECT
+    Q_PROPERTY( QString clientId READ clientId WRITE setClientId )
     Q_PROPERTY( ConnectedState connectedState READ connectedState NOTIFY connectedStateChanged )
+    Q_PROPERTY( QUrl redirectUrl READ redirectUrl WRITE setRedirectUrl )
 
     using _Myt = TDOpenAuthInterface;
     using _Mybase = SerializedJsonWebInterface;
@@ -66,11 +68,35 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve client id.
+    /**
+     * @return  client id
+     */
+    virtual QString clientId() const {return clientId_;}
+
     /// Retrieve connected state.
     /**
      * @return  connected state
      */
     virtual ConnectedState connectedState() const {return state_;}
+
+    /// Retrieve redirect url.
+    /**
+     * @return  redirect url
+     */
+    virtual QUrl redirectUrl() const {return redirectUrl_;}
+
+    /// Set client id.
+    /**
+     * @param[in] value  client id
+     */
+    virtual void setClientId( const QString& value );
+
+    /// Set redirect url.
+    /**
+     * @param[in] value  redirect url
+     */
+    virtual void setRedirectUrl( const QUrl& value );
 
     // ========================================================================
     // Methods
@@ -144,10 +170,16 @@ private slots:
 
 private:
 
-    enum {AUTH_TIMEOUT = 30 * 1000};                    // 30s
-    enum {AUTH_RETRIES = 3};
+    static constexpr int AUTH_TIMEOUT = 30 * 1000;                  // 30s
+    static constexpr int AUTH_RETRIES = 3;
 
-    enum {TOKEN_EXPIRY_OFFSET = 2 * 60 * 1000};         // 2m
+    static constexpr int TOKEN_EXPIRY_OFFSET = 2 * 60 * 1000;       // 2m
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    using ModifyParametersMap = QMultiMap<QString, QVariant>;
+#else
+    using ModifyParametersMap = QVariantMap;
+#endif
 
     QOAuth2AuthorizationCodeFlow *authFlow_;
     QOAuthHttpServerReplyHandler *authFlowHandler_;
@@ -194,7 +226,7 @@ private:
     bool saveCredentials();
 
     // Modify parameters callback method.
-    void buildModifyParametersFunction( QAbstractOAuth::Stage stage, QVariantMap *params );
+    void buildModifyParametersFunction( QAbstractOAuth::Stage stage, ModifyParametersMap *params );
 
     // not implemented
     TDOpenAuthInterface( const _Myt& ) = delete;

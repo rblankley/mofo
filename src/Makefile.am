@@ -49,6 +49,8 @@ BUILT_SOURCES = \
 	moc_optionviewerwidget.cpp \
 	moc_tddaemon.cpp \
 	moc_watchlistdialog.cpp \
+	moc_watchlistselectiondialog.cpp \
+	moc_widgetstatesdialog.cpp \
 	qrc_mofo.cpp
 
 mofo_SOURCES = \
@@ -76,6 +78,8 @@ mofo_SOURCES = \
 	optionviewerwidget.cpp \
 	tableheaderitem.cpp \
 	tddaemon.cpp \
-	watchlistdialog.cpp
+	watchlistdialog.cpp \
+	watchlistselectiondialog.cpp \
+	widgetstatesdialog.cpp
 
 CLEANFILES = $(BUILT_SOURCES)

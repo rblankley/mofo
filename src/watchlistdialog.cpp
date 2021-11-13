@@ -34,7 +34,8 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 WatchlistDialog::WatchlistDialog( QWidget *parent, Qt::WindowFlags f ) :
-    _Mybase( parent, f )
+    _Mybase( parent, f ),
+    db_( AppDatabase::instance() )
 {
     // remove the question mark button
     setWindowFlags( windowFlags() & ~Qt::WindowContextHelpButtonHint );
@@ -45,26 +46,14 @@ WatchlistDialog::WatchlistDialog( QWidget *parent, Qt::WindowFlags f ) :
     translate();
 
     // retrieve watchlists
-    AppDatabase *db( AppDatabase::instance() );
-
-    foreach ( const QString& name, db->watchlists() )
+    foreach ( const QString& name, db_->watchlists() )
     {
-        QString text;
+        const QStringList symbols( db_->watchlist( name ) );
 
-        foreach ( const QString& symbol, db->watchlist( name ) )
-            text.append( symbol + "\n" );
-
-        lists_[name] = text;
-    }
-
-    // populate!
-    for ( WatchlistMap::const_iterator i( lists_.constBegin() ); i != lists_.constEnd(); ++i )
-    {
-        QListWidgetItem *item( new QListWidgetItem( i.key() ) );
-        item->setData( Qt::UserRole, i.value() );
-
-        // allow edit of item
-        item->setFlags( item->flags() | Qt::ItemIsEditable );
+        // create item
+        QListWidgetItem *item( new QListWidgetItem( name ) );
+        item->setData( Qt::UserRole, symbols.join( "\n" ) );
+        item->setFlags( item->flags() | Qt::ItemIsEditable ); // allow edit of item
 
         watchlist_->addItem( item );
     }
@@ -87,7 +76,9 @@ void WatchlistDialog::translate()
     watchlistLabel_->setText( tr( "Watchlists:" ) );
 
     createList_->setText( tr( "New" ) );
-    removeList_->setText( tr( "Delete" ) );
+    copyList_->setText( tr( "Copy" ) );
+    renameList_->setText( tr( "Rename" ) );
+    deleteList_->setText( tr( "Delete" ) );
 
     symbolsLabel_->setText( tr( "Symbols (one per line):" ) );
 
@@ -110,26 +101,62 @@ void WatchlistDialog::onButtonClicked()
 
             const QList<QListWidgetItem*> items( watchlist_->findItems( name, Qt::MatchFixedString ) );
 
-            if ( items.isEmpty() )
-            {
-                QListWidgetItem *item( new QListWidgetItem( name ) );
+            if ( items.size() )
+                continue;
 
-                // allow edit of item
-                item->setFlags( item->flags() | Qt::ItemIsEditable );
+            QListWidgetItem *item( new QListWidgetItem( name ) );
+            item->setFlags( item->flags() | Qt::ItemIsEditable ); // allow edit of item
 
-                watchlist_->addItem( item );
+            watchlist_->addItem( item );
 
-                // select item
-                selectItem( watchlist_->count() );
-                break;
-            }
+            // select item
+            selectItem( watchlist_->count() );
+            break;
         }
     }
 
-    // remove selected watchlist
-    else if ( removeList_ == sender() )
+    // copy watchlist
+    else if ( copyList_ == sender() )
     {
-        QListWidgetItem *item( selected() );
+        const QListWidgetItem *origItem( selectedItem() );
+
+        if ( !origItem )
+            return;
+
+        const QString nameTemplate( "%1 (Copy %2)" );
+
+        // generate unique name
+        for ( int i( 1 ); ; ++i )
+        {
+            const QString name( nameTemplate.arg( origItem->text() ).arg( i ) );
+
+            const QList<QListWidgetItem*> items( watchlist_->findItems( name, Qt::MatchFixedString ) );
+
+            if ( items.size() )
+                continue;
+
+            QListWidgetItem *item( new QListWidgetItem( name ) );
+            item->setData( Qt::UserRole, origItem->data( Qt::UserRole ) );
+            item->setFlags( item->flags() | Qt::ItemIsEditable ); // allow edit of item
+
+            watchlist_->addItem( item );
+            break;
+        }
+    }
+
+    // rename watchlist
+    else if ( renameList_ == sender() )
+    {
+        QListWidgetItem *item( selectedItem() );
+
+        if ( item )
+            watchlist_->editItem( item );
+    }
+
+    // delete selected watchlist
+    else if ( deleteList_ == sender() )
+    {
+        QListWidgetItem *item( selectedItem() );
 
         if ( item )
         {
@@ -151,30 +178,16 @@ void WatchlistDialog::onButtonClicked()
         saveForm();
         accept();
     }
-
-    // cancel
-    else if ( cancel_ == sender() )
-    {
-        reject();
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void WatchlistDialog::onItemDoubleClicked( QListWidgetItem *item )
-{
-    if ( !item )
-        return;
-
-    // edit!
-    watchlist_->editItem( item );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void WatchlistDialog::onItemSelectionChanged()
 {
-    QListWidgetItem *item( selected() );
+    const QListWidgetItem *item( selectedItem() );
 
-    removeList_->setEnabled( item );
+    copyList_->setEnabled( item );
+    renameList_->setEnabled( item );
+    deleteList_->setEnabled( item );
 
     symbolsLabel_->setEnabled( item );
     symbols_->setEnabled( item );
@@ -191,7 +204,7 @@ void WatchlistDialog::onItemSelectionChanged()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void WatchlistDialog::onTextChanged()
 {
-    QListWidgetItem *item( selected() );
+    QListWidgetItem *item( selectedItem() );
 
     if ( !item )
         return;
@@ -209,7 +222,11 @@ void WatchlistDialog::initialize()
     watchlist_ = new QListWidget( this );
     watchlist_->setSelectionMode( QListWidget::SingleSelection );
 
-    connect( watchlist_, &QListWidget::itemDoubleClicked, this, &_Myt::onItemDoubleClicked );
+    QListWidget::EditTriggers triggers( watchlist_->editTriggers() );
+    triggers.setFlag( QListWidget::SelectedClicked, true );
+
+    watchlist_->setEditTriggers( triggers );
+
     connect( watchlist_, &QListWidget::itemSelectionChanged, this, &_Myt::onItemSelectionChanged );
 
     // create list
@@ -217,10 +234,20 @@ void WatchlistDialog::initialize()
 
     connect( createList_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
-    // remove list
-    removeList_ = new QPushButton( this );
+    // copy list
+    copyList_ = new QPushButton( this );
 
-    connect( removeList_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( copyList_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
+    // rename list
+    renameList_ = new QPushButton( this );
+
+    connect( renameList_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
+    // delete list
+    deleteList_ = new QPushButton( this );
+
+    connect( deleteList_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     // symbols label
     symbolsLabel_ = new QLabel( this );
@@ -232,13 +259,14 @@ void WatchlistDialog::initialize()
 
     // okay
     okay_ = new QPushButton( this );
+    okay_->setDefault( true );
 
     connect( okay_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     // cancel
     cancel_ = new QPushButton( this );
 
-    connect( cancel_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( cancel_, &QPushButton::clicked, this, &_Myt::reject );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -246,7 +274,9 @@ void WatchlistDialog::createLayout()
 {
     QHBoxLayout *watchlistButtons( new QHBoxLayout );
     watchlistButtons->addWidget( createList_ );
-    watchlistButtons->addWidget( removeList_ );
+    watchlistButtons->addWidget( copyList_ );
+    watchlistButtons->addWidget( renameList_ );
+    watchlistButtons->addWidget( deleteList_ );
 
     QVBoxLayout *watchlist( new QVBoxLayout );
     watchlist->addWidget( watchlistLabel_ );
@@ -267,12 +297,12 @@ void WatchlistDialog::createLayout()
     buttons->addWidget( okay_ );
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
-    form->addLayout( top );
+    form->addLayout( top, 1 );
     form->addLayout( buttons );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QListWidgetItem *WatchlistDialog::selected() const
+QListWidgetItem *WatchlistDialog::selectedItem() const
 {
     const QList<QListWidgetItem*> items( watchlist_->selectedItems() );
 
@@ -296,7 +326,7 @@ void WatchlistDialog::selectItem( int index )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void WatchlistDialog::saveForm()
 {
-    AppDatabase *db( AppDatabase::instance() );
+    const QStringList oldLists( db_->watchlists() );
 
     // retrieve new watchlist names
     QStringList newLists;
@@ -305,9 +335,9 @@ void WatchlistDialog::saveForm()
         newLists.append( watchlist_->item( i )->text() );
 
     // remove deleted lists from db
-    for ( WatchlistMap::const_iterator i( lists_.constBegin() ); i != lists_.constEnd(); ++i )
-        if ( !newLists.contains( i.key() ) )
-            db->removeWatchlist( i.key() );
+    foreach ( const QString& name, oldLists )
+        if ( !newLists.contains( name ) )
+            db_->removeWatchlist( name );
 
     // insert/update modified lists
     for ( int i( watchlist_->count() ); i--; )
@@ -319,12 +349,12 @@ void WatchlistDialog::saveForm()
         const QStringList symbols( generateList( item->data( Qt::UserRole ).toString() ) );
 
         // skip save when exists already and not different
-        if ( lists_.contains( name ) )
-            if ( symbols == generateList( lists_[name] ) )
+        if ( oldLists.contains( name ) )
+            if ( symbols == db_->watchlist( name ) )
                 continue;
 
         // save!
-        db->setWatchlist( name, symbols );
+        db_->setWatchlist( name, symbols );
     }
 }
 

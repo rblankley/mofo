@@ -21,6 +21,8 @@
 
 #include "common.h"
 #include "configdialog.h"
+#include "filtersdialog.h"
+#include "watchlistselectiondialog.h"
 
 #include "db/appdb.h"
 
@@ -120,6 +122,7 @@ void ConfigurationDialog::translate()
 
     equityWatchListsLabel_->setText( tr( "Equity Watchlists (comma separated)" ) );
     equityWatchLists_->setToolTip( tr( "Watchlist(s) of symbols to refresh." ) );
+    equityWatchListsDialog_->setText( "..." );
 
     historyLabel_->setText( tr( "Keep History (days)" ) );
     history_->setToolTip( tr( "How much API historical information to keep. Zero to keep everything." ) );
@@ -133,6 +136,16 @@ void ConfigurationDialog::translate()
     numTradingDaysLabel_->setText( tr( "Number of Trading Days in a Year (days)" ) );
     numTradingDays_->setToolTip( tr( "How many trading days are in a year. Used for annualization and partials calculation." ) );
 
+    paletteLabel_->setText( tr( "Color Scheme" ) );
+    palette_->setItemText( 0, tr( "System" ) );
+    palette_->setItemText( 1, tr( "Dark" ) );
+    palette_->setItemText( 2, tr( "Light" ) );
+    palette_->setToolTip( tr( "Which application color palette scheme to use. Requires restart of application to take effect." ) );
+
+    paletteHighlightLabel_->setText( tr( "Selection and Highlight Color" ) );
+    paletteHighlight_->setToolTip( tr( "Color to use for selection and highlights. Requires restart of application to take effect." ) );
+    paletteHighlightDialog_->setText( "..." );
+
     optionChainRefreshRateLabel_->setText( tr( "Option Chain Refresh Time (minutes)" ) );
     optionChainRefreshRate_->setToolTip( tr( "How often to refresh option chains. Zero to disable." ) );
 
@@ -141,6 +154,7 @@ void ConfigurationDialog::translate()
 
     optionChainWatchListsLabel_->setText( tr( "Option Chain Watchlists (comma separated)" ) );
     optionChainWatchLists_->setToolTip( tr( "Watchlist(s) of symbols to refresh." ) );
+    optionChainWatchListsDialog_->setText( "..." );
 
     optionTradeCostLabel_->setText( tr( "Option Trading Cost" ) );
     optionTradeCost_->setToolTip( tr( "Cost to trade an option contract." ) );
@@ -155,16 +169,7 @@ void ConfigurationDialog::translate()
 
     optionAnalysisFilterLabel_->setText( tr( "Option Analysis Filtering Method" ) );
     optionAnalysisFilter_->setItemText( 0, tr( "NONE" ) );
-
-    paletteLabel_->setText( tr( "Color Scheme" ) );
-    palette_->setItemText( 0, tr( "System" ) );
-    palette_->setItemText( 1, tr( "Dark" ) );
-    palette_->setItemText( 2, tr( "Light" ) );
-    palette_->setToolTip( tr( "Which application color palette scheme to use. Requires restart of application to take effect." ) );
-
-    paletteHighlightLabel_->setText( tr( "Selection and Highlight Color" ) );
-    paletteHighlight_->setToolTip( tr( "Color to use for selection and highlights. Requires restart of application to take effect." ) );
-    paletteHighlightDialog_->setText( "..." );
+    optionAnalysisFilterDialog_->setText( "..." );
 
     okay_->setText( tr( "Okay" ) );
     cancel_->setText( tr( "Cancel" ) );
@@ -185,17 +190,59 @@ void ConfigurationDialog::onButtonClicked()
             paletteHighlight_->setText( d.currentColor().name() );
     }
 
+    // equity watchlists
+    else if ( equityWatchListsDialog_ == sender() )
+    {
+        WatchlistSelectionDialog d( this );
+        d.setSelected( equityWatchLists_->text() );
+
+        if ( QDialog::Accepted == d.exec() )
+            equityWatchLists_->setText( d.selected() );
+    }
+
+    // option chain watchlists
+    else if ( optionChainWatchListsDialog_ == sender() )
+    {
+        WatchlistSelectionDialog d( this );
+        d.setSelected( optionChainWatchLists_->text() );
+
+        if ( QDialog::Accepted == d.exec() )
+            optionChainWatchLists_->setText( d.selected() );
+    }
+
+    // filters
+    else if ( optionAnalysisFilterDialog_ == sender() )
+    {
+        // save off existing selection
+        const QString s( optionAnalysisFilter_->currentData().toString() );
+
+        // edit
+        FiltersDialog d( this );
+        d.setSelected( s );
+        d.setCancelButtonVisible( true );
+
+        // prompt
+        const int rc( d.exec() );
+
+        // remove existing filters and add new ones
+        while ( 1 < optionAnalysisFilter_->count() )
+            optionAnalysisFilter_->removeItem( optionAnalysisFilter_->count() - 1 );
+
+        foreach ( const QString& f, AppDatabase::instance()->filters() )
+            optionAnalysisFilter_->addItem( f, f );
+
+        // set back to existing selection; or the selected filter if they accepted the dialog
+        int i;
+
+        if ( 0 <= (i = optionAnalysisFilter_->findData( (QDialog::Accepted == rc) ? d.selected() : s )) )
+            optionAnalysisFilter_->setCurrentIndex( i );
+    }
+
     // okay
     else if ( okay_ == sender() )
     {
         saveForm();
         accept();
-    }
-
-    // cancel
-    else if ( cancel_ == sender() )
-    {
-        reject();
     }
 }
 
@@ -213,6 +260,9 @@ void ConfigurationDialog::initialize()
 
     equityWatchListsLabel_ = new QLabel( this );
     equityWatchLists_ = new QLineEdit( this );
+    equityWatchListsDialog_ = new QPushButton( this );
+
+    connect( equityWatchListsDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     historyLabel_ = new QLabel( this );
     history_ = new QLineEdit( this );
@@ -226,6 +276,19 @@ void ConfigurationDialog::initialize()
     numTradingDaysLabel_ = new QLabel( this );
     numTradingDays_ = new QLineEdit( this );
 
+    paletteLabel_ = new QLabel( this );
+    palette_ = new QComboBox( this );
+
+    palette_->addItem( QString(), "SYSTEM" );
+    palette_->addItem( QString(), "DARK" );
+    palette_->addItem( QString(), "LIGHT" );
+
+    paletteHighlightLabel_ = new QLabel( this );
+    paletteHighlight_ = new QLineEdit( this );
+    paletteHighlightDialog_ = new QPushButton( this );
+
+    connect( paletteHighlightDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+
     optionChainRefreshRateLabel_ = new QLabel( this );
     optionChainRefreshRate_ = new QLineEdit( this );
 
@@ -234,6 +297,9 @@ void ConfigurationDialog::initialize()
 
     optionChainWatchListsLabel_ = new QLabel( this );
     optionChainWatchLists_ = new QLineEdit( this );
+    optionChainWatchListsDialog_ = new QPushButton( this );
+
+    connect( optionChainWatchListsDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     optionTradeCostLabel_ = new QLabel( this );
     optionTradeCost_ = new QLineEdit( this );
@@ -255,28 +321,20 @@ void ConfigurationDialog::initialize()
     foreach ( const QString& f, AppDatabase::instance()->filters() )
         optionAnalysisFilter_->addItem( f, f );
 
-    paletteLabel_ = new QLabel( this );
-    palette_ = new QComboBox( this );
+    optionAnalysisFilterDialog_ = new QPushButton( this );
 
-    palette_->addItem( QString(), "SYSTEM" );
-    palette_->addItem( QString(), "DARK" );
-    palette_->addItem( QString(), "LIGHT" );
-
-    paletteHighlightLabel_ = new QLabel( this );
-    paletteHighlight_ = new QLineEdit( this );
-    paletteHighlightDialog_ = new QPushButton( this );
-
-    connect( paletteHighlightDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( optionAnalysisFilterDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     // okay
     okay_ = new QPushButton( this );
+    okay_->setDefault( true );
 
     connect( okay_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
 
     // cancel
     cancel_ = new QPushButton( this );
 
-    connect( cancel_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( cancel_, &QPushButton::clicked, this, &_Myt::reject );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -286,6 +344,21 @@ void ConfigurationDialog::createLayout()
     palette->setContentsMargins( QMargins() );
     palette->addWidget( paletteHighlight_, 1 );
     palette->addWidget( paletteHighlightDialog_ );
+
+    QHBoxLayout *equityWatchLists( new QHBoxLayout );
+    equityWatchLists->setContentsMargins( QMargins() );
+    equityWatchLists->addWidget( equityWatchLists_, 1 );
+    equityWatchLists->addWidget( equityWatchListsDialog_ );
+
+    QHBoxLayout *optionChainWatchLists( new QHBoxLayout );
+    optionChainWatchLists->setContentsMargins( QMargins() );
+    optionChainWatchLists->addWidget( optionChainWatchLists_, 1 );
+    optionChainWatchLists->addWidget( optionChainWatchListsDialog_ );
+
+    QHBoxLayout *optionAnalysisFilter( new QHBoxLayout );
+    optionAnalysisFilter->setContentsMargins( QMargins() );
+    optionAnalysisFilter->addWidget( optionAnalysisFilter_, 1 );
+    optionAnalysisFilter->addWidget( optionAnalysisFilterDialog_ );
 
     QFormLayout *configs( new QFormLayout );
     configs->addRow( historyLabel_, history_ );
@@ -298,15 +371,15 @@ void ConfigurationDialog::createLayout()
     configs->addRow( equityRefreshRateLabel_, equityRefreshRate_ );
     configs->addRow( equityTradeCostLabel_, equityTradeCost_ );
     configs->addRow( equityTradeCostNonExchangeLabel_, equityTradeCostNonExchange_ );
-    configs->addRow( equityWatchListsLabel_, equityWatchLists_ );
+    configs->addRow( equityWatchListsLabel_, equityWatchLists );
     configs->addItem( new QSpacerItem( 16, 16 ) );
     configs->addRow( optionChainRefreshRateLabel_, optionChainRefreshRate_ );
     configs->addRow( optionChainExpiryEndDateLabel_, optionChainExpiryEndDate_ );
-    configs->addRow( optionChainWatchListsLabel_, optionChainWatchLists_ );
+    configs->addRow( optionChainWatchListsLabel_, optionChainWatchLists );
     configs->addRow( optionTradeCostLabel_, optionTradeCost_ );
     configs->addRow( optionCalcMethodLabel_, optionCalcMethod_ );
     configs->addItem( new QSpacerItem( 16, 16 ) );
-    configs->addRow( optionAnalysisFilterLabel_, optionAnalysisFilter_ );
+    configs->addRow( optionAnalysisFilterLabel_, optionAnalysisFilter );
 
     QHBoxLayout *buttons( new QHBoxLayout );
     buttons->addStretch();
@@ -315,6 +388,7 @@ void ConfigurationDialog::createLayout()
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
     form->addLayout( configs );
+    form->addStretch();
     form->addLayout( buttons );
 }
 

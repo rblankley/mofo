@@ -62,6 +62,12 @@ public:
     // Properties
     // ========================================================================
 
+    /// Check if credentials can be edited (i.e. dialog implemented).
+    /**
+     * @return  @c true if credentials can be edited, @c false otherwise
+     */
+    virtual bool canEditCredentials() const override {return true;}
+
     /// Retrieve connected state.
     /**
      * @return  connected state
@@ -83,6 +89,9 @@ public:
     // ========================================================================
     // Methods
     // ========================================================================
+
+    /// Edit credentials.
+    virtual void editCredentials() override;
 
     /// Retrieve accounts.
     virtual void getAccounts() override;
@@ -217,17 +226,17 @@ private slots:
 
 private:
 
-    enum {REQUEST_TIMEOUT = 120}; // 120s
+    static constexpr int REQUEST_TIMEOUT = 120;             // 120s
 
-    enum {DEQUEUE_TIME = 600}; // 600ms
+    static constexpr int DEQUEUE_TIME = 600;                // 600ms
 
-    enum {EQUITY_DEQUEUE_SIZE = 8};
+    static constexpr int EQUITY_DEQUEUE_SIZE = 8;
 
-    enum {MARKET_HOURS_HIST = 7}; // days
-    enum {QUOTE_HIST = 5}; // years
-    enum {TREAS_YIELD_HIST = 5}; // years
+    static constexpr int MARKET_HOURS_HIST = 7;             // days
+    static constexpr int QUOTE_HIST = 5;                    // years
+    static constexpr int TREAS_YIELD_HIST = 5;              // years
 
-    enum {QUOTE_HIST_CHECK = 3}; // years
+    static constexpr int QUOTE_HIST_CHECK = 3;              // years
 
     using ConnectedStateMap = QMap<TDAmeritrade::ConnectedState, ConnectedState>;
 

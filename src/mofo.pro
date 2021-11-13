@@ -62,6 +62,7 @@ SOURCES += \
     tableheaderitem.cpp \
     tda/dbadaptertd.cpp \
     tda/tdapi.cpp \
+    tda/tdcredentialsdialog.cpp \
     tda/tdoauthapi.cpp \
     main.cpp \
     networkaccess.cpp \
@@ -84,7 +85,9 @@ SOURCES += \
     util/rollgeskewhaley.cpp \
     util/stats.cpp \
     util/tests.cpp \
-    watchlistdialog.cpp
+    watchlistdialog.cpp \
+    watchlistselectiondialog.cpp \
+    widgetstatesdialog.cpp
 
 HEADERS += \
     abstractdaemon.h \
@@ -130,6 +133,7 @@ HEADERS += \
     tda/stringsjson.h \
     tda/stringsoauth.h \
     tda/tdapi.h \
+    tda/tdcredentialsdialog.h \
     tda/tdoauthapi.h \
     common.h \
     networkaccess.h \
@@ -154,7 +158,9 @@ HEADERS += \
     util/rollgeskewhaley.h \
     util/stats.h \
     util/tests.h \
-    watchlistdialog.h
+    watchlistdialog.h \
+    watchlistselectiondialog.h \
+    widgetstatesdialog.h
 
 RESOURCES += \
     mofo.qrc

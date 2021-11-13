@@ -118,7 +118,7 @@ void AbstractWebInterface::createRequestControl( QNetworkReply *reply, unsigned 
         t->setInterval( timeout );
         t->start();
 
-        connect( t, SIGNAL(timeout()), reply, SLOT(abort()) );
+        connect( t, &QTimer::timeout, reply, &QNetworkReply::abort );
 
         LOG_DEBUG << "timeout of " << timeout << " ms";
         rc.timeout = t;
@@ -227,15 +227,15 @@ QNetworkReply *AbstractWebInterface::handleRequest( Method m, const QUrl &url, b
         {
             LOG_DEBUG << "non-blocking request";
 
-            connect( reply, SIGNAL(downloadProgress(qint64,qint64)), SLOT(onDownloadProgress(qint64,qint64)) );
-            connect( reply, SIGNAL(finished()), SLOT(onFinished()) );
+            connect( reply, &QNetworkReply::downloadProgress, this, &_Myt::onDownloadProgress );
+            connect( reply, &QNetworkReply::finished, this, &_Myt::onFinished );
         }
         else
         {
             LOG_DEBUG << "wait for response " << timeout << " ms timeout...";
 
             QEventLoop eventLoop;
-            connect( reply, SIGNAL(finished()), &eventLoop, SLOT(quit()) );
+            connect( reply, &QNetworkReply::finished, &eventLoop, &QEventLoop::quit );
 
             // wait...
 

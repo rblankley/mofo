@@ -360,8 +360,8 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
     const double itmProb( calcProbInTheMoney( strike, true ) );
     const double otmProb( 1.0 - itmProb );
 
-    result[item_model_type::PROBABILITY_ITM] = round4( 100.0 * itmProb );
-    result[item_model_type::PROBABILITY_OTM] = round4( 100.0 * otmProb );
+    result[item_model_type::PROBABILITY_ITM] = 100.0 * itmProb;
+    result[item_model_type::PROBABILITY_OTM] = 100.0 * otmProb;
 
     double timeToExpiryWeeks( result[item_model_type::TIME_TO_EXPIRY].toDouble() );
     timeToExpiryWeeks *= AppDatabase::instance()->numDays();
@@ -398,8 +398,8 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
 
     const double roi( premium / investmentValue );
 
-    result[item_model_type::ROI] = round2( 100.0 * roi );
-    result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
+    result[item_model_type::ROI] = 100.0 * roi;
+    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
 
     const double costBasis( equitySharePrice - (premium / multiplier) );
 
@@ -408,7 +408,7 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
     else if ( investmentValue < 0.0 )
         result[item_model_type::PROBABILITY_PROFIT] = 100.0;
     else
-        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * calcProbInTheMoney( costBasis, true ) );
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0 * calcProbInTheMoney( costBasis, true );
 
     // ---- //
 
@@ -420,9 +420,9 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
 
     const double ev_roi( ev / investmentValue );
 
-    result[item_model_type::EXPECTED_VALUE] = round2( ev );
-    result[item_model_type::EXPECTED_VALUE_ROI] = round2( 100.0 * ev_roi );
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = round2( 100.0 * (ev_roi / timeToExpiryWeeks) );
+    result[item_model_type::EXPECTED_VALUE] = ev;
+    result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
+    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
 
     // add row
     addRowToItemModel( result );
@@ -465,8 +465,8 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
     const double itmProb( calcProbInTheMoney( strike, false ) );
     const double otmProb( 1.0 - itmProb );
 
-    result[item_model_type::PROBABILITY_ITM] = round4( 100.0 * itmProb );
-    result[item_model_type::PROBABILITY_OTM] = round4( 100.0 * otmProb );
+    result[item_model_type::PROBABILITY_ITM] = 100.0 * itmProb;
+    result[item_model_type::PROBABILITY_OTM] = 100.0 * otmProb;
 
     double timeToExpiryWeeks( result[item_model_type::TIME_TO_EXPIRY].toDouble() );
     timeToExpiryWeeks *= AppDatabase::instance()->numDays();
@@ -499,8 +499,8 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
 
     const double roi( premium / investmentValue );
 
-    result[item_model_type::ROI] = round2( 100.0 * roi );
-    result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
+    result[item_model_type::ROI] = 100.0 * roi;
+    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
 
     const double costBasis( maxLoss / multiplier );
 
@@ -509,7 +509,7 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
     else if ( investmentValue < 0.0 )
         result[item_model_type::PROBABILITY_PROFIT] = 100.0;
     else
-        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * calcProbInTheMoney( costBasis, true ) );
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0 * calcProbInTheMoney( costBasis, true );
 
     // ---- //
 
@@ -521,9 +521,9 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
 
     const double ev_roi( ev / investmentValue );
 
-    result[item_model_type::EXPECTED_VALUE] = round2( ev );
-    result[item_model_type::EXPECTED_VALUE_ROI] = round2( 100.0 * ev_roi );
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = round2( 100.0 * (ev_roi / timeToExpiryWeeks) );
+    result[item_model_type::EXPECTED_VALUE] = ev;
+    result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
+    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
 
     // add row
     addRowToItemModel( result );
@@ -570,8 +570,8 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
     const double itmProb( calcProbInTheMoney( breakEvenPrice, true ) );
     const double otmProb( 1.0 - itmProb );
 
-    result[item_model_type::PROBABILITY_ITM] = round4( 100.0 * itmProb );
-    result[item_model_type::PROBABILITY_OTM] = round4( 100.0 * otmProb );
+    result[item_model_type::PROBABILITY_ITM] = 100.0 * itmProb;
+    result[item_model_type::PROBABILITY_OTM] = 100.0 * otmProb;
 
     double timeToExpiryWeeks( result[item_model_type::TIME_TO_EXPIRY].toDouble() );
     timeToExpiryWeeks *= AppDatabase::instance()->numDays();
@@ -605,8 +605,8 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
 
     const double roi( premium / investmentValue );
 
-    result[item_model_type::ROI] = round2( 100.0 * roi );
-    result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
+    result[item_model_type::ROI] = 100.0 * roi;
+    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
 
     const double costBasis( strikeShort + ((premium - equityTradeCost_) / multiplier) );
 
@@ -615,7 +615,7 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
     else if ( investmentValue < 0.0 )
         result[item_model_type::PROBABILITY_PROFIT] = 100.0;
     else
-        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * (1.0 - calcProbInTheMoney( costBasis, true )) );
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0 * (1.0 - calcProbInTheMoney( costBasis, true ));
 
     // ---- //
 
@@ -638,9 +638,9 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
 
     const double ev_roi( ev / investmentValue );
 
-    result[item_model_type::EXPECTED_VALUE] = round2( ev );
-    result[item_model_type::EXPECTED_VALUE_ROI] = round2( 100.0 * ev_roi );
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = round2( 100.0 * (ev_roi / timeToExpiryWeeks) );
+    result[item_model_type::EXPECTED_VALUE] = ev;
+    result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
+    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
 
     // add row
     addRowToItemModel( result );
@@ -687,8 +687,8 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
     const double itmProb( calcProbInTheMoney( breakEvenPrice, false ) );
     const double otmProb( 1.0 - itmProb );
 
-    result[item_model_type::PROBABILITY_ITM] = round4( 100.0 * itmProb );
-    result[item_model_type::PROBABILITY_OTM] = round4( 100.0 * otmProb );
+    result[item_model_type::PROBABILITY_ITM] = 100.0 * itmProb;
+    result[item_model_type::PROBABILITY_OTM] = 100.0 * otmProb;
 
     double timeToExpiryWeeks( result[item_model_type::TIME_TO_EXPIRY].toDouble() );
     timeToExpiryWeeks *= AppDatabase::instance()->numDays();
@@ -722,8 +722,8 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
 
     const double roi( premium / investmentValue );
 
-    result[item_model_type::ROI] = round2( 100.0 * roi );
-    result[item_model_type::ROI_TIME] = round2( 100.0 * (roi / timeToExpiryWeeks) );
+    result[item_model_type::ROI] = 100.0 * roi;
+    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
 
     const double costBasis( strikeShort - ((premium - equityTradeCost_) / multiplier) );
 
@@ -732,7 +732,7 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
     else if ( investmentValue < 0.0 )
         result[item_model_type::PROBABILITY_PROFIT] = 100.0;
     else
-        result[item_model_type::PROBABILITY_PROFIT] = round4( 100.0 * (1.0 - calcProbInTheMoney( costBasis, false )) );
+        result[item_model_type::PROBABILITY_PROFIT] = 100.0 * (1.0 - calcProbInTheMoney( costBasis, false ));
 
     // ---- //
 
@@ -755,9 +755,9 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
 
     const double ev_roi( ev / investmentValue );
 
-    result[item_model_type::EXPECTED_VALUE] = round2( ev );
-    result[item_model_type::EXPECTED_VALUE_ROI] = round2( 100.0 * ev_roi );
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = round2( 100.0 * (ev_roi / timeToExpiryWeeks) );
+    result[item_model_type::EXPECTED_VALUE] = ev;
+    result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
+    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
 
     // add row
     addRowToItemModel( result );
@@ -903,7 +903,7 @@ bool ExpectedValueCalculator::calcProbCurvePrices( OptionProbCurve& curve, const
 
         AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, c.vi, g.timeToExpiry ) );
 
-        c.price = round2( o->optionPrice( type, strike ) );
+        c.price = o->optionPrice( type, strike );
 
         if ( !init )
             init = true;
@@ -1034,7 +1034,7 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
         LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " negative min/max";
         return false;
     }
-    else if (( 0.0 < c.max ) && ( c.max <= c.min ))
+    else if (( 0.0 < c.max ) && ( c.max < c.min ))
     {
         LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " inverted min/max";
         return false;
@@ -1182,6 +1182,8 @@ double ExpectedValueCalculator::calcExpectedLoss( double multiplier, double pric
             const double floor( qMax( underlyingMin_, prevStrike ) );
             const double price( floor + ((strike - floor) / 2.0) );
 
+            assert( 0.0 <= probDelta );
+
             // accumulate loss at this possibility
             loss += multiplier * probDelta * z * (costBasis - price);
             totalProb += probDelta;
@@ -1202,6 +1204,8 @@ double ExpectedValueCalculator::calcExpectedLoss( double multiplier, double pric
         const double floor( qMax( underlyingMin_, prevStrike ) );
         const double price( floor + ((priceMax - floor) / 2.0) );
 
+        assert( 0.0 <= probDelta );
+
         // accumulate loss at this possibility
         loss += multiplier * probDelta * z * (costBasis - price);
         totalProb += probDelta;
@@ -1214,25 +1218,25 @@ double ExpectedValueCalculator::calcExpectedLoss( double multiplier, double pric
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void ExpectedValueCalculator::populateResultModelGreeks( const Greeks& g, item_model_type::ColumnValueMap &result )
 {
-    result[item_model_type::BID_ASK_SPREAD] = round2( g.spread );
-    result[item_model_type::BID_ASK_SPREAD_PERCENT] = round4( 100.0 * g.spreadPercent );
+    result[item_model_type::BID_ASK_SPREAD] = g.spread;
+    result[item_model_type::BID_ASK_SPREAD_PERCENT] = 100.0 * g.spreadPercent;
 
-    result[item_model_type::TIME_TO_EXPIRY] = round4( g.timeToExpiry );
-    result[item_model_type::RISK_FREE_INTEREST_RATE] = round4( 100.0 * g.riskFreeRate );
+    result[item_model_type::TIME_TO_EXPIRY] = g.timeToExpiry;
+    result[item_model_type::RISK_FREE_INTEREST_RATE] = 100.0 * g.riskFreeRate;
 
-    result[item_model_type::CALC_BID_PRICE_VI] = round4( 100.0 * g.bidvi );
-    result[item_model_type::CALC_ASK_PRICE_VI] = round4( 100.0 * g.askvi );
-    result[item_model_type::CALC_MARK_VI] = round4( 100.0 * g.markvi );
+    result[item_model_type::CALC_BID_PRICE_VI] = 100.0 * g.bidvi;
+    result[item_model_type::CALC_ASK_PRICE_VI] = 100.0 * g.askvi;
+    result[item_model_type::CALC_MARK_VI] = 100.0 * g.markvi;
 
-    result[item_model_type::CALC_THEO_OPTION_VALUE] = round2( g.price );
-    result[item_model_type::CALC_THEO_VOLATILITY] = round4( 100.0 * g.vi );
-    result[item_model_type::CALC_DELTA] = round4( g.delta );
-    result[item_model_type::CALC_GAMMA] = round4( g.gamma );
-    result[item_model_type::CALC_THETA] = round4( g.theta );
-    result[item_model_type::CALC_VEGA] = round4( g.vega );
-    result[item_model_type::CALC_RHO] = round4( g.rho );
+    result[item_model_type::CALC_THEO_OPTION_VALUE] = g.price;
+    result[item_model_type::CALC_THEO_VOLATILITY] = 100.0 * g.vi;
+    result[item_model_type::CALC_DELTA] = g.delta;
+    result[item_model_type::CALC_GAMMA] = g.gamma;
+    result[item_model_type::CALC_THETA] = g.theta;
+    result[item_model_type::CALC_VEGA] = g.vega;
+    result[item_model_type::CALC_RHO] = g.rho;
 
-    result[item_model_type::INVESTMENT_OPTION_PRICE] = round2( g.marketPrice );
+    result[item_model_type::INVESTMENT_OPTION_PRICE] = g.marketPrice;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1241,11 +1245,11 @@ void ExpectedValueCalculator::populateResultModelGreeksSpread( const Greeks& glo
     const double bid( gshort.bid - glong.ask );
     const double ask( gshort.ask - glong.bid );
 
-    result[item_model_type::BID_ASK_SPREAD] = round2( ask - bid );
-    result[item_model_type::BID_ASK_SPREAD_PERCENT] = round4( 100.0 * (( ask - bid ) / ask) );
+    result[item_model_type::BID_ASK_SPREAD] = ask - bid;
+    result[item_model_type::BID_ASK_SPREAD_PERCENT] = 100.0 * (( ask - bid ) / ask);
 
-    result[item_model_type::TIME_TO_EXPIRY] = round4( gshort.timeToExpiry );
-    result[item_model_type::RISK_FREE_INTEREST_RATE] = round4( 100.0 * gshort.riskFreeRate );
+    result[item_model_type::TIME_TO_EXPIRY] = gshort.timeToExpiry;
+    result[item_model_type::RISK_FREE_INTEREST_RATE] = 100.0 * gshort.riskFreeRate;
 
     // net volatility
     // https://en.wikipedia.org/wiki/Net_volatility#:~:text=Net%20volatility%20refers%20to%20the,implied%20volatility%20of%20the%20spread.
@@ -1253,36 +1257,21 @@ void ExpectedValueCalculator::populateResultModelGreeksSpread( const Greeks& glo
     double askviNet = ((glong.vega * glong.askvi) - (gshort.vega * gshort.askvi)) / (glong.vega - gshort.vega);
     double markviNet = ((glong.vega * glong.markvi) - (gshort.vega * gshort.markvi)) / (glong.vega - gshort.vega);
 
-    result[item_model_type::CALC_BID_PRICE_VI] = round4( 100.0 * bidviNet );
-    result[item_model_type::CALC_ASK_PRICE_VI] = round4( 100.0 * askviNet );
-    result[item_model_type::CALC_MARK_VI] = round4( 100.0 * markviNet );
+    result[item_model_type::CALC_BID_PRICE_VI] = 100.0 * bidviNet;
+    result[item_model_type::CALC_ASK_PRICE_VI] = 100.0 * askviNet;
+    result[item_model_type::CALC_MARK_VI] = 100.0 * markviNet;
 
     // net volatility
     // https://en.wikipedia.org/wiki/Net_volatility#:~:text=Net%20volatility%20refers%20to%20the,implied%20volatility%20of%20the%20spread.
     double viNet = ((glong.vega * glong.vi) - (gshort.vega * gshort.vi)) / (glong.vega - gshort.vega);
 
-    result[item_model_type::CALC_THEO_OPTION_VALUE] = round2( gshort.price - glong.price );
-    result[item_model_type::CALC_THEO_VOLATILITY] = round4( 100.0 * viNet );
-    result[item_model_type::CALC_DELTA] = round4( glong.delta - gshort.delta );
-    result[item_model_type::CALC_GAMMA] = round4( glong.gamma - gshort.gamma );
-    result[item_model_type::CALC_THETA] = round4( glong.theta - gshort.theta );
-    result[item_model_type::CALC_VEGA] = round4( glong.vega - gshort.vega );
-    result[item_model_type::CALC_RHO] = round4( glong.rho - gshort.rho );
+    result[item_model_type::CALC_THEO_OPTION_VALUE] = gshort.price - glong.price;
+    result[item_model_type::CALC_THEO_VOLATILITY] = 100.0 * viNet;
+    result[item_model_type::CALC_DELTA] = glong.delta - gshort.delta;
+    result[item_model_type::CALC_GAMMA] = glong.gamma - gshort.gamma;
+    result[item_model_type::CALC_THETA] = glong.theta - gshort.theta;
+    result[item_model_type::CALC_VEGA] = glong.vega - gshort.vega;
+    result[item_model_type::CALC_RHO] = glong.rho - gshort.rho;
 
-    result[item_model_type::INVESTMENT_OPTION_PRICE] = round2( gshort.marketPrice - glong.marketPrice );
+    result[item_model_type::INVESTMENT_OPTION_PRICE] = gshort.marketPrice - glong.marketPrice;
 }
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double ExpectedValueCalculator::round2( double value )
-{
-    static const double ROUNDING = 100.0;
-    return std::round( value * ROUNDING ) / ROUNDING;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double ExpectedValueCalculator::round4( double value )
-{
-    static const double ROUNDING = 10000.0;
-    return std::round( value * ROUNDING ) / ROUNDING;
-}
-

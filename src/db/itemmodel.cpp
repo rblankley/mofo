@@ -30,7 +30,9 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ItemModel::ItemModel( int rows, int columns, QObject *parent ) :
     _Mybase( rows, columns, parent ),
+#if QT_VERSION < QT_VERSION_CHECK( 5, 14, 0 )
     m_( QMutex::Recursive ),
+#endif
     columnIsText_( columns, false ),
     numDecimalPlaces_( columns, 0 )
 {
@@ -45,14 +47,14 @@ ItemModel::~ItemModel()
 QVariant ItemModel::data( int row, int col, int role ) const
 {
     QMutexLocker guard( &m_ );
-    return index( row, col ).data( role );
+    return _Mybase::data( createIndex( row, col ), role );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QVariant ItemModel::data0( int col, int role ) const
 {
     QMutexLocker guard( &m_ );
-    return index( 0, col ).data( role );
+    return _Mybase::data( createIndex( 0, col ), role );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -69,30 +71,42 @@ void ItemModel::removeAllRows()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QString ItemModel::formatValue( const QVariant& v, int numDecimalPlaces )
 {
-    static const QString invalidNumber( "NaN" );
-
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    if ( QMetaType::QString == v.typeId() )
+#else
     if ( QVariant::String == v.type() )
+#endif
     {
-        const QString result( v.toString() );
-
-        if ( invalidNumber == result )
-            return QString();
-
-        return result;
+        return v.toString();
     }
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    else if ( QMetaType::QDate == v.typeId() )
+#else
     else if ( QVariant::Date == v.type() )
+#endif
     {
         const QDate result( v.toDate() );
 
         return result.toString();
     }
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    else if ( QMetaType::QDateTime == v.typeId() )
+#else
     else if ( QVariant::DateTime == v.type() )
+#endif
     {
         const QDateTime result( v.toDateTime() );
 
         return result.toString();
     }
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    else if ( QMetaType::QTime == v.typeId() )
+#else
     else if ( QVariant::Time == v.type() )
+#endif
     {
         const QTime result( v.toTime() );
 

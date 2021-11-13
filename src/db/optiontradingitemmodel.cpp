@@ -161,17 +161,35 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
     {
         const QModelIndex idx( index( 0, i.key() ) );
 
+        // ------------
         // display role
+        // ------------
+
         QString text;
 
         if ( STRATEGY == idx.column() )
             text = strategyText( (Strategy) i->toInt() );
+
+        // no bid/ask size
+        else if ((( BID_PRICE == idx.column() ) && ( 0 == values[BID_SIZE].toInt() )) ||
+                 (( ASK_PRICE == idx.column() ) && ( 0 == values[ASK_SIZE].toInt() )))
+            ; // empty string
+
+        // invalid calculated volatility
+        else if ((( CALC_BID_PRICE_VI == idx.column() ) || ( CALC_ASK_PRICE_VI == idx.column() ) || ( CALC_MARK_VI == idx.column() ) ||
+                  ( CALC_THEO_VOLATILITY  == idx.column() )) &&
+                 ( i.value().toDouble() <= 0.0 ))
+            ; // empty string
+
         else
             text = formatValue( i.value(), numDecimalPlaces_[i.key()] );
 
         setData( idx, text, Qt::DisplayRole );
 
+        // -------------------
         // text alignment role
+        // -------------------
+
         Qt::Alignment align;
 
         if ( columnIsText_[idx.column()] )
@@ -181,7 +199,10 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 
         setData( idx, QVariant( align ), Qt::TextAlignmentRole );
 
+        // ---------------
         // background role
+        // ---------------
+
         if ( values[IS_IN_THE_MONEY].toBool() )
         {
             if ( values[IS_OUT_OF_THE_MONEY].toBool() )
@@ -190,7 +211,10 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
                 setData( idx, QVariant( inTheMoneyColor_ ), Qt::BackgroundRole );
         }
 
+        // ---------------
         // foreground role
+        // ---------------
+
         double v;
 
         setData( idx, textColor_, Qt::ForegroundRole );
@@ -223,7 +247,7 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
         case INVESTMENT_OPTION_PRICE_VS_THEO:
             v = values[INVESTMENT_OPTION_PRICE_VS_THEO].toDouble();
             if ( 0.0 < v )
-                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
             else if ( v < 0.0 )
                 setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
             break;
@@ -231,7 +255,7 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
         case INVESTMENT_AMOUNT:
         case MAX_LOSS:
             if ( values[idx.column()].toDouble() < 0.0 )
-                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
             break;
         case PREMIUM_AMOUNT:
         case MAX_GAIN:
@@ -244,7 +268,7 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
             if ( values[idx.column()].toDouble() < 0.0 )
             {
                 if ( values[INVESTMENT_AMOUNT].toDouble() < 0.0 )
-                    setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                    setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
                 else
                     setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
             }
@@ -253,7 +277,7 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
         case EXPECTED_VALUE:
             v = values[idx.column()].toDouble();
             if ( 0.0 < v )
-                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
             else if ( v < 0.0 )
                 setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
             break;
@@ -262,11 +286,11 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
         case EXPECTED_VALUE_ROI_TIME:
             v = values[idx.column()].toDouble();
             if ( 0.0 < v )
-                setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
             else if ( v < 0.0 )
             {
                 if ( values[INVESTMENT_AMOUNT].toDouble() < 0.0 )
-                    setData( idx, QColor( Qt::green ), Qt::ForegroundRole );
+                    setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
                 else
                     setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
             }
@@ -276,7 +300,10 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
             break;
         }
 
+        // ---------
         // user role
+        // ---------
+
         setData( idx, i.value(), Qt::UserRole );
     }
 }
@@ -284,7 +311,9 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double OptionTradingItemModel::calcError( const QVariant& col0, const QVariant& col1, bool &valid )
 {
-    if ( !(valid = (( col0.isValid() ) && ( col1.isValid() ))) )
+    valid = (( QVariant::Double == col0.type() ) && ( QVariant::Double == col1.type() ));
+
+    if ( !valid )
         return 0.0;
 
     return std::fabs( (col1.toDouble() - col0.toDouble()) / col0.toDouble() );

@@ -85,6 +85,7 @@ protected:
 
     QLabel *equityWatchListsLabel_;
     QLineEdit *equityWatchLists_;
+    QPushButton *equityWatchListsDialog_;
 
     QLabel *historyLabel_;
     QLineEdit *history_;
@@ -98,6 +99,13 @@ protected:
     QLabel *numTradingDaysLabel_;
     QLineEdit *numTradingDays_;
 
+    QLabel *paletteLabel_;
+    QComboBox *palette_;
+
+    QLabel *paletteHighlightLabel_;
+    QLineEdit *paletteHighlight_;
+    QPushButton *paletteHighlightDialog_;
+
     QLabel *optionChainRefreshRateLabel_;
     QLineEdit *optionChainRefreshRate_;
 
@@ -106,6 +114,7 @@ protected:
 
     QLabel *optionChainWatchListsLabel_;
     QLineEdit *optionChainWatchLists_;
+    QPushButton *optionChainWatchListsDialog_;
 
     QLabel *optionTradeCostLabel_;
     QLineEdit *optionTradeCost_;
@@ -115,13 +124,7 @@ protected:
 
     QLabel *optionAnalysisFilterLabel_;
     QComboBox *optionAnalysisFilter_;
-
-    QLabel *paletteLabel_;
-    QComboBox *palette_;
-
-    QLabel *paletteHighlightLabel_;
-    QLineEdit *paletteHighlight_;
-    QPushButton *paletteHighlightDialog_;
+    QPushButton *optionAnalysisFilterDialog_;
 
     QPushButton *okay_;
     QPushButton *cancel_;

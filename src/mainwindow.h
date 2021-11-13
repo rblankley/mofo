@@ -114,10 +114,12 @@ private:
     QMenu *viewMenu_;
     QAction *config_;
     QAction *filters_;
+    QAction *layouts_;
     QAction *watchlists_;
 
     QMenu *marketDaemonMenu_;
     QAction *authenticate_;
+    QAction *credentials_;
     QAction *refreshAccountData_;
     QAction *singleOptionChain_;
     QAction *startDaemon_;
