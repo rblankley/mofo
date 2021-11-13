@@ -130,8 +130,8 @@ private slots:
 
 private:
 
-    static const bool THROTTLE = true;
-    static const int THROTTLE_YIELD_TIME = 128;
+    static constexpr bool THROTTLE = true;
+    static constexpr int THROTTLE_YIELD_TIME = 128;
 
     int symbolsTotal_;
 
