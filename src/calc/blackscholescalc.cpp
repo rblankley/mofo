@@ -51,6 +51,17 @@ AbstractOptionPricing *BlackScholesCalculator::createPricingMethod( double S, do
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+AbstractOptionPricing *BlackScholesCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
+{
+    Q_UNUSED( divTimes )
+    Q_UNUSED( divYields )
+
+    // TODO
+    // support dividends
+    return createPricingMethod( S, r, b, sigma, T, european );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void BlackScholesCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )

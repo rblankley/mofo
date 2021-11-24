@@ -36,6 +36,7 @@ OptionAnalyzerThread::OptionAnalyzerThread( const QString& symbol, const QDate& 
     symbol_( symbol ),
     expiryDate_( expiryDate )
 {
+    assert( symbol.length() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

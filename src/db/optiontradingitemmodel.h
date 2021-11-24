@@ -25,6 +25,8 @@
 
 #include "itemmodel.h"
 
+#include <QColor>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Item model for stock option trading.
@@ -36,6 +38,9 @@ class OptionTradingItemModel : public ItemModel
     using _Mybase = ItemModel;
 
 public:
+
+    /// Map of column values.
+    using ColumnValueMap = QMap<int, QVariant>;
 
     /// Column index values.
     enum ColumnIndex
@@ -104,6 +109,9 @@ public:
         TIME_TO_EXPIRY,
         RISK_FREE_INTEREST_RATE,
 
+        DIV_AMOUNT,
+        DIV_YIELD,
+
         CALC_BID_PRICE_VI,
         CALC_ASK_PRICE_VI,
         CALC_MARK_VI,
@@ -131,10 +139,13 @@ public:
         MAX_GAIN,
         MAX_LOSS,
 
-        ROI,
+        ROR,                                        ///< Return on risk.
+        ROR_TIME,
+
+        ROI,                                        ///< Return on investment.
         ROI_TIME,
 
-        EXPECTED_VALUE,
+        EXPECTED_VALUE,                             ///< Expected value.
         EXPECTED_VALUE_ROI,
         EXPECTED_VALUE_ROI_TIME,
 

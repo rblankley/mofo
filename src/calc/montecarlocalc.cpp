@@ -51,6 +51,17 @@ AbstractOptionPricing *MonteCarloCalculator::createPricingMethod( double S, doub
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+AbstractOptionPricing *MonteCarloCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
+{
+    Q_UNUSED( divTimes )
+    Q_UNUSED( divYields )
+
+    // TODO
+    // support dividends
+    return createPricingMethod( S, r, b, sigma, T, european );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void MonteCarloCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )

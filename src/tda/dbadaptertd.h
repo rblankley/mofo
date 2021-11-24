@@ -80,6 +80,13 @@ public slots:
      */
     virtual bool transformAccounts( const QJsonArray& a ) const;
 
+    /// Transform instruments to database format.
+    /**
+     * @param[in] obj  data
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool transformInstruments( const QJsonObject& obj ) const;
+
     /// Transform market hours to database format.
     /**
      * @param[in] obj  data
@@ -116,7 +123,10 @@ private:
     QStringList dateColumns_;
     QStringList dateTimeColumns_;
 
+    QStringList dateTimeColumnsISO_;
+
     FieldMap accountFields_;
+    FieldMap instrumentFields_;
     FieldMap marketHoursFields_;
     FieldMap optionChainFields_;
     FieldMap priceHistoryFields_;
@@ -133,6 +143,9 @@ private:
 
     /// Parse account.
     QJsonObject parseAccount( const QJsonObject& obj ) const;
+
+    /// Parse instrument.
+    QJsonObject parseInstrument( const QJsonObject& obj ) const;
 
     /// Parse market hours.
     void parseMarketHours( const QJsonObject& obj, QJsonArray *result ) const;

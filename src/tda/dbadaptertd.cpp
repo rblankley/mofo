@@ -57,6 +57,9 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
 {
     // date columns
     dateColumns_.append( JSON_DATETIME );
+    dateColumns_.append( JSON_DIV_DATE );
+    dateColumns_.append( JSON_DIVIDEND_DATE );
+    dateColumns_.append( JSON_DIVIDEND_PAY_DATE );
 
     // date time columns
     dateTimeColumns_.append( JSON_DATETIME );
@@ -65,6 +68,10 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     dateTimeColumns_.append( JSON_QUOTE_TIME );
     dateTimeColumns_.append( JSON_REG_MARKET_TRADE_TIME );
     dateTimeColumns_.append( JSON_TRADE_TIME );
+
+    dateTimeColumnsISO_.append( JSON_DIV_DATE );
+    dateTimeColumnsISO_.append( JSON_DIVIDEND_DATE );
+    dateTimeColumnsISO_.append( JSON_DIVIDEND_PAY_DATE );
 
     // quotes
     quoteFields_[JSON_52_WK_HIGH] = DB_FIFTY_TWO_WEEK_HIGH;
@@ -272,6 +279,67 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     accountFields_[JSON_MARGIN] = DB_MARGIN;
     accountFields_[JSON_MARGIN_EQUITY] = DB_MARGIN_EQUITY;
 
+    // instrument
+    instrumentFields_[JSON_ASSET_TYPE] = DB_ASSET_TYPE;
+    instrumentFields_[JSON_CUSIP] = DB_CUSIP;
+    instrumentFields_[JSON_DESCRIPTION] = DB_DESCRIPTION;
+    instrumentFields_[JSON_EXCHANGE] = DB_EXCHANGE;
+    instrumentFields_[JSON_FUNDAMENTAL] = "";
+    instrumentFields_[JSON_SYMBOL] = DB_SYMBOL;
+
+    instrumentFields_[JSON_HIGH_52] = DB_HIGH_52;
+    instrumentFields_[JSON_LOW_52] = DB_LOW_52;
+
+    instrumentFields_[JSON_DIVIDEND_AMOUNT] = DB_DIV_AMOUNT;
+    instrumentFields_[JSON_DIVIDEND_YIELD] = DB_DIV_YIELD;
+    instrumentFields_[JSON_DIVIDEND_DATE] = DB_DIV_DATE;
+
+    instrumentFields_[JSON_PE_RATIO] = DB_PE_RATIO;
+    instrumentFields_[JSON_PEG_RATIO] = DB_PEG_RATIO;
+    instrumentFields_[JSON_PB_RATIO] = DB_PB_RATIO;
+    instrumentFields_[JSON_PR_RATIO] = DB_PR_RATIO;
+    instrumentFields_[JSON_PFC_RATIO] = DB_PFC_RATIO;
+
+    instrumentFields_[JSON_GROSS_MARGIN_TTM] = DB_GROSS_MARGIN_TTM;
+    instrumentFields_[JSON_GROSS_MARGIN_MRQ] = DB_GROSS_MARGIN_MRQ;
+    instrumentFields_[JSON_NET_PROFIT_MARGIN_TTM] = DB_NET_PROFIT_MARGIN_TTM;
+    instrumentFields_[JSON_NET_PROFIT_MARGIN_MRQ] = DB_NET_PROFIT_MARGIN_MRQ;
+    instrumentFields_[JSON_OPERATING_MARGIN_TTM] = DB_OPERATING_MARGIN_TTM;
+    instrumentFields_[JSON_OPERATING_MARGIN_MRQ] = DB_OPERATING_MARGIN_MRQ;
+
+    instrumentFields_[JSON_RETURN_ON_EQUITY] = DB_RETURN_ON_EQUITY;
+    instrumentFields_[JSON_RETURN_ON_ASSETS] = DB_RETURN_ON_ASSETS;
+    instrumentFields_[JSON_RETURN_ON_INVESTMENT] = DB_RETURN_ON_INVESTMENT;
+    instrumentFields_[JSON_QUICK_RATIO] = DB_QUICK_RATIO;
+    instrumentFields_[JSON_CURRENT_RATIO] = DB_CURRENT_RATIO;
+    instrumentFields_[JSON_INTEREST_COVERAGE] = DB_INTEREST_COVERAGE;
+    instrumentFields_[JSON_TOTAL_DEBT_TO_CAPITAL] = DB_TOTAL_DEBT_TO_CAPITAL;
+    instrumentFields_[JSON_LT_DEBT_TO_EQUITY] = DB_LT_DEBT_TO_EQUITY;
+    instrumentFields_[JSON_TOTAL_DEBT_TO_EQUITY] = DB_TOTAL_DEBT_TO_EQUITY;
+
+    instrumentFields_[JSON_EPS_TTM] = DB_EPS_TTM;
+    instrumentFields_[JSON_EPS_CHANGE_PERCENT_TTM] = DB_EPS_CHANGE_PERCENT_TTM;
+    instrumentFields_[JSON_EPS_CHANGE_YEAR] = DB_EPS_CHANGE_YEAR;
+    instrumentFields_[JSON_EPS_CHANGE] = DB_EPS_CHANGE;
+    instrumentFields_[JSON_REV_CHANGE_YEAR] = DB_REV_CHANGE_YEAR;
+    instrumentFields_[JSON_REV_CHANGE_TTM] = DB_REV_CHANGE_TTM;
+    instrumentFields_[JSON_REV_CHANGE_IN] = DB_REV_CHANGE_IN;
+
+    instrumentFields_[JSON_SHARES_OUTSTANDING] = DB_SHARES_OUTSTANDING;
+    instrumentFields_[JSON_MARKET_CAP_FLOAT] = DB_MARKET_CAP_FLOAT;
+    instrumentFields_[JSON_MARKET_CAP] = DB_MARKET_CAP;
+    instrumentFields_[JSON_BOOK_VALUE_PER_SHARE] = DB_BOOK_VALUE_PER_SHARE;
+    instrumentFields_[JSON_SHORT_INT_TO_FLOAT] = DB_SHORT_INT_TO_FLOAT;
+    instrumentFields_[JSON_SHORT_INT_DAY_TO_COVER] = DB_SHORT_INT_DAY_TO_COVER;
+    instrumentFields_[JSON_DIV_GROWTH_RATE_3_YEAR] = DB_DIV_GROWTH_RATE_3_YEAR;
+    instrumentFields_[JSON_DIVIDEND_PAY_AMOUNT] = DB_DIV_PAY_AMOUNT;
+    instrumentFields_[JSON_DIVIDEND_PAY_DATE] = DB_DIV_PAY_DATE;
+
+    instrumentFields_[JSON_BETA] = DB_BETA;
+    instrumentFields_[JSON_VOL_1_DAY_AVG] = DB_VOL_1_DAY_AVG;
+    instrumentFields_[JSON_VOL_10_DAY_AVG] = DB_VOL_10_DAY_AVG;
+    instrumentFields_[JSON_VOL_3_MONTH_AVG] = DB_VOL_3_MONTH_AVG;
+
     // balances
     balances_[JSON_INITIAL_BALANCES] = DB_INITIAL_BALANCES;
     balances_[JSON_CURRENT_BALANCES] = DB_CURRENT_BALANCES;
@@ -310,6 +378,24 @@ bool TDAmeritradeDatabaseAdapter::transformAccounts( const QJsonArray& a ) const
 
     QJsonObject obj;
     obj[DB_ACCOUNTS] = accounts;
+
+    complete( obj );
+
+    LOG_TRACE << "done";
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TDAmeritradeDatabaseAdapter::transformInstruments( const QJsonObject& tdobj ) const
+{
+    QJsonArray instruments;
+
+    for ( QJsonObject::const_iterator instIt( tdobj.constBegin() ); instIt != tdobj.constEnd(); ++instIt )
+        if ( instIt->isObject() )
+            instruments.append( parseInstrument( instIt->toObject() ) );
+
+    QJsonObject obj;
+    obj[DB_INSTRUMENTS] = instruments;
 
     complete( obj );
 
@@ -534,10 +620,17 @@ void TDAmeritradeDatabaseAdapter::transform( const QJsonObject& obj, const Field
         if ( mappedKey.isEmpty() )
             continue;
 
-        // epoch datetime
-        if ( dateTimeColumns_.contains( keyAlt ) )
+        // datetime
+        if (( dateTimeColumns_.contains( keyAlt ) ) || ( dateTimeColumnsISO_.contains( keyAlt ) ))
         {
-            const QDateTime dt( QDateTime::fromMSecsSinceEpoch( f->toVariant().toLongLong() ) );
+            QDateTime dt;
+
+            // iso datetime -or-
+            // epoch time
+            if ( dateTimeColumnsISO_.contains( keyAlt ) )
+                dt = QDateTime::fromString( f->toString(), Qt::ISODate );
+            else
+                dt = QDateTime::fromMSecsSinceEpoch( f->toVariant().toLongLong() );
 
             if ( dateColumns_.contains( keyAlt ) )
                 result[ mappedKey ] = dt.date().toString( Qt::ISODate );
@@ -554,7 +647,6 @@ void TDAmeritradeDatabaseAdapter::transform( const QJsonObject& obj, const Field
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDatabaseAdapter::complete( const QJsonObject& obj ) const
 {
-
 #ifdef DEBUG_JSON
     saveObject( obj, "transform.json" );
 #endif
@@ -579,6 +671,26 @@ QJsonObject TDAmeritradeDatabaseAdapter::parseAccount( const QJsonObject& obj ) 
 
             result[balance.value()] = balances;
         }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QJsonObject TDAmeritradeDatabaseAdapter::parseInstrument( const QJsonObject& obj ) const
+{
+    const QJsonObject::const_iterator fundamentalIt( obj.constFind( JSON_FUNDAMENTAL ) );
+
+    QJsonObject result;
+    transform( obj, instrumentFields_, result );
+
+    // set fundamental
+    if (( obj.constEnd() != fundamentalIt ) && ( fundamentalIt->isObject() ))
+    {
+        QJsonObject fundamental;
+        transform( fundamentalIt->toObject(), instrumentFields_, fundamental );
+
+        result[DB_FUNDAMENTAL] = fundamental;
     }
 
     return result;

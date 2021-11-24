@@ -33,6 +33,10 @@
 class SymbolDatabase : public SqlDatabase
 {
     Q_OBJECT
+    Q_PROPERTY( QString cusip READ cusip STORED true )
+    Q_PROPERTY( double dividendYield READ dividendYield STORED true )
+    Q_PROPERTY( QDateTime lastQuoteHistoryProcessed READ lastQuoteHistoryProcessed STORED true )
+    Q_PROPERTY( QString symbol READ symbol )
 
     using _Myt = SymbolDatabase;
     using _Mybase = SqlDatabase;
@@ -56,6 +60,26 @@ public:
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Retrieve cusip.
+    /**
+     * @return  cusip or empty string if not known.
+     */
+    virtual QString cusip() const;
+
+    /// Retrieve dividend date and amount.
+    /**
+     * @param[out] date  dividend date
+     * @param[out] frequency  dividend frequency (annualized)
+     * @return  dividend amount (yearly)
+     */
+    virtual double dividendAmount( QDate& date, double& frequency ) const;
+
+    /// Retrieve dividend yield.
+    /**
+     * @return  dividend yield (yearly)
+     */
+    virtual double dividendYield() const;
 
     /// Retrieve historical volatility.
     /**
@@ -90,6 +114,14 @@ public slots:
     // Methods
     // ========================================================================
 
+    /// Process instrument to database.
+    /**
+     * @param[in] stamp  data time
+     * @param[in] obj  data
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool processInstrument( const QDateTime& stamp, const QJsonObject& obj );
+
     /// Process option chain to database.
     /**
      * @param[in] stamp  data time
@@ -117,6 +149,12 @@ public slots:
 protected:
 
     QString symbol_;                                ///< Stock symbol.
+
+    double divAmount_;                              ///< Dividend amount (per year).
+    double divYield_;                               ///< Dividend yield (per year).
+
+    QDate divDate_;                                 ///< Dividend date.
+    QString divFrequency_;                          ///< Dividend frequency.
 
     // ========================================================================
     // Properties
@@ -146,6 +184,14 @@ protected:
     // ========================================================================
     // Methods
     // ========================================================================
+
+    /// Add fundamental to database.
+    /**
+     * @param[in] stamp  date time
+     * @param[in] obj  data
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool addFundamental( const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add option to database.
     /**
@@ -189,12 +235,29 @@ protected:
      */
     virtual bool addQuoteHistory( const QJsonObject& obj );
 
+    /// Write setting to db.
+    /**
+     * @param[in] key  setting to write
+     * @param[in] value  setting value
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool writeSetting( const QString& key, const QVariant& value ) override;
+
 private:
 
     static const int HIST_VOL_FORCED = 5;
 
     /// Calculate historical volatility (standard deviation).
     void calcHistoricalVolatility();
+
+    /// Calculate dividend frequency.
+    void calcDividendFrequencyFromDate( const QJsonValue& date );
+
+    /// Calculate dividend frequency.
+    void calcDividendFrequencyFromPayAmount( const QJsonValue& payAmount, const QJsonValue& amount );
+
+    /// Calculate dividend frequency.
+    void calcDividendFrequencyFromPayDate( const QJsonValue& date );
 
     // not implemented
     SymbolDatabase( const _Myt& ) = delete;

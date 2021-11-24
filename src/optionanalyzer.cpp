@@ -34,7 +34,7 @@ OptionAnalyzer::OptionAnalyzer( model_type *model, QObject *parent ) :
     active_( false ),
     analysis_( model ),
     workers_( 0 ),
-    maxWorkers_( 2 * std::thread::hardware_concurrency() )
+    maxWorkers_( 4 * std::thread::hardware_concurrency() )
 {
     // connect signals/slots
     connect( AbstractDaemon::instance(), &AbstractDaemon::optionChainBackgroundProcess, this, &_Myt::onOptionChainBackgroundProcess );
@@ -143,7 +143,7 @@ void OptionAnalyzer::onWorkerFinished()
     // analysis complete
     if ( !isActive() )
     {
-        const QString message( tr( "Options analysis complete! %1 options scanned in %2 minutes." ) );
+        const QString message( tr( "Options analysis complete! %1 symbols scanned in %2 minutes." ) );
 
         LOG_INFO << "analysis complete!";
         QApplication::beep();
@@ -156,7 +156,7 @@ void OptionAnalyzer::onWorkerFinished()
 
         const double totalTime( start_.secsTo( stop_ ) / 60.0 );
 
-        LOG_INFO << "scanned " << symbolsTotal_ << " symbols with " << numThreadsComplete_ << " total expirations " << totalTime << " in minutes (" << THROTTLE << ")";
+        LOG_INFO << "scanned " << symbolsTotal_ << " symbols with " << numThreadsComplete_ << " total expirations in " << totalTime << " minutes (" << THROTTLE << ")";
         LOG_DEBUG << "average time per expiration " << (double) numThreadsComplete_ / start_.secsTo( stop_ ) << " sec (" << THROTTLE << ")";
 
         emit statusMessageChanged( message.arg( symbolsTotal_ ).arg( totalTime, 0, 'f', 2 ) );

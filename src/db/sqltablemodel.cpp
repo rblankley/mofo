@@ -67,21 +67,42 @@ bool SqlTableModel::refreshTableData()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QString SqlTableModel::formatValue( const QVariant& v, int numDecimalPlaces )
 {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    if ( QMetaType::QString == v.typeId() )
+#else
     if ( QVariant::String == v.type() )
+#endif
+    {
         return v.toString();
+    }
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    else if ( QMetaType::QDate == v.typeId() )
+#else
     else if ( QVariant::Date == v.type() )
+#endif
     {
         const QDate result( v.toDate() );
 
         return result.toString();
     }
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    else if ( QMetaType::QDateTime == v.typeId() )
+#else
     else if ( QVariant::DateTime == v.type() )
+#endif
     {
         const QDateTime result( v.toDateTime() );
 
         return result.toString();
     }
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    else if ( QMetaType::QTime == v.typeId() )
+#else
     else if ( QVariant::Time == v.type() )
+#endif
     {
         const QTime result( v.toTime() );
 

@@ -70,7 +70,7 @@ protected:
 
     /// Factory method for creation of Option Pricing Methods.
     /**
-     * @param[in] S  underlying price
+     * @param[in] S  underlying (spot) price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
      * @param[in] sigma  volatility of underlying
@@ -79,6 +79,22 @@ protected:
      * @return  pointer to pricing method
      */
     virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, bool european = false ) const override;
+
+    /// Factory method for creation of Option Pricing Methods.
+    /**
+     * @warning
+     * Passed in @c vector classes @p divTimes and @p divYields are assumed to have equal sizes.
+     * @param[in] S  underlying (spot) price
+     * @param[in] r  risk-free interest rate
+     * @param[in] b  cost-of-carry rate of holding underlying
+     * @param[in] sigma  volatility of underlying
+     * @param[in] T  time to expiration (years)
+     * @param[in] divTimes  dividend times
+     * @param[in] divYields  dividend yields
+     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
+     * @return  pointer to pricing method
+     */
+    virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european = false ) const override;
 
     /// Factory method for destruction of Option Pricing Methods.
     /**

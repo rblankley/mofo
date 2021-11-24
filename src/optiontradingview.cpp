@@ -514,6 +514,11 @@ QString OptionTradingView::columnHeaderText( int column ) const
     case model_type::RISK_FREE_INTEREST_RATE:
         return tr( "Risk Free Rate" );
 
+    case model_type::DIV_AMOUNT:
+        return tr( "Div. Amount" );
+    case model_type::DIV_YIELD:
+        return tr( "Div. Yield %" );
+
     case model_type::CALC_BID_PRICE_VI:
         return tr( "Calc. Bid VI" );
     case model_type::CALC_ASK_PRICE_VI:
@@ -562,6 +567,11 @@ QString OptionTradingView::columnHeaderText( int column ) const
         return tr( "Max Gain" );
     case model_type::MAX_LOSS:
         return tr( "Max Loss" );
+
+    case model_type::ROR:
+        return tr( "ROR %" );
+    case model_type::ROR_TIME:
+        return tr( "ROR %/Wk" );
 
     case model_type::ROI:
         return tr( "ROI %" );

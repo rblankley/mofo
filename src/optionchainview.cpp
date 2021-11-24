@@ -99,7 +99,7 @@ void OptionChainView::translate()
     {
         hheader->setCellLabel( 0, model_type::_CALL_COLUMNS_BEGIN, tr( "CALLS" ) );
         hheader->setCellLabel( 0, model_type::_PUT_COLUMNS_BEGIN, tr( "PUTS" ) );
-        hheader->setCellLabel( 0, model_type::STRIKE_PRICE, tr( "STRIKE" ) );
+        hheader->setCellLabel( 0, model_type::STRIKE_PRICE, columnHeaderText( model_type::STRIKE_PRICE ) );
 
         for ( int column( model_type::_NUM_COLUMNS ); column--; )
             hheader->setCellLabel( 1, column, columnHeaderText( column ) );
@@ -476,6 +476,8 @@ QString OptionChainView::columnHeaderText( int column ) const
 {
     switch ( column )
     {
+    case model_type::STRIKE_PRICE:
+        return tr( "STRIKE" );
     case model_type::CALL_SYMBOL:
     case model_type::PUT_SYMBOL:
         return tr( "Symbol" );

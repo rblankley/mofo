@@ -23,70 +23,99 @@
 #ifndef ITEMMODEL_H
 #define ITEMMODEL_H
 
+#include <QAbstractListModel>
+#include <QList>
+#include <QMap>
 #include <QMutex>
-#include <QStandardItemModel>
+#include <QVariant>
+#include <QVector>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Item model base class.
-class ItemModel : public QStandardItemModel
+/// Mapped item.
+/**
+ * Map of variant data by role.
+ */
+class MapItem
 {
-    Q_OBJECT
-
-    using _Myt = ItemModel;
-    using _Mybase = QStandardItemModel;
+    using _Myt = MapItem;
 
 public:
 
-    /// Map of column values.
-    using ColumnValueMap = QMap<int, QVariant>;
+    // ========================================================================
+    // CTOR
+    // ========================================================================
+
+    /// Constructor.
+    MapItem() {}
 
     // ========================================================================
     // Properties
     // ========================================================================
 
-    /// Retrieve table data.
+    /// Clear data.
+    virtual void clearData() {data_.clear();}
+
+    /// Retrieve data for role.
     /**
-     * @param[in] row  row
-     * @param[in] col  column
      * @param[in] role  role
      * @return  data
      */
-    virtual QVariant data( int row, int col, int role = Qt::DisplayRole ) const;
+    virtual QVariant data( int role ) const
+    {
+        RoleDataMap::const_iterator i( data_.find( role ) );
 
-    /// Retrieve table data.
+        if ( i != data_.constEnd() )
+            return (*i);
+
+        return QVariant();
+    }
+
+    /// Set data for role.
     /**
-     * @param[in] index  model index
+     * @param[in] value  data value
      * @param[in] role  role
-     * @return  data
      */
-    virtual QVariant data( const QModelIndex& index, int role = Qt::DisplayRole ) const override {return _Mybase::data( index, role );}
-
-    /// Retrieve table data for single row.
-    /**
-     * @param[in] col  column
-     * @param[in] role  role
-     * @return  data
-     */
-    virtual QVariant data0( int col, int role = Qt::DisplayRole ) const;
-
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Remove all rows from model.
-    virtual void removeAllRows();
+    virtual void setData( const QVariant& value, int role )
+    {
+        data_[role] = value;
+    }
 
 protected:
 
-#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
-    mutable QRecursiveMutex m_;                     ///< Mutex.
-#else
-    mutable QMutex m_;                              ///< Mutex.
-#endif
+    /// Map of data by role.
+    using RoleDataMap = QMap<int, QVariant>;
 
-    QVector<bool> columnIsText_;                    ///< Column contains text data.
-    QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.
+    RoleDataMap data_;                              ///< Map of role data.
+
+private:
+
+    // not implemented
+    MapItem( const _Myt& ) = delete;
+
+    // not implemented
+    MapItem( const _Myt&& ) = delete;
+
+    // not implemented
+    _Myt &operator = ( const _Myt& ) = delete;
+
+    // not implemented
+    _Myt &operator = ( const _Myt&& ) = delete;
+
+};
+
+/// Row based list item model.
+class ItemModel : public QAbstractListModel
+{
+    Q_OBJECT
+
+    using _Myt = ItemModel;
+    using _Mybase = QAbstractListModel;
+
+public:
+
+    /// Item type.
+    using item_type = MapItem;
 
     // ========================================================================
     // CTOR / DTOR
@@ -104,6 +133,187 @@ protected:
     virtual ~ItemModel();
 
     // ========================================================================
+    // Properties
+    // ========================================================================
+
+    /// Retrieve number of columns.
+    /**
+     * @param[in] parent  parent index
+     * @return  number of columns
+     */
+    virtual int columnCount( const QModelIndex& parent = QModelIndex() ) const override;
+
+    /// Retrieve model data.
+    /**
+     * @param[in] row  row
+     * @param[in] col  column
+     * @param[in] role  role
+     * @return  data
+     */
+    virtual QVariant data( int row, int col, int role = Qt::DisplayRole ) const;
+
+    /// Retrieve model data.
+    /**
+     * @param[in] index  model index
+     * @param[in] role  role
+     * @return  data
+     */
+    virtual QVariant data( const QModelIndex& index, int role = Qt::DisplayRole ) const override;
+
+    /// Retrieve model data for single row.
+    /**
+     * @param[in] col  column
+     * @param[in] role  role
+     * @return  data
+     */
+    virtual QVariant data0( int col, int role = Qt::DisplayRole ) const;
+
+    /// Retrieve flags.
+    /**
+     * @param[in] index  index
+     * @return  flags
+     */
+    virtual Qt::ItemFlags flags( const QModelIndex& index ) const override;
+
+    /// Retrieve header data.
+    /**
+     * @param[in] section  header section
+     * @param[in] orientation  header orientation
+     * @param[in] role  data role
+     * @return  data
+     */
+    virtual QVariant headerData( int section, Qt::Orientation orientation, int role = Qt::DisplayRole ) const override;
+
+    /// Retrieve number of rows.
+    /**
+     * @param[in] parent  parent index
+     * @return  number of rows
+     */
+    virtual int rowCount( const QModelIndex& parent = QModelIndex() ) const override;
+
+    /// Set model data.
+    /**
+     * @param[in] row  row
+     * @param[in] col  column
+     * @param[in] value  data
+     * @param[in] role  data role
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool setData( int row, int col, const QVariant& value, int role = Qt::EditRole );
+
+    /// Set model data.
+    /**
+     * @param[in] index  index
+     * @param[in] value  data
+     * @param[in] role  data role
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool setData( const QModelIndex& index, const QVariant& value, int role = Qt::EditRole ) override;
+
+    /// Set header data.
+    /**
+     * @param[in] section  header section
+     * @param[in] orientation  header orientation
+     * @param[in] value  data
+     * @param[in] role  data role
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool setHeaderData( int section, Qt::Orientation orientation, const QVariant& value, int role = Qt::EditRole ) override;
+
+    /// Set role for sorting.
+    /**
+     * @param[in] role  data role used for sorting
+     */
+    virtual void setSortRole( int role ) {sortRole_ = role;}
+
+    /// Retrieve role for sorting.
+    /**
+     * @return  data role used for sorting
+     */
+    virtual int sortRole() const {return sortRole_;}
+
+    // ========================================================================
+    // Methods
+    // ========================================================================
+
+    /// Append row to model.
+    /**
+     * Model will assume ownership over @p items.
+     * @param[in] items  pointer to array of items
+     */
+    virtual void appendRow( item_type *items );
+
+    /// Insert model rows.
+    /**
+     * @param[in] row  insert location
+     * @param[in] count  number of rows to insert
+     * @param[in] parent  parent index
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool insertRows( int row, int count, const QModelIndex& parent = QModelIndex() ) override;
+
+    /// Remove model rows.
+    /**
+     * @param[in] row  remove location
+     * @param[in] count  number of rows to remove
+     * @param[in] parent  parent index
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool removeRows( int row, int count, const QModelIndex& parent = QModelIndex() ) override;
+
+    /// Remove all rows from model.
+    virtual void removeAllRows();
+
+    /// Sort model by @p column in given @p order.
+    /**
+     * @param[in] column  column to sort by
+     * @param[in] order  order of sort
+     */
+    virtual void sort( int column, Qt::SortOrder order ) override;
+
+protected:
+
+#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
+    mutable QRecursiveMutex m_;                     ///< Mutex.
+#else
+    mutable QMutex m_;                              ///< Mutex.
+#endif
+
+    int numColumns_;                                ///< Number of columns.
+
+    QVector<bool> columnIsText_;                    ///< Column contains text data.
+    QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.
+
+    QList<item_type*> rows_;                        ///< Row item data.
+
+    item_type *horzHeader_;                         ///< Horizontal header data.
+
+    int sortRole_;                                  ///< Sorting role.
+
+    // ========================================================================
+    // Methods
+    // ========================================================================
+
+    /// Allocate array of items for populating a row.
+    /**
+     * Allocates number of items equal to column count.
+     * @return  pointer to array
+     */
+    virtual item_type *allocRowItems() const;
+
+    /// Free array of items.
+    /**
+     * @param[in] doomed  items to free
+     */
+    virtual void freeRowItems( item_type *doomed ) const;
+
+    /// Free array of items.
+    /**
+     * @param[in] doomed  items to free
+     */
+    virtual void freeRowItems( const QList<item_type*>& doomed ) const;
+
+    // ========================================================================
     // Static Methods
     // ========================================================================
 
@@ -116,6 +326,9 @@ protected:
     static QString formatValue( const QVariant& value, int numDecimalPlaces = 0 );
 
 private:
+
+    static QMutex poolItemMutex_;
+    static QList<item_type*> poolItems_;
 
     // not implemented
     ItemModel( const _Myt& ) = delete;

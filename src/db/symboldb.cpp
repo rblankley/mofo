@@ -38,30 +38,83 @@
 #include <QSqlTableModel>
 
 static const QString DB_NAME( "%1.db" );
-static const QString DB_VERSION( "1" );
+static const QString DB_VERSION( "2" );
 
 static const QString CALL( "CALL" );
 static const QString PUT( "PUT" );
 
+static const QString CUSIP( "cusip" );
 static const QString LAST_QUOTE_HISTORY( "lastQuoteHistory" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolDatabase::SymbolDatabase( const QString& symbol, QObject *parent ) :
     _Mybase( DB_NAME.arg( symbol ), DB_VERSION, parent ),
-    symbol_( symbol )
+    symbol_( symbol ),
+    divAmount_( 0.0 ),
+    divYield_( 0.0 )
 {
     // set object name
     setObjectName( symbol );
 
     // open database
     if ( open() )
+    {
+        QVariant v;
+
+        // write out symbol
         writeSetting( "symbol", symbol );
+
+        // read dividend information
+        if ( readSetting( DB_DIV_AMOUNT, v ) )
+            divAmount_ = v.toDouble();
+        if ( readSetting( DB_DIV_YIELD, v ) )
+            divYield_ = v.toDouble();
+
+        if ( readSetting( DB_DIV_DATE, v ) )
+            divDate_ = v.toDate();
+        if ( readSetting( DB_DIV_FREQUENCY, v ) )
+            divFrequency_ = v.toString();
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolDatabase::~SymbolDatabase()
 {
     db_.close();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString SymbolDatabase::cusip() const
+{
+    QVariant v;
+
+    if ( readSetting( CUSIP, v ) )
+        return v.toString();
+
+    return QString();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double SymbolDatabase::dividendAmount( QDate& date, double& frequency ) const
+{
+    date = divDate_;
+
+    if ( "Y" == divFrequency_ )
+        frequency = 1.0;
+    else if ( "B" == divFrequency_ )
+        frequency = 0.5;
+    else if ( "Q" == divFrequency_ )
+        frequency = 0.25;
+    else if ( "M" == divFrequency_ )
+        frequency = (1.0 / 12.0);
+
+    return divAmount_;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double SymbolDatabase::dividendYield() const
+{
+    return (divYield_ / 100.0);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,45 +132,51 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
 
     query.bindValue( ":" + DB_DATE, dt.date().toString( Qt::ISODate ) );
 
-     if ( !query.exec() )
-     {
-         const QSqlError e( query.lastError() );
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
 
-         LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
-     }
-     else
-     {
-         double min( 0.0 );
-         int min_depth( 0 );
+        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        double min( 0.0 );
+        int min_depth( 0 );
 
-         double max( 0.0 );
-         int max_depth( 0 );
+        double max( 0.0 );
+        int max_depth( 0 );
 
-         // find bounding volatility
-         QSqlQueryModel model;
-         model.setQuery( query );
+        // find bounding volatility
+        QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
+        model.setQuery( query );
+#endif
 
-         for ( int row( 0 ); row < model.rowCount(); ++row )
-         {
-             const QSqlRecord rec( model.record( row ) );
+        for ( int row( 0 ); row < model.rowCount(); ++row )
+        {
+            const QSqlRecord rec( model.record( row ) );
 
-             const double v( rec.value( "volatility" ).toDouble() );
-             const int v_depth( rec.value( "depth" ).toInt() );
+            const double v( rec.value( "volatility" ).toDouble() );
+            const int v_depth( rec.value( "depth" ).toInt() );
 
-             if ( v_depth == depth )
-                 return v;
-             else if ( v_depth < depth )
-             {
-                 min = v;
-                 min_depth = v_depth;
-             }
-             else
-             {
-                 max = v;
-                 max_depth = v_depth;
-                 break;
-             }
-         }
+            if ( v_depth == depth )
+                return v;
+            else if ( v_depth < depth )
+            {
+                min = v;
+                min_depth = v_depth;
+            }
+            else
+            {
+                max = v;
+                max_depth = v_depth;
+                break;
+            }
+        }
+
+        conn.close();
 
         // requested depth BELOW table values
         if (( !min_depth ) && ( max_depth ))
@@ -129,7 +188,9 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
 
         // interpolate
         return min + ((double)(depth - min_depth) / (double)(max_depth - min_depth)) * (max - min);
-     }
+    }
+
+    conn.close();
 
     return 0.0;
 }
@@ -173,6 +234,38 @@ void SymbolDatabase::quoteHistoryDateRange( QDate& start, QDate& end ) const
         start = QDate::fromString( rec.value( "date" ).toString(), Qt::ISODate );
         break;
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObject& obj )
+{
+    if ( symbol() != obj[DB_SYMBOL].toString() )
+        return false;
+
+    if ( !db_.transaction() )
+    {
+        LOG_WARN << "failed to start transaction";
+        return false;
+    }
+
+    LOG_DEBUG << "process instrument for " << qPrintable( symbol() );
+
+    bool result( true );
+
+    // add fundamental (optional)
+    const QJsonObject::const_iterator fundamental( obj.constFind( DB_FUNDAMENTAL ) );
+
+    if (( obj.constEnd() != fundamental ) && ( fundamental->isObject() ))
+        result &= addFundamental( stamp, fundamental->toObject() );
+
+    // commit to database
+    if (( result ) && ( !(result = db_.commit()) ))
+        LOG_WARN << "commit failed";
+
+    if (( !result ) && ( !db_.rollback() ))
+        LOG_ERROR << "rollback failed";
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -310,9 +403,68 @@ QStringList SymbolDatabase::upgradeFiles( const QString& fromStr, const QString&
     QStringList files;
 
     while ( from < to )
-        files.append( QString( ":/db/version%0_symbol.sql" ).arg( from++ ) );
+        files.append( QString( ":/db/version%0_symbol.sql" ).arg( ++from ) );
 
     return files;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolDatabase::addFundamental( const QDateTime& stamp, const QJsonObject& obj )
+{
+    static const QString sql( "INSERT INTO fundamentals (stamp,symbol,"
+        "high52,low52,divAmount,divYield,divDate,divFrequency,peRatio,pegRatio,pbRatio,prRatio,pcfRatio,"
+        "grossMarginTTM,grossMarginMRQ,netProfitMarginTTM,netProfitMarginMRQ,operatingMarginTTM,operatingMarginMRQ,returnOnEquity,returnOnAssets,returnOnInvestment,quickRatio,"
+        "currentRatio,interestCoverage,totalDebtToCapital,ltDebtToEquity,totalDebtToEquity,epsTTM,epsChangePercentTTM,epsChangeYear,epsChange,revChangeYear,"
+        "revChangeTTM,revChangeIn,sharesOutstanding,marketCapFloat,marketCap,bookValuePerShare,shortIntToFloat,shortIntDayToCover,divGrowthRate3Year,divPayAmount,"
+        "divPayDate,beta,vol1DayAvg,vol10DayAvg,vol3MonthAvg) "
+            "VALUES (:stamp,:symbol,"
+                ":high52,:low52,:divAmount,:divYield,:divDate,:divFrequency,:peRatio,:pegRatio,:pbRatio,:prRatio,:pcfRatio,"
+                ":grossMarginTTM,:grossMarginMRQ,:netProfitMarginTTM,:netProfitMarginMRQ,:operatingMarginTTM,:operatingMarginMRQ,:returnOnEquity,:returnOnAssets,:returnOnInvestment,:quickRatio,"
+                ":currentRatio,:interestCoverage,:totalDebtToCapital,:ltDebtToEquity,:totalDebtToEquity,:epsTTM,:epsChangePercentTTM,:epsChangeYear,:epsChange,:revChangeYear,"
+                ":revChangeTTM,:revChangeIn,:sharesOutstanding,:marketCapFloat,:marketCap,:bookValuePerShare,:shortIntToFloat,:shortIntDayToCover,:divGrowthRate3Year,:divPayAmount,"
+                ":divPayDate,:beta,:vol1DayAvg,:vol10DayAvg,:vol3MonthAvg) " );
+
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+    query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
+    query.bindValue( ":" + DB_SYMBOL, symbol() );
+
+    bindQueryValues( query, obj );
+
+    // compute dividend frequency
+    if ( divFrequency_.isEmpty() )
+    {
+        if ( obj.contains( DB_DIV_DATE ) )
+            calcDividendFrequencyFromDate( obj[DB_DIV_DATE] );
+
+        if ( obj.contains( DB_DIV_PAY_DATE ) )
+            calcDividendFrequencyFromPayDate( obj[DB_DIV_PAY_DATE] );
+
+        if (( obj.contains( DB_DIV_PAY_AMOUNT ) ) && ( obj.contains( DB_DIV_AMOUNT ) ))
+            calcDividendFrequencyFromPayAmount( obj[DB_DIV_PAY_AMOUNT], obj[DB_DIV_AMOUNT] );
+    }
+
+    // fill in missing values
+    updateDefaultValue( query, obj, DB_DIV_AMOUNT );
+    updateDefaultValue( query, obj, DB_DIV_YIELD );
+    updateDefaultValue( query, obj, DB_DIV_DATE );
+    updateDefaultValue( query, obj, DB_DIV_FREQUENCY );
+
+    updateDefaultValue( query, obj, DB_DIV_PAY_AMOUNT );
+    updateDefaultValue( query, obj, DB_DIV_PAY_DATE );
+
+    updateDefaultValue( query, obj, DB_PE_RATIO );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        return false;
+    }
+
+    return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -383,7 +535,7 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
 
     QSqlQuery query( db_ );
     query.prepare( sql );
-    query.bindValue( ":stamp", stamp.toString( Qt::ISODateWithMs ) );
+    query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
 
     bindQueryValues( query, obj );
 
@@ -454,10 +606,10 @@ bool SymbolDatabase::addOptionChainStrikePrice( const QDateTime& stamp, const QS
 
     QSqlQuery query( db_ );
     query.prepare( sql.arg( type ) );
-    query.bindValue( ":stamp", stamp.toString( Qt::ISODateWithMs ) );
-    query.bindValue( ":underlying", symbol() );
-    query.bindValue( ":expirationDate", expiryDate );
-    query.bindValue( ":strikePrice", strikePrice );
+    query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
+    query.bindValue( ":" + DB_UNDERLYING, symbol() );
+    query.bindValue( ":" + DB_EXPIRY_DATE, expiryDate );
+    query.bindValue( ":" + DB_STRIKE_PRICE, strikePrice );
 
     query.bindValue( ":optionStamp", optionStamp );
     query.bindValue( ":optionSymbol", optionSymbol );
@@ -499,35 +651,10 @@ bool SymbolDatabase::addQuote( const QJsonObject& obj )
     bindQueryValues( query, obj );
 
     // compute dividend frequency
-    if ( obj.contains( DB_DIV_DATE ) )
+    if ( divFrequency_.isEmpty() )
     {
-        const QJsonValue newValue( obj[DB_DIV_DATE] );
-
-        QVariant oldValue;
-
-        if (( readSetting( DB_DIV_DATE, oldValue ) ) && ( oldValue.isValid() ))
-        {
-            const QDateTime oldDate( QDateTime::fromString( oldValue.toString(), Qt::ISODateWithMs ) );
-            const QDateTime newDate( QDateTime::fromString( newValue.toString(), Qt::ISODateWithMs ) );
-
-            if (( oldDate.isValid() ) && ( newDate.isValid() ) && ( oldDate < newDate ))
-            {
-                const int delta( oldDate.daysTo( newDate ) );
-
-                QString freq;
-
-                if ( 350 < delta )
-                    freq = "Y";
-                else if ( 175 < delta )
-                    freq = "B";
-                else if ( delta < 45 )
-                    freq = "M";
-                else
-                    freq = "Q";
-
-                writeSetting( DB_DIV_FREQUENCY, freq );
-            }
-        }
+        if ( obj.contains( DB_DIV_DATE ) )
+            calcDividendFrequencyFromDate( obj[DB_DIV_DATE] );
     }
 
     // fill in missing values
@@ -588,6 +715,28 @@ bool SymbolDatabase::addQuoteHistory( const QJsonObject& obj )
     }
 
     return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolDatabase::writeSetting( const QString& key, const QVariant& value )
+{
+    bool result;
+
+    // write setting
+    if ( (result = _Mybase::writeSetting( key, value )) )
+    {
+        // dividend information
+        if ( DB_DIV_AMOUNT == key )
+            divAmount_ = value.toDouble();
+        else if ( DB_DIV_YIELD == key )
+            divYield_ = value.toDouble();
+        else if ( DB_DIV_DATE == key )
+            divDate_ = QDate::fromString( value.toString(), Qt::ISODate );
+        else if ( DB_DIV_FREQUENCY == key )
+            divFrequency_ = value.toString();
+    }
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -727,5 +876,101 @@ void SymbolDatabase::calcHistoricalVolatility()
         const QSqlError e( query.lastError() );
 
         LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::calcDividendFrequencyFromDate( const QJsonValue& newValue )
+{
+    if ( divFrequency_.length() )
+        return;
+
+    QVariant oldValue;
+
+    if (( readSetting( DB_DIV_DATE, oldValue ) ) && ( oldValue.isValid() ))
+    {
+        const QDate oldDate( QDate::fromString( oldValue.toString(), Qt::ISODate ) );
+        const QDate newDate( QDate::fromString( newValue.toString(), Qt::ISODate ) );
+
+        if (( oldDate.isValid() ) && ( newDate.isValid() ) && ( oldDate < newDate ))
+        {
+            const int delta( oldDate.daysTo( newDate ) );
+
+            QString freq;
+
+            if ( 350 < delta )
+                freq = "Y";
+            else if ( 175 < delta )
+                freq = "B";
+            else if ( delta < 45 )
+                freq = "M";
+            else
+                freq = "Q";
+
+            writeSetting( DB_DIV_FREQUENCY, freq );
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::calcDividendFrequencyFromPayAmount( const QJsonValue& payAmountVal, const QJsonValue& amountVal )
+{
+    if ( divFrequency_.length() )
+        return;
+    else if (( !payAmountVal.isDouble() ) || ( !amountVal.isDouble() ))
+        return;
+
+    const double payAmount( payAmountVal.toDouble() );
+    const double amount( amountVal.toDouble() );
+
+    if (( 0.0 < payAmount ) && ( payAmount <= amount ))
+    {
+        const int delta( std::round( (365.0 * payAmount) / amount ) );
+
+        QString freq;
+
+        if ( 350 < delta )
+            freq = "Y";
+        else if ( 175 < delta )
+            freq = "B";
+        else if ( delta < 45 )
+            freq = "M";
+        else
+            freq = "Q";
+
+        writeSetting( DB_DIV_FREQUENCY, freq );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::calcDividendFrequencyFromPayDate( const QJsonValue& newValue )
+{
+    if ( divFrequency_.length() )
+        return;
+
+    QVariant oldValue;
+
+    if (( readSetting( DB_DIV_PAY_DATE, oldValue ) ) && ( oldValue.isValid() ))
+    {
+        const QDate oldDate( QDate::fromString( oldValue.toString(), Qt::ISODate ) );
+        const QDate newDate( QDate::fromString( newValue.toString(), Qt::ISODate ) );
+
+        if (( oldDate.isValid() ) && ( newDate.isValid() ) && ( oldDate < newDate ))
+        {
+            const int delta( oldDate.daysTo( newDate ) );
+
+            QString freq;
+
+            if ( 350 < delta )
+                freq = "Y";
+            else if ( 175 < delta )
+                freq = "B";
+            else if ( delta < 45 )
+                freq = "M";
+            else
+                freq = "Q";
+
+            writeSetting( DB_DIV_FREQUENCY, freq );
+        }
     }
 }

@@ -33,46 +33,20 @@
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, bool european ) :
-    _Mybase( S, r, b, sigma, T, N, european ),
-    div_( N+1, 0.0 )
-{
-    // init
-    init();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divAmounts, bool european ) :
     _Mybase( S, r, b, sigma, T, N, european )
 {
-    const double dt = T_ / N_;
-
     // init
     init();
-
-    // create dividend table
-    div_.reserve( N_+1 );
-
-    for ( size_t i( 0 ); i <= N_; ++i )
-    {
-        double amt = 0.0;
-
-        for ( size_t d( divTimes.size() ); d--; )
-        {
-            const double divt = divTimes[d] - (i * dt);
-
-            if ( 0.0 < divt )
-                amt += divAmounts[d] * exp( -r_ * divt );
-        }
-
-        div_.push_back( amt );
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& div, bool european ) :
+CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) :
     _Mybase( S, r, b, sigma, T, N, european ),
-    div_( div )
+    divTimes_( divTimes ),
+    div_( divYields )
 {
+    assert( divTimes.size() == divYields.size() );
+
     // init
     init();
 }
@@ -91,11 +65,11 @@ double CoxRossRubinstein::optionPrice( OptionType type, double X ) const
 
     const double Df = exp( -r * dt );
 
-    // subtract out current value of dividends
-    const double S = S_ - div_[0];
-
     // calc!
-    return calcOptionPrice( (OptionType::Call == type), S, X, u_, d_, pu, pd, Df, div_ );
+    if ( divTimes_.size() )
+        return calcOptionPrice( (OptionType::Call == type), S_, X, u_, d_, pu, pd, Df, divTimes_, div_ );
+
+    return calcOptionPrice( (OptionType::Call == type), S_, X, u_, d_, pu, pd, Df );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -118,7 +92,7 @@ double CoxRossRubinstein::rho( OptionType type, double X ) const
     const double diff = 0.01;
     const double q = r_ - b_;
 
-    _Myt rhoCalc( S_, r_+diff, r_+diff-q, sigma_, T_, N_, div_, european_ );
+    _Myt rhoCalc( S_, r_+diff, r_+diff-q, sigma_, T_, N_, divTimes_, div_, european_ );
     return (rhoCalc.optionPrice( type, X ) - f_[0][0]) / diff;
 }
 
@@ -136,7 +110,7 @@ double CoxRossRubinstein::vega( OptionType type, double X ) const
     // vega
     const double diff = 0.02;
 
-    _Myt vegaCalc( S_, r_, b_, sigma_+diff, T_, N_, div_, european_ );
+    _Myt vegaCalc( S_, r_, b_, sigma_+diff, T_, N_, divTimes_, div_, european_ );
     return (vegaCalc.optionPrice( type, X ) - f_[0][0]) / diff;
 }
 
@@ -145,6 +119,7 @@ void CoxRossRubinstein::copy( const _Myt& other )
 {
     _Mybase::copy( other );
 
+    divTimes_ = other.divTimes_;
     div_ = other.div_;
 
     u_ = other.u_;
@@ -156,6 +131,7 @@ void CoxRossRubinstein::move( const _Myt&& other )
 {
     _Mybase::move( std::move( other ) );
 
+    divTimes_ = std::move( other.divTimes_ );
     div_ = std::move( other.div_ );
 
     u_ = std::move( other.u_ );
@@ -255,7 +231,7 @@ void CoxRossRubinstein::validate()
         Q_ASSERT_DOUBLE( vega, 0.1229 );
         Q_ASSERT_DOUBLE( rho, -0.0715 );
     }
-
+/*
     {
         // from Hull book, example 21.5
         const double S = 52;
@@ -306,6 +282,50 @@ void CoxRossRubinstein::validate()
         // from Numerical Recipies:
         // 100 iterations = 12.0233
         Q_ASSERT_DOUBLE( crr_disc.optionPrice( OptionType::Call, X ), 11.7861 );
+    }
+*/
+    {
+        // from Haug book, table 9-8
+        const double S = 100;
+        const double X = 102;
+        const double r = 0.1;
+        const double q = 0.0;
+        const double sigma = 0.15;
+        const double T = 6.0 / 12.0;
+        const size_t N = 500;
+
+        std::vector<double> divTimes;
+        divTimes.push_back( 0.4 );
+
+        std::vector<double> divYields;
+        divYields.push_back( 0.05 );
+
+        _Myt crr( S, r, r-q, sigma, T, N, divTimes, divYields );
+
+        Q_ASSERT_DOUBLE( crr.optionPrice( OptionType::Call, X ), 4.8772 );
+        Q_ASSERT_DOUBLE( crr.optionPrice( OptionType::Put, X ), 7.0000 );
+    }
+
+    {
+        // from Haug book, table 9-8
+        const double S = 100;
+        const double X = 102;
+        const double r = 0.1;
+        const double q = 0.0;
+        const double sigma = 0.3;
+        const double T = 6.0 / 12.0;
+        const size_t N = 500;
+
+        std::vector<double> divTimes;
+        divTimes.push_back( 0.25 );
+
+        std::vector<double> divYields;
+        divYields.push_back( 0.1 );
+
+        _Myt crr( S, r, r-q, sigma, T, N, divTimes, divYields );
+
+        Q_ASSERT_DOUBLE( crr.optionPrice( OptionType::Call, X ), 6.8194 );
+        Q_ASSERT_DOUBLE( crr.optionPrice( OptionType::Put, X ), 12.9060 );
     }
 }
 #endif

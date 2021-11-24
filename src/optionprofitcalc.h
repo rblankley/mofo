@@ -128,11 +128,17 @@ protected:
 
     double underlying_;                             ///< Underlying price.
 
+    double totalDivAmount_;                         ///< Total dividend amount (expected).
+    double totalDivYield_;                          ///< Total dividend yield (expected).
+
     const table_model_type *chains_;                ///< Chains for analysis.
 
     item_model_type *results_;                      ///< Results.
 
     // ---- //
+
+    std::vector<double> divTimes_;                  ///< Dividend times.
+    std::vector<double> div_;                       ///< Dividend yields.
 
     double costBasis_;                              ///< Cost basis (used for call options).
 

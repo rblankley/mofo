@@ -29,40 +29,39 @@
 GridTableHeaderView::GridTableHeaderView( Qt::Orientation orientation, int rows, int columns, QWidget *parent ) :
     _Mybase( orientation, parent )
 {
-    QSize baseSectionSize;
+    // create model
+    setModel( new model_type( rows, columns, this ) );
 
+    // setup default width and height
     if ( Qt::Horizontal == orientation )
     {
-        baseSectionSize.setWidth( defaultSectionSize() );
-        baseSectionSize.setHeight( DEFAULT_HEIGHT );
+        setDefaultSectionSize( DEFAULT_WIDTH );
+
+        // init section size
+        int n( rows );
+
+        sectionSize_.reserve( n );
+
+        while ( n-- )
+            sectionSize_.append( DEFAULT_HEIGHT );
     }
     else if ( Qt::Vertical == orientation )
     {
-        baseSectionSize.setWidth( DEFAULT_WIDTH );
-        baseSectionSize.setHeight( defaultSectionSize() );
+        setDefaultSectionSize( DEFAULT_HEIGHT );
+
+        // init section size
+        int n( columns );
+
+        sectionSize_.reserve( n );
+
+        while ( n-- )
+            sectionSize_.append( DEFAULT_WIDTH );
     }
-
-    model_type *model( new model_type( rows, columns, this ) );
-
-    for ( int row( rows ); row--; )
-        for ( int column( columns ); column--; )
-            model->setData( model->index( row, column ), baseSectionSize, Qt::SizeHintRole );
-
-    setModel( model );
-
-    connect( this, &QHeaderView::sectionResized, this, &_Myt::onSectionResized );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 GridTableHeaderView::~GridTableHeaderView()
 {
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void GridTableHeaderView::setCellLabel( int row, int column, const QString& label )
-{
-    const QModelIndex idx( model()->index( row, column ) );
-    model()->setData( idx, label, Qt::DisplayRole );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -80,308 +79,56 @@ void GridTableHeaderView::setCellForegroundColor(int row, int column, const QCol
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QModelIndex GridTableHeaderView::indexAt( const QPoint& pos ) const
+void GridTableHeaderView::setCellLabel( int row, int column, const QString& label )
 {
-    const model_type *tblModel( qobject_cast<model_type*>( model() ) );
-
-    const int rows( tblModel->rowCount() );
-    const int cols( tblModel->columnCount() );
-
-    const int logicalIdx( logicalIndexAt( pos ) );
-
-    int delta = 0;
-
-    if ( Qt::Horizontal == orientation() )
-    {
-        for ( int row( 0 ); row < rows; ++row )
-        {
-            const QModelIndex cellIndex( tblModel->index( row, logicalIdx ) );
-
-            delta += cellIndex.data( Qt::SizeHintRole ).toSize().height();
-
-            if ( pos.y() <= delta )
-                return cellIndex;
-        }
-    }
-    else if ( Qt::Vertical == orientation() )
-    {
-        for ( int col( 0 ); col < cols; ++col )
-        {
-            const QModelIndex cellIndex( tblModel->index( logicalIdx, col ) );
-
-            delta += cellIndex.data( Qt::SizeHintRole ).toSize().width();
-
-            if ( pos.x() <= delta )
-                return cellIndex;
-        }
-    }
-
-    return QModelIndex();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QSize GridTableHeaderView::sizeHint() const
-{
-    const model_type *tblModel( qobject_cast<model_type*>( model() ) );
-
-    int columns( tblModel->columnCount() );
-    int rows( tblModel->rowCount() );
-
-    int width( 0 );
-    int height( 0 );
-
-    while ( columns-- )
-    {
-        const QModelIndex cellIndex( tblModel->index( 0, columns ) );
-        width += cellIndex.data( Qt::SizeHintRole ).toSize().width();
-    }
-
-    while ( rows-- )
-    {
-        const QModelIndex cellIndex( tblModel->index( rows, 0 ) );
-        height += cellIndex.data( Qt::SizeHintRole ).toSize().height();
-    }
-
-    return QSize( width, height );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void GridTableHeaderView::paintSection( QPainter *painter, const QRect& rect, int logicalIndex ) const
-{
-    const model_type *tblModel( qobject_cast<const model_type*>( model() ) );
-
-    const int level( (Qt::Horizontal == orientation()) ? tblModel->rowCount() : tblModel->columnCount() );
-
-    // paint each level
-    for ( int i( 0 ); i < level; ++i )
-    {
-        QModelIndex cellIndex( (Qt::Horizontal == orientation()) ? tblModel->index( i, logicalIndex ) : tblModel->index( logicalIndex, i ) );
-
-        QRect sectionRect( rect );
-
-        // set position of the cell
-        if ( Qt::Horizontal == orientation() )
-            sectionRect.setTop( rowSpanSize( logicalIndex, 0, i ) ); // distance from 0 to i-1 rows
-        else
-            sectionRect.setLeft( columnSpanSize( logicalIndex, 0, i ) );
-
-        sectionRect.setSize( cellIndex.data( Qt::SizeHintRole ).toSize() );
-
-        // check up span column or row
-        const QModelIndex colSpanIdx( columnSpanIndex( cellIndex ) );
-        const QModelIndex rowSpanIdx( rowSpanIndex( cellIndex ) );
-
-        if ( colSpanIdx.isValid() )
-        {
-            const int colSpanFrom( colSpanIdx.column() );
-            const int colSpanCnt( colSpanIdx.data( model_type::ColumnSpanRole ).toInt() );
-            const int colSpanTo( colSpanFrom + colSpanCnt - 1 );
-            const int colSpan( columnSpanSize( cellIndex.row(), colSpanFrom, colSpanCnt ) );
-
-            if ( Qt::Horizontal == orientation() )
-                sectionRect.setLeft( sectionViewportPosition( colSpanFrom ) );
-            else
-            {
-                sectionRect.setLeft( columnSpanSize( logicalIndex, 0, colSpanFrom ) );
-                i = colSpanTo;
-            }
-
-            sectionRect.setWidth( colSpan );
-
-            // check up  if the column span index has row span
-            const QVariant subRowSpanData( colSpanIdx.data( model_type::RowSpanRole ) );
-
-            if ( subRowSpanData.isValid() )
-            {
-                const int subRowSpanFrom( colSpanIdx.row() );
-                const int subRowSpanCnt( subRowSpanData.toInt() );
-                const int subRowSpanTo( subRowSpanFrom + subRowSpanCnt - 1 );
-                const int subRowSpan( rowSpanSize( colSpanFrom, subRowSpanFrom, subRowSpanCnt ) );
-
-                if ( Qt::Vertical == orientation() )
-                    sectionRect.setTop( sectionViewportPosition( subRowSpanFrom ) );
-                else
-                {
-                    sectionRect.setTop( rowSpanSize( colSpanFrom, 0, subRowSpanFrom ) );
-                    i = subRowSpanTo;
-                }
-
-                sectionRect.setHeight( subRowSpan );
-            }
-
-            cellIndex = colSpanIdx;
-        }
-
-        if ( rowSpanIdx.isValid() )
-        {
-            const int rowSpanFrom( rowSpanIdx.row() );
-            const int rowSpanCnt( rowSpanIdx.data( model_type::RowSpanRole ).toInt() );
-            const int rowSpanTo( rowSpanFrom + rowSpanCnt - 1 );
-            const int rowSpan( rowSpanSize( cellIndex.column(), rowSpanFrom, rowSpanCnt ) );
-
-            if ( Qt::Vertical == orientation() )
-                sectionRect.setTop( sectionViewportPosition( rowSpanFrom ) );
-            else
-            {
-                sectionRect.setTop( rowSpanSize( logicalIndex, 0, rowSpanFrom ) );
-                i = rowSpanTo;
-            }
-
-            sectionRect.setHeight( rowSpan );
-
-            // check up if the row span index has column span
-            const QVariant subColSpanData( rowSpanIdx.data( model_type::ColumnSpanRole ) );
-
-            if ( subColSpanData.isValid() )
-            {
-                const int subColSpanFrom( rowSpanIdx.column() );
-                const int subColSpanCnt( subColSpanData.toInt() );
-                const int subColSpanTo( subColSpanFrom + subColSpanCnt - 1 );
-                const int subColSpan( columnSpanSize( rowSpanFrom, subColSpanFrom, subColSpanCnt ) );
-
-                if ( Qt::Horizontal == orientation() )
-                    sectionRect.setLeft( sectionViewportPosition( subColSpanFrom ) );
-                else
-                {
-                    sectionRect.setLeft( columnSpanSize( rowSpanFrom, 0, subColSpanFrom ) );
-                    i = subColSpanTo;
-                }
-
-                sectionRect.setWidth( subColSpan );
-            }
-
-            cellIndex = rowSpanIdx;
-        }
-
-        // draw section with style
-        QStyleOptionHeader opt;
-        initStyleOption( &opt );
-        opt.textAlignment = Qt::AlignCenter;
-        opt.iconAlignment = Qt::AlignVCenter;
-        opt.section = logicalIndex;
-        opt.text = cellIndex.data( Qt::DisplayRole ).toString();
-        opt.rect = sectionRect;
-
-        const QVariant bg( cellIndex.data( Qt::BackgroundRole ) );
-        const QVariant fg( cellIndex.data( Qt::ForegroundRole ) );
-
-        if ( bg.canConvert<QBrush>() )
-        {
-            opt.palette.setBrush( QPalette::Button, bg.value<QBrush>() );
-            opt.palette.setBrush( QPalette::Window, bg.value<QBrush>() );
-        }
-
-        if ( fg.canConvert<QBrush>() )
-        {
-            opt.palette.setBrush( QPalette::ButtonText, fg.value<QBrush>() );
-        }
-
-        painter->save();
-        style()->drawControl( QStyle::CE_Header, &opt, painter, this );
-        painter->restore();
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QSize GridTableHeaderView::sectionSizeFromContents( int logicalIndex ) const
-{
-    const model_type *tblModel( qobject_cast<const model_type*>( model() ) );
-
-    const int level( (Qt::Horizontal == orientation()) ? tblModel->rowCount() : tblModel->columnCount() );
-
-    QSize size( QHeaderView::sectionSizeFromContents( logicalIndex ) );
-
-    for ( int i( 0 ); i < level; ++i )
-    {
-        const QModelIndex cellIndex( (Qt::Horizontal == orientation()) ? tblModel->index( i, logicalIndex ) : tblModel->index( logicalIndex, i ) );
-
-        const QModelIndex colSpanIdx( columnSpanIndex( cellIndex ) );
-        const QModelIndex rowSpanIdx( rowSpanIndex( cellIndex ) );
-
-        size = cellIndex.data( Qt::SizeHintRole ).toSize();
-
-        if (colSpanIdx.isValid())
-        {
-            const int colSpanFrom( colSpanIdx.column() );
-            const int colSpanCnt( colSpanIdx.data( model_type::ColumnSpanRole ).toInt() );
-            const int colSpanTo( colSpanFrom + colSpanCnt - 1 );
-
-            size.setWidth( columnSpanSize( colSpanIdx.row(), colSpanFrom, colSpanCnt ) );
-
-            if ( Qt::Vertical == orientation() )
-                i = colSpanTo;
-        }
-
-        if ( rowSpanIdx.isValid() )
-        {
-            const int rowSpanFrom( rowSpanIdx.row() );
-            const int rowSpanCnt( rowSpanIdx.data( model_type::RowSpanRole ).toInt() );
-            const int rowSpanTo( rowSpanFrom + rowSpanCnt - 1 );
-
-            size.setHeight( rowSpanSize( rowSpanIdx.column(), rowSpanFrom, rowSpanCnt ) );
-
-            if ( Qt::Horizontal == orientation() )
-                i = rowSpanTo;
-        }
-    }
-
-    return size;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void GridTableHeaderView::setRowHeight( int row, int height )
-{
-    model_type *m( qobject_cast<model_type*>( model() ) );
-
-    int col( m->columnCount() );
-
-    while ( col-- )
-    {
-        const QModelIndex idx( m->index( row, col ) );
-
-        QSize sz( idx.data( Qt::SizeHintRole ).toSize() );
-        sz.setHeight( height );
-
-        m->setData( idx, sz, Qt::SizeHintRole );
-    }
-
-    if ( Qt::Vertical == orientation() )
-        resizeSection( row, height );
+    const QModelIndex idx( model()->index( row, column ) );
+    model()->setData( idx, label, Qt::DisplayRole );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void GridTableHeaderView::setColumnWidth( int col, int width )
 {
-    model_type *m( qobject_cast<model_type*>( model() ) );
-
-    int row( m->rowCount() );
-
-    while ( row-- )
-    {
-        const QModelIndex idx( m->index( row, col ) );
-
-        QSize sz( idx.data( Qt::SizeHintRole ).toSize() );
-        sz.setWidth( width );
-
-        m->setData( idx, sz, Qt::SizeHintRole );
-    }
-
     if ( Qt::Horizontal == orientation() )
         resizeSection( col, width );
+    else if (( 0 <= col ) && ( col < sectionSize_.size() ))
+        sectionSize_[col] = width;
+
+    update();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void GridTableHeaderView::setRowHeight( int row, int height )
+{
+    if ( Qt::Vertical == orientation() )
+        resizeSection( row, height );
+    else if (( 0 <= row ) && ( row < sectionSize_.size() ))
+        sectionSize_[row] = height;
+
+    update();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void GridTableHeaderView::setSpan( int row, int column, int rowSpanCount, int columnSpanCount )
 {
+    QVariant rowSpan;
+    QVariant columnSpan;
+
+    if ( 0 < rowSpanCount )
+        rowSpan = rowSpanCount;
+
+    if ( 0 < columnSpanCount )
+        columnSpan = columnSpanCount;
+
+    // ---- //
+
     model_type *m( qobject_cast<model_type*>( model() ) );
 
     const QModelIndex idx( m->index( row, column ) );
 
-    if ( 0 < rowSpanCount )
-        m->setData( idx, rowSpanCount, model_type::RowSpanRole );
+    m->setData( idx, rowSpan, model_type::RowSpanRole );
+    m->setData( idx, columnSpan, model_type::ColumnSpanRole );
 
-    if ( 0 < columnSpanCount )
-        m->setData( idx, columnSpanCount, model_type::ColumnSpanRole );
+    update();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -394,156 +141,32 @@ void GridTableHeaderView::setSpan( int row, int column )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QModelIndex GridTableHeaderView::columnSpanIndex( const QModelIndex& index ) const
+QSize GridTableHeaderView::sizeHint() const
 {
-    const model_type *tblModel( qobject_cast<const model_type *>( model() ) );
+    int width( 0 );
+    int height( 0 );
 
-    const int curRow( index.row() );
-    const int curCol( index.column() );
-
-    int i( curCol );
-
-    while ( 0 <= i )
+    // sum width of each visible column
+    if ( Qt::Horizontal == orientation() )
     {
-        const QModelIndex spanIndex( tblModel->index( curRow, i ) );
-        const QVariant span( spanIndex.data( model_type::ColumnSpanRole ) );
+        for ( int col( model()->columnCount() ); col--; )
+            if ( !isSectionHidden( col ) )
+                width += sectionSize( col );
 
-        if (( span.isValid() ) && ( curCol <= (spanIndex.column() + span.toInt() - 1) ))
-            return spanIndex;
-
-        --i;
+        height = std::accumulate( sectionSize_.begin(), sectionSize_.end(), 0 );
     }
 
-    return QModelIndex();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QModelIndex GridTableHeaderView::rowSpanIndex( const QModelIndex& index ) const
-{
-    const model_type *tblModel( qobject_cast<const model_type*>( model() ) );
-
-    const int curRow( index.row() );
-    const int curCol( index.column() );
-
-    int i( curRow );
-
-    while ( 0 <= i )
+    // sum height of each visible row
+    else if ( Qt::Vertical == orientation() )
     {
-        const QModelIndex spanIndex( tblModel->index( i, curCol ) );
-        const QVariant span( spanIndex.data( model_type::RowSpanRole ) );
+        for ( int row( model()->rowCount() ); row--; )
+            if ( !isSectionHidden( row ) )
+                height += sectionSize( row );
 
-        if (( span.isValid() ) && ( curRow <= (spanIndex.row() + span.toInt() - 1) ))
-            return spanIndex;
-
-        --i;
+        width = std::accumulate( sectionSize_.begin(), sectionSize_.end(), 0 );
     }
 
-    return QModelIndex();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-int GridTableHeaderView::columnSpanSize( int row, int from, int spanCount ) const
-{
-    const model_type *tblModel( qobject_cast<const model_type*>( model() ) );
-
-    int span = 0;
-
-    for ( int i( from ); i < (from + spanCount); ++i )
-    {
-        const QSize cellSize( tblModel->index( row, i ).data( Qt::SizeHintRole ).toSize() );
-
-        span += cellSize.width();
-    }
-
-    return span;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-int GridTableHeaderView::rowSpanSize( int column, int from, int spanCount ) const
-{
-    const model_type *tblModel( qobject_cast<const model_type*>( model() ) );
-
-    int span = 0;
-
-    for ( int i( from ); i < (from + spanCount); ++i )
-    {
-        const QSize cellSize( tblModel->index( i, column ).data( Qt::SizeHintRole ).toSize() );
-
-        span += cellSize.height();
-    }
-
-    return span;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-int GridTableHeaderView::calcSectionRange( QModelIndex& index, int *beginSection, int *endSection ) const
-{
-    const QModelIndex colSpanIdx( columnSpanIndex( index ) );
-    const QModelIndex rowSpanIdx( rowSpanIndex( index ) );
-
-    if ( colSpanIdx.isValid() )
-    {
-        const int colSpanFrom( colSpanIdx.column() );
-        const int colSpanCnt( colSpanIdx.data( model_type::ColumnSpanRole ).toInt() );
-        const int colSpanTo( colSpanFrom + colSpanCnt - 1 );
-
-        if ( Qt::Horizontal  == orientation() )
-        {
-            index = colSpanIdx;
-            *beginSection = colSpanFrom;
-            *endSection = colSpanTo;
-
-            return colSpanCnt;
-        }
-
-        const QVariant subRowSpanData( colSpanIdx.data( model_type::RowSpanRole ) );
-
-        if ( subRowSpanData.isValid() )
-        {
-            const int subRowSpanFrom( colSpanIdx.row() );
-            const int subRowSpanCnt( subRowSpanData.toInt() );
-            const int subRowSpanTo( subRowSpanFrom + subRowSpanCnt - 1 );
-
-            index = colSpanIdx;
-            *beginSection = subRowSpanFrom;
-            *endSection = subRowSpanTo;
-
-            return subRowSpanCnt;
-        }
-    }
-
-    if ( rowSpanIdx.isValid() )
-    {
-        const int rowSpanFrom( rowSpanIdx.row() );
-        const int rowSpanCnt( rowSpanIdx.data( model_type::RowSpanRole ).toInt() );
-        const int rowSpanTo( rowSpanFrom + rowSpanCnt - 1 );
-
-        if ( Qt::Vertical == orientation() )
-        {
-            index = rowSpanIdx;
-            *beginSection = rowSpanFrom;
-            *endSection = rowSpanTo;
-
-            return rowSpanCnt;
-        }
-
-        const QVariant subColSpanData( rowSpanIdx.data( model_type::ColumnSpanRole ) );
-
-        if ( subColSpanData.isValid() )
-        {
-            const int subColSpanFrom( rowSpanIdx.column() );
-            const int subColSpanCnt( subColSpanData.toInt() );
-            const int subColSpanTo( subColSpanFrom + subColSpanCnt - 1 );
-
-            index = rowSpanIdx;
-            *beginSection = subColSpanFrom;
-            *endSection = subColSpanTo;
-
-            return subColSpanCnt;
-        }
-    }
-
-    return 0;
+    return QSize( width, height );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -553,83 +176,408 @@ void GridTableHeaderView::mouseReleaseEvent( QMouseEvent *event )
 
     // ---- //
 
-    QModelIndex index( indexAt( event->pos() ) );
+    const QModelIndex idx( indexAt( event->pos() ) );
 
-    if ( index.isValid() )
+    if ( !idx.isValid() )
+        return;
+
+    const QModelIndex sidx( spanIndex( idx ) );
+
+    if ( Qt::Horizontal == orientation() )
     {
-        // determine what columns/rows were pressed
-        int beginSection( (Qt::Horizontal == orientation()) ? index.column() : index.row() );
-        int endSection( beginSection );
+        const QVariant colSpanVar( sidx.data( model_type::ColumnSpanRole ) );
+        const int colSpan( colSpanVar.isValid() ? colSpanVar.toInt() : 1 );
 
-        calcSectionRange( index, &beginSection, &endSection );
+        emit sectionPressed( event->pos(), event->button(), sidx.column(), sidx.column() + (colSpan - 1) );
+    }
+    else if ( Qt::Vertical == orientation() )
+    {
+        const QVariant rowSpanVar( sidx.data( model_type::RowSpanRole ) );
+        const int rowSpan( rowSpanVar.isValid() ? rowSpanVar.toInt() : 1 );
 
-        emit sectionPressed( event->pos(), event->button(), beginSection, endSection );
+        emit sectionPressed( event->pos(), event->button(), sidx.row(), sidx.row() + (rowSpan - 1) );
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void GridTableHeaderView::onSectionResized( int logicalIndex, int oldSize, int newSize )
+QModelIndex GridTableHeaderView::indexAt( const QPoint& pos ) const
 {
-    Q_UNUSED( oldSize )
+    const int logicalIdx( logicalIndexAt( pos ) );
 
-    model_type *tblModel( qobject_cast<model_type*>( model() ) );
+    int delta( 0 );
 
-    const int pos( sectionViewportPosition( logicalIndex ) );
-
-    const int level( (Qt::Horizontal == orientation()) ? tblModel->rowCount() : tblModel->columnCount() );
-    const int xx( (Qt::Horizontal == orientation()) ? pos : 0 );
-    const int yy( (Qt::Horizontal == orientation()) ? 0 : pos );
-
-    QRect sectionRect( xx, yy, 0, 0 );
-
-    for ( int i( 0 ); i < level; ++i )
+    // iterate row sizes (for Qt::Horizontal) or column sizes (for Qt::Vertical)
+    for ( int i( 0 ); i < sectionSize_.size(); ++i )
     {
-        const QModelIndex cellIndex( (Qt::Horizontal == orientation()) ? tblModel->index( i, logicalIndex ) : tblModel->index( logicalIndex, i ) );
+        // accumulate size
+        delta += sectionSize_[i];
 
-        QSize cellSize( cellIndex.data( Qt::SizeHintRole ).toSize() );
-
-        // set position of cell
+        // check point within accumulated size
         if ( Qt::Horizontal == orientation() )
         {
-            sectionRect.setTop( rowSpanSize( logicalIndex, 0, i ) );
-            cellSize.setWidth( newSize );
+            if ( pos.y() <= delta )
+                return spanIndex( model()->index( i, logicalIdx ) );
         }
-        else
+        else if ( Qt::Vertical == orientation() )
         {
-            sectionRect.setLeft( columnSpanSize( logicalIndex, 0, i ) );
-            cellSize.setHeight( newSize );
+            if ( pos.x() <= delta )
+                return spanIndex( model()->index( logicalIdx, i ) );
         }
-
-        tblModel->setData( cellIndex, cellSize, Qt::SizeHintRole );
-
-        const QModelIndex colSpanIdx( columnSpanIndex( cellIndex ) );
-        const QModelIndex rowSpanIdx( rowSpanIndex( cellIndex ) );
-
-        if ( colSpanIdx.isValid() )
-        {
-            const int colSpanFrom( colSpanIdx.column() );
-
-            if ( Qt::Horizontal == orientation() )
-                sectionRect.setLeft( sectionViewportPosition( colSpanFrom ) );
-            else
-                sectionRect.setLeft( columnSpanSize( logicalIndex, 0, colSpanFrom ) );
-
-        }
-
-        if ( rowSpanIdx.isValid() )
-        {
-            const int rowSpanFrom( rowSpanIdx.row() );
-
-            if ( Qt::Vertical == orientation() )
-                sectionRect.setTop( sectionViewportPosition( rowSpanFrom ) );
-            else
-                sectionRect.setTop( rowSpanSize( logicalIndex, 0, rowSpanFrom ) );
-        }
-
-        QRect rToUpdate( sectionRect );
-        rToUpdate.setWidth( viewport()->width() - sectionRect.left() );
-        rToUpdate.setHeight( viewport()->height() - sectionRect.top() );
-
-        viewport()->update( rToUpdate.normalized() );
     }
+
+    return QModelIndex();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QSize GridTableHeaderView::sectionSizeFromContents( int logicalIndex ) const
+{
+    QSize result( 0, 0 );
+
+    // for hidden section there is nothing to do
+    if ( !isSectionHidden( logicalIndex ) )
+    {
+        const model_type *m( qobject_cast<const model_type*>( model() ) );
+
+        // generate list of index to evaluate
+        QList<QModelIndex> idxs;
+
+        if ( Qt::Horizontal == orientation() )
+        {
+            for ( int row( sectionSize_.size() ); row--; )
+            {
+                const QModelIndex idx( spanIndex( m->index( row, logicalIndex ) ) );
+
+                if ( !idxs.contains( idx ) )
+                    idxs.append( idx );
+            }
+        }
+        else if ( Qt::Vertical == orientation() )
+        {
+            for ( int col( sectionSize_.size() ); col--; )
+            {
+                const QModelIndex idx( spanIndex( m->index( logicalIndex, col ) ) );
+
+                if ( !idxs.contains( idx ) )
+                    idxs.append( idx );
+            }
+        }
+
+        // evaluate each index
+        foreach ( const QModelIndex& idx, idxs )
+        {
+            QVariant var;
+
+            // determine font
+            QFont fnt;
+
+            var = m->headerData( logicalIndex, orientation(), Qt::FontRole );
+
+            if (( var.isValid() ) && ( var.canConvert<QFont>() ))
+                fnt = qvariant_cast<QFont>( var );
+            else
+                fnt = font();
+
+            fnt.setBold( true );
+
+            // use contents
+            QStyleOptionHeader opt;
+            initStyleOption( &opt );
+            opt.section = logicalIndex;
+            opt.fontMetrics = QFontMetrics( fnt );
+            opt.text = idx.data().toString();
+
+            var = m->headerData( logicalIndex, orientation(), Qt::DecorationRole );
+            opt.icon = qvariant_cast<QIcon>( var );
+
+            if ( opt.icon.isNull() )
+                opt.icon = qvariant_cast<QPixmap>( var );
+
+            if ( isSortIndicatorShown() )
+                opt.sortIndicator = QStyleOptionHeader::SortDown;
+
+            const QSize sz( style()->sizeFromContents( QStyle::CT_HeaderSection, &opt, QSize(), this ) );
+
+            result.setHeight( qMax( result.height(), sz.height() ) );
+            result.setWidth( qMax( result.width(), sz.width() ) );
+        }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QModelIndex GridTableHeaderView::spanIndex( const QModelIndex& index ) const
+{
+    // for hidden section there is nothing to do
+    if (( Qt::Horizontal == orientation() ) && ( isSectionHidden( index.column() ) ))
+        return index;
+    else if (( Qt::Vertical == orientation() ) && ( isSectionHidden( index.row() ) ))
+        return index;
+
+    // generate mapping of viewport positions
+    QMap<int, int> viewportPos;
+
+    for ( int idx( count() ); idx--; )
+        viewportPos[visualIndex( idx )] = idx;
+
+    // retrieve index
+    if ( Qt::Horizontal == orientation() )
+        return spanIndexHorizontal( index, viewportPos );
+    else if ( Qt::Vertical == orientation() )
+        return spanIndexVertical( index, viewportPos );
+
+    return QModelIndex();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QRect GridTableHeaderView::calcRect( const QModelIndex& index ) const
+{
+    const QVariant colSpanVar( index.data( model_type::ColumnSpanRole ) );
+    const int colSpan( colSpanVar.isValid() ? colSpanVar.toInt() : 1 );
+
+    const QVariant rowSpanVar( index.data( model_type::RowSpanRole ) );
+    const int rowSpan( rowSpanVar.isValid() ? rowSpanVar.toInt() : 1 );
+
+    // compute rect for section
+    QRect rect;
+
+    if ( Qt::Horizontal == orientation() )
+    {
+        rect.setLeft( sectionViewportPosition( index.column() ) );
+
+        // compute width of rect
+        int width( 0 );
+
+        for ( int col( index.column() ); col < (index.column()+colSpan); ++col )
+            if ( !isSectionHidden( col ) )
+                width += sectionSize( col );
+
+        rect.setWidth( width );
+
+        // compute top and height of rect
+        int top( 0 );
+        int height( 0 );
+
+        for ( int row( 0 ); row < sectionSize_.size(); ++row )
+        {
+            if ( row < index.row() )
+                top += sectionSize_[row];
+            else if (( index.row() <= row ) && ( row < (index.row()+rowSpan) ))
+                height += sectionSize_[row];
+        }
+
+        rect.setTop( top );
+        rect.setHeight( height );
+    }
+    else if ( Qt::Vertical == orientation() )
+    {
+        rect.setTop( sectionViewportPosition( index.row() ) );
+
+        // compute height of rect
+        int height( 0 );
+
+        for ( int row( index.row() ); row < (index.row()+rowSpan); ++row )
+            if ( !isSectionHidden( row ) )
+                height += sectionSize( row );
+
+        rect.setHeight( height );
+
+        // compute left and width of rect
+        int left( 0 );
+        int width( 0 );
+
+        for ( int col( 0 ); col < sectionSize_.size(); ++col )
+        {
+            if ( col < index.column() )
+                left += sectionSize_[col];
+            else if (( index.column() <= col ) && ( col < (index.column()+colSpan) ))
+                width += sectionSize_[col];
+        }
+
+        rect.setLeft( left );
+        rect.setWidth( width );
+    }
+
+    return rect;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void GridTableHeaderView::paintSection( QPainter *painter, const QRect& rect, int logicalIndex ) const
+{
+    Q_UNUSED( rect )
+
+    // for hidden section there is nothing to do
+    if ( isSectionHidden( logicalIndex ) )
+        return;
+
+    const model_type *m( qobject_cast<const model_type*>( model() ) );
+
+    // generate list of index to paint
+    QList<QModelIndex> idxs;
+
+    if ( Qt::Horizontal == orientation() )
+    {
+        for ( int row( sectionSize_.size() ); row--; )
+        {
+            const QModelIndex idx( spanIndex( m->index( row, logicalIndex ) ) );
+
+            if ( !idxs.contains( idx ) )
+                idxs.append( idx );
+        }
+    }
+    else if ( Qt::Vertical == orientation() )
+    {
+        for ( int col( sectionSize_.size() ); col--; )
+        {
+            const QModelIndex idx( spanIndex( m->index( logicalIndex, col ) ) );
+
+            if ( !idxs.contains( idx ) )
+                idxs.append( idx );
+        }
+    }
+
+    // paint each index
+    foreach ( const QModelIndex& idx, idxs )
+    {
+        // draw section with style
+        QStyleOptionHeader opt;
+        initStyleOption( &opt );
+        opt.textAlignment = Qt::AlignCenter;
+        opt.iconAlignment = Qt::AlignVCenter;
+        opt.section = logicalIndex;
+        opt.text = idx.data( Qt::DisplayRole ).toString();
+        opt.rect = calcRect( idx );
+
+        const QVariant bg( idx.data( Qt::BackgroundRole ) );
+        const QVariant fg( idx.data( Qt::ForegroundRole ) );
+
+        if ( bg.canConvert<QBrush>() )
+        {
+            opt.palette.setBrush( QPalette::Button, bg.value<QBrush>() );
+            opt.palette.setBrush( QPalette::Window, bg.value<QBrush>() );
+        }
+
+        if ( fg.canConvert<QBrush>() )
+            opt.palette.setBrush( QPalette::ButtonText, fg.value<QBrush>() );
+
+        painter->save();
+        style()->drawControl( QStyle::CE_Header, &opt, painter, this );
+        painter->restore();
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QModelIndex GridTableHeaderView::spanIndexHorizontal( const QModelIndex& index, const QMap<int, int>& viewportPos ) const
+{
+    const model_type *m( qobject_cast<const model_type *>( model() ) );
+
+    // iterate over rows and columns to find an index that spans into passed in index
+    for ( int row( 0 ); row <= index.row(); ++row )
+    {
+        bool found( false );
+
+        // distance to our row
+        const int rowDist( (index.row() - row) + 1 );
+
+        for ( int col( 0 ); ( col < count() ) && ( !found ); ++col )
+            if ( viewportPos.contains( col ) )
+            {
+                const int logicalCol( viewportPos[col] );
+
+                // reached our column, keep looking starting at next row
+                if ( logicalCol == index.column() )
+                    found = true;
+
+                const QModelIndex idx( m->index( row, logicalCol ) );
+
+                const QVariant rowSpanVar( idx.data( model_type::RowSpanRole ) );
+                const int rowSpan( rowSpanVar.isValid() ? rowSpanVar.toInt() : 1 );
+
+                // row does not span into our row
+                if ( rowSpan < rowDist )
+                    continue;
+
+                // distance to our column
+                int colDist( 1 );
+
+                for ( int i( col ); i < count(); ++i )
+                    if ( viewportPos.contains( i ) )
+                    {
+                        if ( index.column() == viewportPos[i] )
+                            break;
+
+                        ++colDist;
+                    }
+
+                const QVariant colSpanVar( idx.data( model_type::ColumnSpanRole ) );
+                const int colSpan( colSpanVar.isValid() ? colSpanVar.toInt() : 1 );
+
+                // column does not span into our column
+                if ( colSpan < colDist )
+                    continue;
+
+                // found!!
+                return idx;
+            }
+    }
+
+    return index;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QModelIndex GridTableHeaderView::spanIndexVertical( const QModelIndex& index, const QMap<int, int>& viewportPos ) const
+{
+    const model_type *m( qobject_cast<const model_type *>( model() ) );
+
+    // iterate over rows and columns to find an index that spans into passed in index
+    for ( int col( 0 ); col <= index.column(); ++col )
+    {
+        bool found( false );
+
+        // distance to our column
+        const int colDist( (index.column() - col) + 1 );
+
+        for ( int row( 0 ); ( row < count() ) && ( !found ); ++row )
+            if ( viewportPos.contains( row ) )
+            {
+                const int logicalRow( viewportPos[row] );
+
+                // reached our row, keep looking starting at next column
+                if ( logicalRow == index.row() )
+                    found = true;
+
+                const QModelIndex idx( m->index( logicalRow, col ) );
+
+                const QVariant colSpanVar( idx.data( model_type::ColumnSpanRole ) );
+                const int colSpan( colSpanVar.isValid() ? colSpanVar.toInt() : 1 );
+
+                // column does not span into our column
+                if ( colSpan < colDist )
+                    continue;
+
+                // distance to our row
+                int rowDist( 1 );
+
+                for ( int i( row ); i < count(); ++i )
+                    if ( viewportPos.contains( i ) )
+                    {
+                        if ( index.row() == viewportPos[i] )
+                            break;
+
+                        ++rowDist;
+                    }
+
+                const QVariant rowSpanVar( idx.data( model_type::RowSpanRole ) );
+                const int rowSpan( rowSpanVar.isValid() ? rowSpanVar.toInt() : 1 );
+
+                // row does not span into our row
+                if ( rowSpan < rowDist )
+                    continue;
+
+                // found!!
+                return idx;
+            }
+    }
+
+    return index;
 }

@@ -85,6 +85,9 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     numDecimalPlaces_[TIME_TO_EXPIRY] = 4;
     numDecimalPlaces_[RISK_FREE_INTEREST_RATE] = 4;
 
+    numDecimalPlaces_[DIV_AMOUNT] = 2;
+    numDecimalPlaces_[DIV_YIELD] = 1;
+
     numDecimalPlaces_[CALC_BID_PRICE_VI] = 4;
     numDecimalPlaces_[CALC_ASK_PRICE_VI] = 4;
     numDecimalPlaces_[CALC_MARK_VI] = 4;
@@ -111,6 +114,9 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     numDecimalPlaces_[PREMIUM_AMOUNT] = 2;
     numDecimalPlaces_[MAX_GAIN] = 2;
     numDecimalPlaces_[MAX_LOSS] = 2;
+
+    numDecimalPlaces_[ROR] = 3;
+    numDecimalPlaces_[ROR_TIME] = 3;
 
     numDecimalPlaces_[ROI] = 3;
     numDecimalPlaces_[ROI_TIME] = 3;
@@ -151,15 +157,14 @@ Qt::ItemFlags OptionTradingItemModel::flags( const QModelIndex& index ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 {
-    QMutexLocker guard( &m_ );
+    item_type *items( allocRowItems() );
 
-    // insert!
-    insertRow( 0 );
+    const bool freeMoney( values[INVESTMENT_AMOUNT].toDouble() < 0.0 );
 
     // populate
     for ( ColumnValueMap::const_iterator i( values.constBegin() ); i != values.constEnd(); ++i )
     {
-        const QModelIndex idx( index( 0, i.key() ) );
+        item_type *item( &items[i.key()] );
 
         // ------------
         // display role
@@ -167,24 +172,24 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 
         QString text;
 
-        if ( STRATEGY == idx.column() )
+        if ( STRATEGY == i.key() )
             text = strategyText( (Strategy) i->toInt() );
 
         // no bid/ask size
-        else if ((( BID_PRICE == idx.column() ) && ( 0 == values[BID_SIZE].toInt() )) ||
-                 (( ASK_PRICE == idx.column() ) && ( 0 == values[ASK_SIZE].toInt() )))
+        else if ((( BID_PRICE == i.key() ) && ( 0 == values[BID_SIZE].toInt() )) ||
+                 (( ASK_PRICE == i.key() ) && ( 0 == values[ASK_SIZE].toInt() )))
             ; // empty string
 
         // invalid calculated volatility
-        else if ((( CALC_BID_PRICE_VI == idx.column() ) || ( CALC_ASK_PRICE_VI == idx.column() ) || ( CALC_MARK_VI == idx.column() ) ||
-                  ( CALC_THEO_VOLATILITY  == idx.column() )) &&
+        else if ((( CALC_BID_PRICE_VI == i.key() ) || ( CALC_ASK_PRICE_VI == i.key() ) || ( CALC_MARK_VI == i.key() ) ||
+                  ( CALC_THEO_VOLATILITY == i.key() )) &&
                  ( i.value().toDouble() <= 0.0 ))
             ; // empty string
 
         else
             text = formatValue( i.value(), numDecimalPlaces_[i.key()] );
 
-        setData( idx, text, Qt::DisplayRole );
+        item->setData( text, Qt::DisplayRole );
 
         // -------------------
         // text alignment role
@@ -192,12 +197,12 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 
         Qt::Alignment align;
 
-        if ( columnIsText_[idx.column()] )
+        if ( columnIsText_[i.key()] )
             align = Qt::AlignLeft | Qt::AlignVCenter;
         else
             align = Qt::AlignRight | Qt::AlignVCenter;
 
-        setData( idx, QVariant( align ), Qt::TextAlignmentRole );
+        item->setData( QVariant( align ), Qt::TextAlignmentRole );
 
         // ---------------
         // background role
@@ -206,9 +211,9 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
         if ( values[IS_IN_THE_MONEY].toBool() )
         {
             if ( values[IS_OUT_OF_THE_MONEY].toBool() )
-                setData( idx, QVariant( mixedMoneyColor_ ), Qt::BackgroundRole );
+                item->setData( QVariant( mixedMoneyColor_ ), Qt::BackgroundRole );
             else
-                setData( idx, QVariant( inTheMoneyColor_ ), Qt::BackgroundRole );
+                item->setData( QVariant( inTheMoneyColor_ ), Qt::BackgroundRole );
         }
 
         // ---------------
@@ -217,82 +222,93 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
 
         double v;
 
-        setData( idx, textColor_, Qt::ForegroundRole );
+        item->setData( textColor_, Qt::ForegroundRole );
 
-        switch ( idx.column() )
+        switch ( i.key() )
         {
         case CALC_THEO_OPTION_VALUE:
-            setData( idx, calcErrorColor( values[THEO_OPTION_VALUE], values[CALC_THEO_OPTION_VALUE], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[THEO_OPTION_VALUE], values[CALC_THEO_OPTION_VALUE], textColor_ ), Qt::ForegroundRole );
             break;
         case CALC_THEO_VOLATILITY:
-            setData( idx, calcErrorColor( values[VOLATILITY], values[CALC_THEO_VOLATILITY], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[VOLATILITY], values[CALC_THEO_VOLATILITY], textColor_ ), Qt::ForegroundRole );
             break;
         case CALC_DELTA:
-            setData( idx, calcErrorColor( values[DELTA], values[CALC_DELTA], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[DELTA], values[CALC_DELTA], textColor_ ), Qt::ForegroundRole );
             break;
         case CALC_GAMMA:
-            setData( idx, calcErrorColor( values[GAMMA], values[CALC_GAMMA], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[GAMMA], values[CALC_GAMMA], textColor_ ), Qt::ForegroundRole );
             break;
         case CALC_THETA:
-            setData( idx, calcErrorColor( values[THETA], values[CALC_THETA], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[THETA], values[CALC_THETA], textColor_ ), Qt::ForegroundRole );
             break;
         case CALC_VEGA:
-            setData( idx, calcErrorColor( values[VEGA], values[CALC_VEGA], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[VEGA], values[CALC_VEGA], textColor_ ), Qt::ForegroundRole );
             break;
         case CALC_RHO:
-            setData( idx, calcErrorColor( values[RHO], values[CALC_RHO], textColor_ ), Qt::ForegroundRole );
+            item->setData( calcErrorColor( values[RHO], values[CALC_RHO], textColor_ ), Qt::ForegroundRole );
             break;
 
         case INVESTMENT_OPTION_PRICE:
         case INVESTMENT_OPTION_PRICE_VS_THEO:
             v = values[INVESTMENT_OPTION_PRICE_VS_THEO].toDouble();
-            if ( 0.0 < v )
-                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
-            else if ( v < 0.0 )
-                setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            if ( 0.005 <= v )
+                item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
+            else if ( v < -0.005 )
+                item->setData( QColor( Qt::red ), Qt::ForegroundRole );
             break;
 
         case INVESTMENT_AMOUNT:
         case MAX_LOSS:
-            if ( values[idx.column()].toDouble() < 0.0 )
-                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
+            if ( values[i.key()].toDouble() < 0.0 )
+                item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
             break;
         case PREMIUM_AMOUNT:
         case MAX_GAIN:
-            if ( values[idx.column()].toDouble() < 0.0 )
-                setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+            if ( values[i.key()].toDouble() < 0.0 )
+                item->setData( QColor( Qt::red ), Qt::ForegroundRole );
+            break;
+
+        case ROR:
+        case ROR_TIME:
+            if ( values[i.key()].toDouble() < 0.0 )
+            {
+                if ( freeMoney )
+                    item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
+                else
+                    item->setData( QColor( Qt::red ), Qt::ForegroundRole );
+            }
             break;
 
         case ROI:
         case ROI_TIME:
-            if ( values[idx.column()].toDouble() < 0.0 )
+            if ( values[i.key()].toDouble() < 0.0 )
             {
-                if ( values[INVESTMENT_AMOUNT].toDouble() < 0.0 )
-                    setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
+                if ( freeMoney )
+                    item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
                 else
-                    setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+                    item->setData( QColor( Qt::red ), Qt::ForegroundRole );
             }
             break;
 
         case EXPECTED_VALUE:
-            v = values[idx.column()].toDouble();
+            v = values[i.key()].toDouble();
             if ( 0.0 < v )
-                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
+                item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
             else if ( v < 0.0 )
-                setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+                item->setData( QColor( Qt::red ), Qt::ForegroundRole );
             break;
 
         case EXPECTED_VALUE_ROI:
         case EXPECTED_VALUE_ROI_TIME:
-            v = values[idx.column()].toDouble();
+            v = values[i.key()].toDouble();
             if ( 0.0 < v )
-                setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
+                item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
             else if ( v < 0.0 )
             {
-                if ( values[INVESTMENT_AMOUNT].toDouble() < 0.0 )
-                    setData( idx, QColor( Qt::darkGreen ), Qt::ForegroundRole );
+                if ( freeMoney )
+                    item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
                 else
-                    setData( idx, QColor( Qt::red ), Qt::ForegroundRole );
+                    item->setData( QColor( Qt::red ), Qt::ForegroundRole );
             }
             break;
 
@@ -304,14 +320,22 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
         // user role
         // ---------
 
-        setData( idx, i.value(), Qt::UserRole );
+        item->setData( i.value(), Qt::UserRole );
     }
+
+    // append row!
+    QMutexLocker guard( &m_ );
+    appendRow( items );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double OptionTradingItemModel::calcError( const QVariant& col0, const QVariant& col1, bool &valid )
 {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    valid = (( QMetaType::Double == col0.typeId() ) && ( QMetaType::Double == col1.typeId() ));
+#else
     valid = (( QVariant::Double == col0.type() ) && ( QVariant::Double == col1.type() ));
+#endif
 
     if ( !valid )
         return 0.0;

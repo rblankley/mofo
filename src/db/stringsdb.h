@@ -28,6 +28,7 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 inline static const QString DB_ACCOUNTS                             = "accounts";
+inline static const QString DB_INSTRUMENTS                          = "instruments";
 inline static const QString DB_MARKET_HOURS                         = "marketHours";
 inline static const QString DB_OPTION_CHAIN                         = "optionChain";
 inline static const QString DB_QUOTES                               = "quotes";
@@ -255,6 +256,58 @@ inline static const QString DB_END_DATE                             = "endDate";
 inline static const QString DB_HISTORY                              = "history";
 
 inline static const QString DB_DEPTH                                = "depth";
+
+// Instrument (Fundamental Data)
+inline static const QString DB_DESCRIPTION                          = "description";
+inline static const QString DB_FUNDAMENTAL                          = "fundamental";
+
+inline static const QString DB_HIGH_52                              = "high52";
+inline static const QString DB_LOW_52                               = "low52";
+
+inline static const QString DB_PEG_RATIO                            = "pegRatio";
+inline static const QString DB_PB_RATIO                             = "pbRatio";
+inline static const QString DB_PR_RATIO                             = "prRatio";
+inline static const QString DB_PFC_RATIO                            = "pcfRatio";
+
+inline static const QString DB_GROSS_MARGIN_TTM                     = "grossMarginTTM";
+inline static const QString DB_GROSS_MARGIN_MRQ                     = "grossMarginMRQ";
+inline static const QString DB_NET_PROFIT_MARGIN_TTM                = "netProfitMarginTTM";
+inline static const QString DB_NET_PROFIT_MARGIN_MRQ                = "netProfitMarginMRQ";
+inline static const QString DB_OPERATING_MARGIN_TTM                 = "operatingMarginTTM";
+inline static const QString DB_OPERATING_MARGIN_MRQ                 = "operatingMarginMRQ";
+
+inline static const QString DB_RETURN_ON_EQUITY                     = "returnOnEquity";
+inline static const QString DB_RETURN_ON_ASSETS                     = "returnOnAssets";
+inline static const QString DB_RETURN_ON_INVESTMENT                 = "returnOnInvestment";
+inline static const QString DB_QUICK_RATIO                          = "quickRatio";
+inline static const QString DB_CURRENT_RATIO                        = "currentRatio";
+inline static const QString DB_INTEREST_COVERAGE                    = "interestCoverage";
+inline static const QString DB_TOTAL_DEBT_TO_CAPITAL                = "totalDebtToCapital";
+inline static const QString DB_LT_DEBT_TO_EQUITY                    = "ltDebtToEquity";
+inline static const QString DB_TOTAL_DEBT_TO_EQUITY                 = "totalDebtToEquity";
+
+inline static const QString DB_EPS_TTM                              = "epsTTM";
+inline static const QString DB_EPS_CHANGE_PERCENT_TTM               = "epsChangePercentTTM";
+inline static const QString DB_EPS_CHANGE_YEAR                      = "epsChangeYear";
+inline static const QString DB_EPS_CHANGE                           = "epsChange";
+inline static const QString DB_REV_CHANGE_YEAR                      = "revChangeYear";
+inline static const QString DB_REV_CHANGE_TTM                       = "revChangeTTM";
+inline static const QString DB_REV_CHANGE_IN                        = "revChangeIn";
+
+inline static const QString DB_SHARES_OUTSTANDING                   = "sharesOutstanding";
+inline static const QString DB_MARKET_CAP_FLOAT                     = "marketCapFloat";
+inline static const QString DB_MARKET_CAP                           = "marketCap";
+inline static const QString DB_BOOK_VALUE_PER_SHARE                 = "bookValuePerShare";
+inline static const QString DB_SHORT_INT_TO_FLOAT                   = "shortIntToFloat";
+inline static const QString DB_SHORT_INT_DAY_TO_COVER               = "shortIntDayToCover";
+inline static const QString DB_DIV_GROWTH_RATE_3_YEAR               = "divGrowthRate3Year";
+inline static const QString DB_DIV_PAY_AMOUNT                       = "divPayAmount";
+inline static const QString DB_DIV_PAY_DATE                         = "divPayDate";
+
+inline static const QString DB_BETA                                 = "beta";
+inline static const QString DB_VOL_1_DAY_AVG                        = "vol1DayAvg";
+inline static const QString DB_VOL_10_DAY_AVG                       = "vol10DayAvg";
+inline static const QString DB_VOL_3_MONTH_AVG                      = "vol3MonthAvg";
 
 // Treasury Bill Rates
 inline static const QString DB_UPDATED                              = "updated";

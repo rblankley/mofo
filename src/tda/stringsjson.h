@@ -272,6 +272,62 @@ inline static const QString JSON_HIGH                               = "high";
 inline static const QString JSON_LOW                                = "low";
 inline static const QString JSON_VOLUME                             = "volume";
 
+// Instrument (Fundamental Data)
+inline static const QString JSON_DESCRIPTION                        = "description";
+inline static const QString JSON_FUNDAMENTAL                        = "fundamental";
+
+inline static const QString JSON_HIGH_52                            = "high52";
+inline static const QString JSON_LOW_52                             = "low52";
+
+inline static const QString JSON_DIVIDEND_AMOUNT                    = "dividendAmount";
+inline static const QString JSON_DIVIDEND_YIELD                     = "dividendYield";
+inline static const QString JSON_DIVIDEND_DATE                      = "dividendDate";
+
+inline static const QString JSON_PEG_RATIO                          = "pegRatio";
+inline static const QString JSON_PB_RATIO                           = "pbRatio";
+inline static const QString JSON_PR_RATIO                           = "prRatio";
+inline static const QString JSON_PFC_RATIO                          = "pcfRatio";
+
+inline static const QString JSON_GROSS_MARGIN_TTM                   = "grossMarginTTM";
+inline static const QString JSON_GROSS_MARGIN_MRQ                   = "grossMarginMRQ";
+inline static const QString JSON_NET_PROFIT_MARGIN_TTM              = "netProfitMarginTTM";
+inline static const QString JSON_NET_PROFIT_MARGIN_MRQ              = "netProfitMarginMRQ";
+inline static const QString JSON_OPERATING_MARGIN_TTM               = "operatingMarginTTM";
+inline static const QString JSON_OPERATING_MARGIN_MRQ               = "operatingMarginMRQ";
+
+inline static const QString JSON_RETURN_ON_EQUITY                   = "returnOnEquity";
+inline static const QString JSON_RETURN_ON_ASSETS                   = "returnOnAssets";
+inline static const QString JSON_RETURN_ON_INVESTMENT               = "returnOnInvestment";
+inline static const QString JSON_QUICK_RATIO                        = "quickRatio";
+inline static const QString JSON_CURRENT_RATIO                      = "currentRatio";
+inline static const QString JSON_INTEREST_COVERAGE                  = "interestCoverage";
+inline static const QString JSON_TOTAL_DEBT_TO_CAPITAL              = "totalDebtToCapital";
+inline static const QString JSON_LT_DEBT_TO_EQUITY                  = "ltDebtToEquity";
+inline static const QString JSON_TOTAL_DEBT_TO_EQUITY               = "totalDebtToEquity";
+
+inline static const QString JSON_EPS_TTM                            = "epsTTM";
+inline static const QString JSON_EPS_CHANGE_PERCENT_TTM             = "epsChangePercentTTM";
+inline static const QString JSON_EPS_CHANGE_YEAR                    = "epsChangeYear";
+inline static const QString JSON_EPS_CHANGE                         = "epsChange";
+inline static const QString JSON_REV_CHANGE_YEAR                    = "revChangeYear";
+inline static const QString JSON_REV_CHANGE_TTM                     = "revChangeTTM";
+inline static const QString JSON_REV_CHANGE_IN                      = "revChangeIn";
+
+inline static const QString JSON_SHARES_OUTSTANDING                 = "sharesOutstanding";
+inline static const QString JSON_MARKET_CAP_FLOAT                   = "marketCapFloat";
+inline static const QString JSON_MARKET_CAP                         = "marketCap";
+inline static const QString JSON_BOOK_VALUE_PER_SHARE               = "bookValuePerShare";
+inline static const QString JSON_SHORT_INT_TO_FLOAT                 = "shortIntToFloat";
+inline static const QString JSON_SHORT_INT_DAY_TO_COVER             = "shortIntDayToCover";
+inline static const QString JSON_DIV_GROWTH_RATE_3_YEAR             = "divGrowthRate3Year";
+inline static const QString JSON_DIVIDEND_PAY_AMOUNT                = "dividendPayAmount";
+inline static const QString JSON_DIVIDEND_PAY_DATE                  = "dividendPayDate";
+
+inline static const QString JSON_BETA                               = "beta";
+inline static const QString JSON_VOL_1_DAY_AVG                      = "vol1DayAvg";
+inline static const QString JSON_VOL_10_DAY_AVG                     = "vol10DayAvg";
+inline static const QString JSON_VOL_3_MONTH_AVG                    = "vol3MonthAvg";
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 #endif // STRINGSJSON_H

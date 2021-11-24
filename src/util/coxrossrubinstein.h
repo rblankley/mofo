@@ -54,7 +54,7 @@ public:
     /// Constructor.
     /**
      * @warning
-     * Passed in @c vector classes @p divTimes and @p divAmounts are assumed to have equal sizes.
+     * Passed in @c vector classes @p divTimes and @p divYields are assumed to have equal sizes.
      * @param[in] S  underlying (spot) price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
@@ -62,10 +62,10 @@ public:
      * @param[in] T  time to expiration (years)
      * @param[in] N  binomial tree depth
      * @param[in] divTimes  dividend times
-     * @param[in] divAmounts  dividend amounts
+     * @param[in] divYields  dividend yields
      * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
      */
-    CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divAmounts, bool european = false );
+    CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european = false );
 
     /// Constructor.
     /**
@@ -160,27 +160,11 @@ public:
 
 protected:
 
+    std::vector<double> divTimes_;
     std::vector<double> div_;
 
     double u_;
     double d_;
-
-    // ========================================================================
-    // CTOR / DTOR
-    // ========================================================================
-
-    /// Constructor.
-    /**
-     * @param[in] S  underlying price
-     * @param[in] r  risk-free interest rate
-     * @param[in] b  cost-of-carry rate of holding underlying
-     * @param[in] sigma  volatility of underlying
-     * @param[in] T  time to expiration (years)
-     * @param[in] N  binomial tree depth
-     * @param[in] div  dividend table
-     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
-     */
-    CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& div, bool european );
 
     // ========================================================================
     // Methods

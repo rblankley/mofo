@@ -48,6 +48,12 @@ signals:
      */
     void accountsReceived( const QJsonArray& a );
 
+    /// Signal for instrument received.
+    /**
+     * @param[in] obj  data
+     */
+    void instrumentReceived( const QJsonObject& obj );
+
     /// Signal for market hours received.
     /**
      * @param[in] obj  data
@@ -99,6 +105,18 @@ public:
 
     /// Retrieve accounts.
     virtual void getAccounts();
+
+    /// Retrieve fundamental data.
+    /**
+     * @param[in] symbol  symbol
+     */
+    virtual void getFundamentalData( const QString& symbol );
+
+    /// Retrieve instrument.
+    /**
+     * @param[in] cusip  cusip
+     */
+    virtual void getInstrument( const QString& cusip );
 
     /// Retrieve market hours.
     /**
@@ -233,6 +251,8 @@ private:
     {
         GET_ACCOUNT,
         GET_ACCOUNTS,
+        GET_INSTRUMENT,
+        GET_INSTRUMENTS,
         GET_MARKET_HOURS,
         GET_MARKET_HOURS_SINGLE,
         GET_OPTION_CHAIN,
@@ -269,6 +289,9 @@ private:
 
     /// Parse accounts.
     void parseAccountsDoc( const QJsonDocument& doc );
+
+    /// Parse instruments.
+    void parseInstrumentsDoc( const QJsonDocument& doc );
 
     /// Parse market hours.
     void parseMarketHoursDoc( const QJsonDocument& doc );

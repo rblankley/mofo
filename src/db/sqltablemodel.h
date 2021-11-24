@@ -40,6 +40,21 @@ class SqlTableModel : public QSqlTableModel
 public:
 
     // ========================================================================
+    // CTOR / DTOR
+    // ========================================================================
+
+    /// Constructor.
+    /**
+     * @param[in] columns  number of columns
+     * @param[in] parent  parent object
+     * @param[in] db  database
+     */
+    SqlTableModel( int columns, QObject *parent = nullptr, QSqlDatabase db = QSqlDatabase() );
+
+    /// Destructor.
+    virtual ~SqlTableModel();
+
+    // ========================================================================
     // Properties
     // ========================================================================
 
@@ -84,21 +99,6 @@ protected:
 
     QVector<bool> columnIsText_;                    ///< Column contains text data.
     QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.
-
-    // ========================================================================
-    // CTOR / DTOR
-    // ========================================================================
-
-    /// Constructor.
-    /**
-     * @param[in] columns  number of columns
-     * @param[in] parent  parent object
-     * @param[in] db  database
-     */
-    SqlTableModel( int columns, QObject *parent = nullptr, QSqlDatabase db = QSqlDatabase() );
-
-    /// Destructor.
-    virtual ~SqlTableModel();
 
     // ========================================================================
     // Static Methods

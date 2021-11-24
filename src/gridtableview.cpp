@@ -22,8 +22,6 @@
 #include "gridtableview.h"
 #include "gridtableheaderview.h"
 
-#include <QStandardItemModel>
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 GridTableView::GridTableView( QWidget *parent ) :
     _Mybase( parent )

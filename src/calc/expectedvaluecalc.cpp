@@ -29,6 +29,9 @@
 
 #include <QObject>
 
+// uncomment to debug calculations
+//#define DEBUG_CALC
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ExpectedValueCalculator::ExpectedValueCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     _Mybase( underlying, chains, results )
@@ -255,9 +258,13 @@ bool ExpectedValueCalculator::generateProbCurve()
         ProbCurve call( probCurveCall_[strike] );
         ProbCurve put( probCurvePut_[strike] );
 
+#ifdef DEBUG_CALC
+        static const QString STRIKE_VI( "    %1 %2 %3 %4 %5" );
+
         LOG_TRACE << "PROB " << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << "\n" <<
-            "    CALL " << call.min << " " << call.max << " " << call.minvi <<  " " << call.maxvi << "\n" <<
-            "    PUT " << put.min << " " << put.max << " " << put.minvi <<  " " << put.maxvi;
+            qPrintable( STRIKE_VI.arg( "CALL", 4 ).arg( call.min, 8, 'f', 3 ).arg( call.max, 8, 'f', 3 ).arg( call.minvi, 12, 'f', 6 ).arg( call.maxvi, 12, 'f', 6 ) ) << "\n" <<
+            qPrintable( STRIKE_VI.arg( "PUT", 4 ).arg( put.min, 8, 'f', 3 ).arg( put.max, 8, 'f', 3 ).arg( put.minvi, 12, 'f', 6 ).arg( put.maxvi, 12, 'f', 6 ) );
+#endif
 
         const double minvi( qMax( call.minvi, put.minvi ) );
         const double maxvi( qMin( call.maxvi, put.maxvi ) );
@@ -288,6 +295,8 @@ bool ExpectedValueCalculator::generateProbCurve()
         probCurvePut_[strike] = put;
     }
 
+    LOG_TRACE << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " calc prices...";
+
     // calculate prices
     if (( !calcProbCurvePrices( probCurveCall_, asc_, true ) ) ||      // calls
         ( !calcProbCurvePrices( probCurvePut_, desc_, false ) ))       // puts
@@ -297,12 +306,25 @@ bool ExpectedValueCalculator::generateProbCurve()
     }
 
     // generate probabilities
+    double prevProb( 1.0 );
+
     foreach ( const double& strike, asc_ )
     {
         ProbCurve call( probCurveCall_[strike] );
         ProbCurve put( probCurvePut_[strike] );
 
-        LOG_DEBUG << "PROB ITM " << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << call.vi << " " << call.delta << " " << put.vi << " " << put.delta;
+#ifdef DEBUG_CALC
+        static const QString PROB_ITM( "PROB ITM %1 %2 %3 %4 %5 %6 %7" );
+
+        LOG_DEBUG << qPrintable( PROB_ITM
+            .arg( chains_->symbol() )
+            .arg( daysToExpiry_ )
+            .arg( strike, 7, 'f', 1 )
+            .arg( call.vi, 12, 'f', 6 )
+            .arg( call.delta, 12, 'f', 6 )
+            .arg( put.vi, 12, 'f', 6 )
+            .arg( put.delta, 12, 'f', 6 ) );
+#endif
 
         double calldelta( call.delta );
         double putdelta( 1.0 + put.delta );
@@ -318,6 +340,15 @@ bool ExpectedValueCalculator::generateProbCurve()
             putdelta = 1.0;
 
         probCurve_[strike] = (calldelta + putdelta) / 2.0;
+
+        // ensure probability is always decreasing
+        if ( probCurve_[strike] <= prevProb )
+            prevProb = probCurve_[strike];
+        else
+        {
+            LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " probability inversion";
+            probCurve_[strike] = prevProb;
+        }
     }
 
     return true;
@@ -395,6 +426,11 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double ror( maxGain / maxLoss );
+
+    result[item_model_type::ROR] = 100.0 * ror;
+    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
 
     const double roi( premium / investmentValue );
 
@@ -496,6 +532,11 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double ror( maxGain / maxLoss );
+
+    result[item_model_type::ROR] = 100.0 * ror;
+    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
 
     const double roi( premium / investmentValue );
 
@@ -602,6 +643,11 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
+
+    const double ror( maxGain / maxLoss );
+
+    result[item_model_type::ROR] = 100.0 * ror;
+    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
 
     const double roi( premium / investmentValue );
 
@@ -720,6 +766,11 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
 
+    const double ror( maxGain / maxLoss );
+
+    result[item_model_type::ROR] = 100.0 * ror;
+    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
+
     const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = 100.0 * roi;
@@ -799,7 +850,7 @@ bool ExpectedValueCalculator::generateGreeks( int row, double strike, bool isCal
             LOG_WARN << "risk free rate is zero";
 
         // generate VI for bid, ask, mark prices
-        AbstractOptionPricing *o( createPricingMethod( underlying_, result.riskFreeRate, result.riskFreeRate, 0.0, result.timeToExpiry ) );
+        AbstractOptionPricing *o( createPricingMethod( underlying_, result.riskFreeRate, result.riskFreeRate, 0.0, result.timeToExpiry, divTimes_, div_ ) );
 
         result.bidvi = calcImplVol( o, type, strike, bid );
         result.askvi = calcImplVol( o, type, strike, ask );
@@ -852,7 +903,7 @@ bool ExpectedValueCalculator::calcProbCurve( OptionProbCurve& curve, const QList
         {
             const Greeks g( isCall ? greeksCall_[strike] : greeksPut_[strike] );
 
-            AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry ) );
+            AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry, divTimes_, div_ ) );
 
             bool okay;
 
@@ -901,7 +952,7 @@ bool ExpectedValueCalculator::calcProbCurvePrices( OptionProbCurve& curve, const
 
         Greeks g( isCall ? greeksCall_[strike] : greeksPut_[strike] );
 
-        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, c.vi, g.timeToExpiry ) );
+        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, c.vi, g.timeToExpiry, divTimes_, div_ ) );
 
         c.price = o->optionPrice( type, strike );
 
@@ -962,7 +1013,7 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
     // invalid min vi
     if ( c.minvi <= 0.0 )
     {
-        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0001, g.timeToExpiry ) );
+        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0001, g.timeToExpiry, divTimes_, div_ ) );
 
         // determine value for min
         const double v( std::ceil( 100.0 * o->optionPrice( type, strike ) ) / 100.0 );
@@ -986,7 +1037,7 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
         double vi( c.minvi );
         double a( 100.0 );
 
-        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry ) );
+        AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry, divTimes_, div_ ) );
 
         // keep increasing vi until we get a valid max
         double max( 0.0 );
@@ -1057,7 +1108,7 @@ bool ExpectedValueCalculator::generateProbCurveParity( double strike, bool isCal
 
     const ProbCurve other( isCall ? probCurvePut_[strike] : probCurveCall_[strike] );
 
-    AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry ) );
+    AbstractOptionPricing *o( createPricingMethod( underlying_, g.riskFreeRate, g.riskFreeRate, 0.0, g.timeToExpiry, divTimes_, div_ ) );
 
     // calculate using parity
     ProbCurve c = {};

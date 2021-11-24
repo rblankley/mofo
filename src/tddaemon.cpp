@@ -108,6 +108,9 @@ void TDAmeritradeDaemon::getOptionChain( const QString& symbol )
     // fetch price history
     retrievePriceHistory( symbol, db_->currentDateTime() );
 
+    // fetch fundamental data
+    api_->getFundamentalData( symbol );
+
     // fetch chain
     api_->getOptionChain( symbol );
 }

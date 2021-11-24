@@ -46,4 +46,6 @@ QuoteTableModel::QuoteTableModel( const QString& symbol, const QDateTime& stamp,
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QuoteTableModel::~QuoteTableModel()
 {
+    // close database connection
+    database().close();
 }

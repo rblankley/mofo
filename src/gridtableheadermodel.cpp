@@ -23,11 +23,11 @@
 #include "tableheaderitem.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-GridTableHeaderModel::GridTableHeaderModel( int row, int column, QObject *parent ) :
+GridTableHeaderModel::GridTableHeaderModel( int rows, int columns, QObject *parent ) :
     _Mybase( parent ),
     rootItem_( new item_type ),
-    row_( row ),
-    column_( column )
+    rows_( rows ),
+    columns_( columns )
 {
 }
 
@@ -62,14 +62,14 @@ QModelIndex GridTableHeaderModel::index( int row, int column, const QModelIndex&
 int GridTableHeaderModel::rowCount( const QModelIndex& parent ) const
 {
     Q_UNUSED( parent )
-    return row_;
+    return rows_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 int GridTableHeaderModel::columnCount( const QModelIndex& parent ) const
 {
     Q_UNUSED( parent )
-    return column_;
+    return columns_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -83,7 +83,7 @@ QVariant GridTableHeaderModel::data( const QModelIndex& index, int role ) const
 {
     if ( !index.isValid() )
         return QVariant();
-    else if (( row_ <= index.row() ) || ( index.row() < 0 ) || ( column_ <= index.column() ) || ( index.column() < 0 ))
+    else if (( rows_ <= index.row() ) || ( index.row() < 0 ) || ( columns_ <= index.column() ) || ( index.column() < 0 ))
         return QVariant();
 
     const item_type *item( static_cast<item_type*>( index.internalPointer() ) );
@@ -107,8 +107,8 @@ bool GridTableHeaderModel::setData( const QModelIndex& index, const QVariant& va
         {
             const int col( index.column() );
 
-            if ( column_ <= (col + span - 1) )
-                span = column_ - col;
+            if ( columns_ <= (col + span - 1) )
+                span = columns_ - col;
 
             item->setData( span, ColumnSpanRole );
         }
@@ -121,8 +121,8 @@ bool GridTableHeaderModel::setData( const QModelIndex& index, const QVariant& va
         {
             const int row( index.row() );
 
-            if ( row_ < (row + span - 1) )
-                span = column_ - row;
+            if ( rows_ < (row + span - 1) )
+                span = columns_ - row;
 
             item->setData( span, RowSpanRole );
         }

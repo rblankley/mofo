@@ -49,6 +49,12 @@ AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
+{
+    return new CoxRossRubinstein( S, r, b, sigma, T, BINOM_DEPTH, divTimes, divYields, european );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void BinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )

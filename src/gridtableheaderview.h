@@ -3,6 +3,7 @@
  * Grid table header view widget.
  *
  * Based on code from https://github.com/eyllanesc/stackoverflow/tree/master/questions/46469720
+ * Modified heavily to remove dependance on size hints and emit section pressed signals
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -148,44 +149,12 @@ protected:
     // Properties
     // ========================================================================
 
-    /// Retrieve column span index.
-    /**
-     * @param[in] index  index
-     * @return  span index
-     */
-    virtual QModelIndex columnSpanIndex( const QModelIndex& index ) const;
-
-    /// Retrieve column span size.
-    /**
-     * @param[in] row  row
-     * @param[in] from  from index
-     * @param[in] spanCount  span count
-     * @return  size
-     */
-    virtual int columnSpanSize( int row, int from, int spanCount ) const;
-
     /// Retrieve index as position.
     /**
      * @param[in] pos  point
      * @return  index
      */
     virtual QModelIndex indexAt( const QPoint& pos ) const override;
-
-    /// Retrieve row span index.
-    /**
-     * @param[in] index  index
-     * @return  span index
-     */
-    virtual QModelIndex rowSpanIndex( const QModelIndex &index ) const;
-
-    /// Retrieve row span size.
-    /**
-     * @param[in] column  column
-     * @param[in] from  from index
-     * @param[in] spanCount  span count
-     * @return  size
-     */
-    virtual int rowSpanSize( int column, int from, int spanCount ) const;
 
     /// Determine section size from contents.
     /**
@@ -194,18 +163,24 @@ protected:
      */
     virtual QSize sectionSizeFromContents( int logicalIndex ) const override;
 
+    /// Retrieve span index.
+    /**
+     * Compute what index spans into @a index.
+     * @param[in] index  index
+     * @return  span index
+     */
+    virtual QModelIndex spanIndex( const QModelIndex& index ) const;
+
     // ========================================================================
     // Methods
     // ========================================================================
 
-    ///  Calculate section range.
+    /// Calculate rectangle for index.
     /**
-     * @param[in,out] index  index
-     * @param[in,out] beginSection  beginning section
-     * @param[in,out] endSection  ending section
-     * @return  span count
+     * @param[in] index  index
+     * @return  rect
      */
-    virtual int calcSectionRange( QModelIndex& index, int *beginSection, int *endSection ) const;
+    virtual QRect calcRect( const QModelIndex& index ) const;
 
     /// Paint section.
     /**
@@ -215,26 +190,20 @@ protected:
      */
     virtual void paintSection( QPainter *painter, const QRect& rect, int logicalIndex ) const override;
 
-protected slots:
-
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Slot for section resized.
-    /**
-     * @param[in] logicalIndex  index
-     * @param[in] oldSize  old size
-     * @param[in] newSize  new size
-     */
-    virtual void onSectionResized( int logicalIndex, int oldSize, int newSize );
-
 private:
 
     static constexpr int DEFAULT_WIDTH = 50;
     static constexpr int DEFAULT_HEIGHT = 20;
 
     using model_type = GridTableHeaderModel;
+
+    QVector<int> sectionSize_;
+
+    /// Retrieve span for horizontal orientation.
+    QModelIndex spanIndexHorizontal( const QModelIndex& index, const QMap<int, int>& viewportPos ) const;
+
+    /// Retrieve span for vertical orientation.
+    QModelIndex spanIndexVertical( const QModelIndex& index, const QMap<int, int>& viewportPos ) const;
 
     // not implemented
     GridTableHeaderView( const _Myt& ) = delete;

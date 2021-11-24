@@ -54,11 +54,11 @@ public:
 
     /// Constructor.
     /**
-     * @param[in] row  row
-     * @param[in] column  column
+     * @param[in] rows  rows
+     * @param[in] columns  columns
      * @param[in,out] parent  parent
      */
-    GridTableHeaderModel( int row, int column, QObject *parent = nullptr );
+    GridTableHeaderModel( int rows, int columns, QObject *parent = nullptr );
 
     /// Destructor.
     virtual ~GridTableHeaderModel();
@@ -120,8 +120,8 @@ private:
 
     item_type *rootItem_;
 
-    int row_;
-    int column_;
+    int rows_;
+    int columns_;
 
     // not implemented
     GridTableHeaderModel() = delete;

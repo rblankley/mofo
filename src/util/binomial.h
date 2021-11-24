@@ -115,10 +115,7 @@ protected:
      * @param[in] pd  probability down
      * @return  option price
      */
-    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const {
-        const std::vector<double> div( N_+1, 0.0 );
-        return calcOptionPrice( isCall, S, K, u, d, pu, pd, Df, div );
-    }
+    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const;
 
     /// Calculate option price using binomial pricing.
     /**
@@ -129,10 +126,11 @@ protected:
      * @param[in] d  downward amount
      * @param[in] pu  probability up
      * @param[in] pd  probability down
-     * @param[in] div  dividend value for time
+     * @param[in] divTimes  dividend times
+     * @param[in] divYields  dividend yields
      * @return  option price
      */
-    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& div ) const;
+    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& divTimes, const std::vector<double>& divYields ) const;
 
     /// Calculate partials.
     /**

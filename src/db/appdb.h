@@ -66,6 +66,9 @@ signals:
     /// Signal for when configuration changed.
     void configurationChanged();
 
+    /// Signal for when instruments changed.
+    void instrumentsChanged();
+
     /// Signal for when market hours changed.
     void marketHoursChanged();
 
@@ -124,6 +127,29 @@ public:
      * @return  stamp
      */
     virtual QDateTime currentDateTime() const;
+
+    /// Retrieve cusip for symbol.
+    /**
+     * @param[in] symbol  symbol
+     * @return  cusip or empty string upon failure
+     */
+    virtual QString cusip( const QString& symbol ) const;
+
+    /// Retrieve dividend date and amount.
+    /**
+     * @param[in] symbol  symbol
+     * @param[out] date  dividend date
+     * @param[out] frequency  dividend frequency (annualized)
+     * @return  dividend amount (yearly)
+     */
+    virtual double dividendAmount( const QString& symbol, QDate& date, double& frequency ) const;
+
+    /// Retrieve dividend yield.
+    /**
+     * @param[in] symbol  symbol
+     * @return  dividend yield (yearly)
+     */
+    virtual double dividendYield( const QString& symbol ) const;
 
     /// Retrieve filter.
     /**

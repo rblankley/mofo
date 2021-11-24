@@ -244,7 +244,7 @@ void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, 
     // set default value
     else
     {
-        writeSetting( field, value.toString() );
+        writeSetting( field, value.toVariant() );
     }
 }
 

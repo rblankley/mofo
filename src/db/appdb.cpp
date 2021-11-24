@@ -93,7 +93,11 @@ QStringList AppDatabase::accounts() const
     else
     {
         QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
         model.setQuery( query );
+#endif
 
         for ( int i( 0 ); i < model.rowCount(); ++i )
         {
@@ -132,6 +136,51 @@ QDateTime AppDatabase::currentDateTime() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QString AppDatabase::cusip( const QString& symbol ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        return child->cusip();
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+
+    return QString();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double AppDatabase::dividendAmount( const QString& symbol, QDate& date, double& frequency ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        return child->dividendAmount( date, frequency );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double AppDatabase::dividendYield( const QString& symbol ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        return child->dividendYield();
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QByteArray AppDatabase::filter( const QString& name ) const
 {
     static const QString sql( "SELECT * FROM filters WHERE name=:name" );
@@ -155,7 +204,11 @@ QByteArray AppDatabase::filter( const QString& name ) const
     else
     {
         QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
         model.setQuery( query );
+#endif
 
         if ( !model.rowCount() )
              LOG_WARN << "no row(s) found";
@@ -166,6 +219,8 @@ QByteArray AppDatabase::filter( const QString& name ) const
             result.append( rec.value( "value" ).toByteArray() );
         }
     }
+
+    conn.close();
 
     return result;
 }
@@ -190,7 +245,11 @@ QStringList AppDatabase::filters() const
     else
     {
         QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
         model.setQuery( query );
+#endif
 
         for ( int i( 0 ); i < model.rowCount(); ++i )
         {
@@ -244,7 +303,11 @@ bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, 
     }
 
     QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
     model.setQuery( query );
+#endif
 
     if ( !model.rowCount() )
         return false;
@@ -480,7 +543,11 @@ double AppDatabase::riskFreeRate( double term ) const
     else
     {
         QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
         model.setQuery( query );
+#endif
 
         for ( int i( 0 ); i < model.rowCount(); ++i )
         {
@@ -501,6 +568,8 @@ double AppDatabase::riskFreeRate( double term ) const
             lowerRate = upperRate;
         }
     }
+
+    conn.close();
 
     return rate;
 }
@@ -658,7 +727,11 @@ QStringList AppDatabase::watchlist( const QString& name ) const
     else
     {
         QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
         model.setQuery( query );
+#endif
 
         for ( int i( 0 ); i < model.rowCount(); ++i )
         {
@@ -691,7 +764,11 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
     else
     {
         QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
         model.setQuery( query );
+#endif
 
         for ( int i( 0 ); i < model.rowCount(); ++i )
         {
@@ -717,7 +794,11 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
         else
         {
             QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+            model.setQuery( std::move( indicesQuery ) );
+#else
             model.setQuery( indicesQuery );
+#endif
 
             for ( int i( 0 ); i < model.rowCount(); ++i )
             {
@@ -762,7 +843,11 @@ QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
         else
         {
             QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+            model.setQuery( std::move( query ) );
+#else
             model.setQuery( query );
+#endif
 
             for ( int i( 0 ); i < model.rowCount(); ++i )
             {
@@ -807,7 +892,11 @@ QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, 
         else
         {
             QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+            model.setQuery( std::move( query ) );
+#else
             model.setQuery( query );
+#endif
 
             if ( !model.rowCount() )
                  LOG_WARN << "no row(s) found";
@@ -853,7 +942,11 @@ QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName
         else
         {
             QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+            model.setQuery( std::move( query ) );
+#else
             model.setQuery( query );
+#endif
 
             for ( int i( 0 ); i < model.rowCount(); ++i )
             {
@@ -887,6 +980,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
     const QDateTime now( currentDateTime() );
 
     bool accountsProcessed( false );
+    bool instrumentsProcessed( false );
     bool marketHoursProcessed( false );
     bool quoteHistoryProcessed( false );
     bool quotesProcessed( false );
@@ -918,6 +1012,27 @@ bool AppDatabase::processData( const QJsonObject& obj )
               result &= addAccount( now, accountVal.toObject() );
 
         accountsProcessed = true;
+    }
+
+    // iterate instruments
+    const QJsonObject::const_iterator instruments( obj.constFind( DB_INSTRUMENTS ) );
+
+    if (( obj.constEnd() != instruments ) && ( instruments->isArray() ))
+    {
+        foreach ( const QJsonValue& instrumentVal, instruments->toArray() )
+           if ( instrumentVal.isObject() )
+           {
+               const QJsonObject instrument( instrumentVal.toObject() );
+
+               const QString symbol( instrument[DB_SYMBOL].toString() );
+
+               SymbolDatabase *child( findSymbol( symbol ) );
+
+               if ( child )
+                   result &= child->processInstrument( now, instrument );
+           }
+
+        instrumentsProcessed = true;
     }
 
     // iterate market hours
@@ -1059,6 +1174,9 @@ bool AppDatabase::processData( const QJsonObject& obj )
 
     if ( accountsProcessed )
         emit accountsChanged();
+
+    if ( instrumentsProcessed )
+        emit instrumentsChanged();
 
     if ( marketHoursProcessed )
         emit marketHoursChanged();
@@ -1464,7 +1582,11 @@ bool AppDatabase::checkSessionHours( const QDateTime& dt, const QString& marketT
     }
 
     QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
     model.setQuery( query );
+#endif
 
     if ( !model.rowCount() )
         return false;
@@ -1501,7 +1623,11 @@ bool AppDatabase::isExtendedHours( const QString& sessionHoursType ) const
     }
 
     QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
     model.setQuery( query );
+#endif
 
     if ( 1 != model.rowCount() )
         return false;

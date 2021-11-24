@@ -187,11 +187,12 @@ int main( int argc, char *argv[] )
     tda->setNetworkAccessManager( net );
 
     TDAmeritradeDatabaseAdapter *tdaadapter( new TDAmeritradeDatabaseAdapter );
-    QObject::connect( tda, &TDAmeritrade::optionChainReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformOptionChain );
-    QObject::connect( tda, &TDAmeritrade::quotesReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformQuotes );
-    QObject::connect( tda, &TDAmeritrade::priceHistoryReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformPriceHistory );
-    QObject::connect( tda, &TDAmeritrade::marketHoursReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformMarketHours );
     QObject::connect( tda, &TDAmeritrade::accountsReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformAccounts );
+    QObject::connect( tda, &TDAmeritrade::instrumentReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformInstruments );
+    QObject::connect( tda, &TDAmeritrade::marketHoursReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformMarketHours );
+    QObject::connect( tda, &TDAmeritrade::optionChainReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformOptionChain );
+    QObject::connect( tda, &TDAmeritrade::priceHistoryReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformPriceHistory );
+    QObject::connect( tda, &TDAmeritrade::quotesReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformQuotes );
 
     QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, db, &AppDatabase::processData );
 

@@ -148,7 +148,7 @@ void FilterEditorDialog::translate()
     optionTradingStrats_->setTitle( tr( "Option Trading Strategy" ) );
 
     single_->setText( tr( "Single (CSP and CC)" ) );
-    vertical_->setText( tr( "Vertical" ) );
+    vertical_->setText( tr( "Vertical (Credit Spread)" ) );
     calendar_->setText( tr( "Calendar" ) );
     strangle_->setText( tr( "Strangle" ) );
     straddle_->setText( tr( "Straddle" ) );

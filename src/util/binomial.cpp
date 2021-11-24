@@ -33,6 +33,9 @@
 
 #define pow2(n) ((n) * (n))
 
+// uncomment to debug calculations
+//#define DEBUG_CALC
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 BinomialTree::BinomialTree( double S, double r, double b, double sigma, double T, size_t N, bool european ) :
     _Mybase( S, r, b, sigma, T, european ),
@@ -41,7 +44,7 @@ BinomialTree::BinomialTree( double S, double r, double b, double sigma, double T
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& div ) const
+double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const
 {
     const double z( isCall ? 1 : -1 );
 
@@ -80,7 +83,87 @@ double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u,
 
             // check early exercise
             if ( isAmerican() )
-                val[i] = fmax( val[i], z * (div[j] + spowu[i] * powd[j - i] - K) );
+            {
+#ifdef DEBUG_CALC
+                const double val0 = S * pow( u, i ) * pow( d, j - i ) - K;
+                const double val1 = spowu[i] * powd[j - i] - K;
+
+                static const double ERROR = 0.000001;
+                assert(( (val0 - ERROR) <= val1 ) && ( val1 <= (val0 + ERROR) ));
+#endif
+                val[i] = fmax( val[i], z * (spowu[i] * powd[j - i] - K) );
+            }
+        }
+
+        // track key values for partials calculation
+        if ( j <= 2 )
+        {
+            f_[j][0] = val[0];
+            f_[j][1] = val[1];
+            f_[j][2] = val[2];
+        }
+    }
+
+    // option price
+    return val[0];
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& divTimes, const std::vector<double>& div ) const
+{
+    const double z( isCall ? 1 : -1 );
+
+    // assert p in interval (0,1)
+    //Q_ASSERT( dt < (pow2( sigma_ ) / pow2( b_ )) );
+
+    //Q_ASSERT( 1.0 <= u );
+    //Q_ASSERT( (0.0 < d) && (d <= 1.0) );
+
+    // sum dividends
+    const size_t ndiv( divTimes.size() );
+
+    std::vector<size_t> divSteps;
+    divSteps.reserve( ndiv );
+
+    double sumDiv( 1.0 );
+
+    for ( size_t i( 0 ); i < ndiv; ++i )
+    {
+        divSteps.push_back( (divTimes[i] * N_) / T_ );
+        sumDiv *= (1.0 - div[i]);
+    }
+
+    // init vector
+    std::vector<double> St;
+    St.reserve( N_+1 );
+
+    std::vector<double> val;
+    val.reserve( N_+1 );
+
+    for ( size_t i = 0; i <= N_; ++i )
+    {
+        St.push_back( S * pow( u, i ) * pow( d, (N_ - i) ) * sumDiv );
+        val.push_back( fmax( 0.0, z * (St[i] - K) ) );
+    }
+
+    // backward recursion through the tree
+    for ( size_t j = N_; j--; )
+    {
+        for ( size_t m( ndiv ); m--; )
+            if ( j == divSteps[m] )
+            {
+                for ( size_t i = 0; i <= j; ++i )
+                    St[i] /= (1.0 - div[m]);
+            }
+
+        for ( size_t i = 0; i <= j; ++i )
+        {
+            St[i] = d * St[i + 1];
+            val[i] = Df * (pu * val[i + 1] + pd * val[i]);
+
+            // check early exercise
+            if ( isAmerican() )
+                val[i] = fmax( val[i], z * (St[i] - K) );
         }
 
         // track key values for partials calculation

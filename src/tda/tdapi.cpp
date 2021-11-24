@@ -38,6 +38,8 @@ TDAmeritrade::TDAmeritrade( QObject *parent ) :
 {
     endpointNames_[GET_ACCOUNT] = "getAccount";
     endpointNames_[GET_ACCOUNTS] = "getAccounts";
+    endpointNames_[GET_INSTRUMENT] = "getInstrument";
+    endpointNames_[GET_INSTRUMENTS] = "getInstruments";
     endpointNames_[GET_MARKET_HOURS] = "getMarketHours";
     endpointNames_[GET_MARKET_HOURS_SINGLE] = "getMarketHoursSingle";
     endpointNames_[GET_OPTION_CHAIN] = "getOptionChain";
@@ -79,6 +81,40 @@ void TDAmeritrade::getAccounts()
 
     pendingRequests_[uuid] = GET_ACCOUNTS;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritrade::getFundamentalData( const QString& symbol )
+{
+    if ( symbol.isEmpty() )
+        return;
+
+    QUrlQuery urlQuery;
+    urlQuery.addQueryItem( "symbol", symbol );
+    urlQuery.addQueryItem( "projection", "fundamental" );
+
+    QUrl url( endpoints_[GET_INSTRUMENTS] );
+    url.setQuery( urlQuery );
+
+    const QUuid uuid( QUuid::createUuid() );
+
+    pendingRequests_[uuid] = GET_INSTRUMENTS;
+    send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritrade::getInstrument( const QString& cusip )
+{
+    if ( cusip.isEmpty() )
+        return;
+
+    QString s( endpoints_[GET_INSTRUMENT] );
+    s.replace( "{cusip}", cusip );
+
+    const QUuid uuid( QUuid::createUuid() );
+
+    pendingRequests_[uuid] = GET_INSTRUMENT;
+    send( uuid, s, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -319,6 +355,10 @@ void TDAmeritrade::onProcessDocumentJson( const QUuid& uuid, const QByteArray& r
     case GET_ACCOUNTS:
         parseAccountsDoc( response );
         break;
+    case GET_INSTRUMENT:
+    case GET_INSTRUMENTS:
+        parseInstrumentsDoc( response );
+        break;
     case GET_MARKET_HOURS:
     case GET_MARKET_HOURS_SINGLE:
         parseMarketHoursDoc( response );
@@ -378,6 +418,18 @@ void TDAmeritrade::parseAccountsDoc( const QJsonDocument& doc )
     {
         emit accountsReceived( doc.array() );
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritrade::parseInstrumentsDoc( const QJsonDocument& doc )
+{
+    if ( !doc.isObject() )
+    {
+        LOG_WARN << "not an object";
+        return;
+    }
+
+    emit instrumentReceived( doc.object() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

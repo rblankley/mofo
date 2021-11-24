@@ -364,7 +364,7 @@ void validateOptionPricing()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void optionPricingPerf( size_t loops )
 {
-    double S = 9.98;           // Spot Price
+    double S = 9.98;             // Spot Price
     double K0 = 9.5;             // Strike Price
     double T = 9.0 / 365.25;     // Years to maturity
     double r = 0.01;             // Risk Free Rate
