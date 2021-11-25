@@ -44,6 +44,7 @@ static const QString CALL( "CALL" );
 static const QString PUT( "PUT" );
 
 static const QString CUSIP( "cusip" );
+static const QString LAST_FUNDAMENTAL( "lastFundamental" );
 static const QString LAST_QUOTE_HISTORY( "lastQuoteHistory" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -196,6 +197,19 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QDateTime SymbolDatabase::lastFundamentalProcessed() const
+{
+    QDateTime stamp;
+
+    QVariant v;
+
+    if ( readSetting( LAST_FUNDAMENTAL, v ) )
+        stamp = QDateTime::fromString( v.toString(), Qt::ISODateWithMs );
+
+    return stamp;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QDateTime SymbolDatabase::lastQuoteHistoryProcessed() const
 {
     QDateTime stamp;
@@ -251,12 +265,16 @@ bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObjec
     LOG_DEBUG << "process instrument for " << qPrintable( symbol() );
 
     bool result( true );
+    bool fundamentalProcessed( false );
 
     // add fundamental (optional)
     const QJsonObject::const_iterator fundamental( obj.constFind( DB_FUNDAMENTAL ) );
 
     if (( obj.constEnd() != fundamental ) && ( fundamental->isObject() ))
+    {
         result &= addFundamental( stamp, fundamental->toObject() );
+        fundamentalProcessed = true;
+    }
 
     // commit to database
     if (( result ) && ( !(result = db_.commit()) ))
@@ -264,6 +282,10 @@ bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObjec
 
     if (( !result ) && ( !db_.rollback() ))
         LOG_ERROR << "rollback failed";
+
+    // save last fundamental
+    if (( result ) && ( fundamentalProcessed ))
+        writeSetting( LAST_FUNDAMENTAL, AppDatabase::instance()->currentDateTime().toString( Qt::ISODateWithMs ) );
 
     return result;
 }

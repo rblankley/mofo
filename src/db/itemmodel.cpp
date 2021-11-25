@@ -293,7 +293,6 @@ private:
 
 };
 
-
 void ItemModel::sort( int column, Qt::SortOrder order )
 {
     if (( column < 0 ) || ( columnCount() <= column ))
@@ -322,12 +321,16 @@ ItemModel::item_type *ItemModel::allocRowItems() const
 
         if ( poolItems_.length() )
         {
+            // pull item from front of list
             item_type *item( poolItems_.front() );
             poolItems_.pop_front();
 
             guard.unlock();
 
-            item->clearData();
+            // clear out existing data
+            for ( int i( columnCount() ); i--; )
+                item[i].clearData();
+
             return item;
         }
     }

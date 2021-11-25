@@ -331,6 +331,21 @@ bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QDateTime AppDatabase::lastFundamentalProcessed( const QString& symbol ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        return child->lastFundamentalProcessed();
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+
+    return QDateTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QDateTime AppDatabase::lastQuoteHistoryProcessed( const QString& symbol ) const
 {
     SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );

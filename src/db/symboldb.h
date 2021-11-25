@@ -35,6 +35,7 @@ class SymbolDatabase : public SqlDatabase
     Q_OBJECT
     Q_PROPERTY( QString cusip READ cusip STORED true )
     Q_PROPERTY( double dividendYield READ dividendYield STORED true )
+    Q_PROPERTY( QDateTime lastFundamentalProcessed READ lastFundamentalProcessed STORED true )
     Q_PROPERTY( QDateTime lastQuoteHistoryProcessed READ lastQuoteHistoryProcessed STORED true )
     Q_PROPERTY( QString symbol READ symbol )
 
@@ -88,6 +89,12 @@ public:
      * @return  historical volatility
      */
     virtual double historicalVolatility( const QDateTime& dt, int depth ) const;
+
+    /// Retrieve last fundamental processed stamp.
+    /**
+     * @return  stamp of last fundamental processed
+     */
+    virtual QDateTime lastFundamentalProcessed() const;
 
     /// Retrieve last quote history processed stamp.
     /**

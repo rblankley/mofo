@@ -137,6 +137,7 @@ protected:
     };
 
     QStringList equityQueue_;                       ///< Queue of equity requests.
+    QStringList fundamentalsQueue_;                 ///< Queue of fundamental data requests.
     QStringList optionChainQueue_;                  ///< Queue of option chain requests.
     QStringList quoteHistoryQueue_;                 ///< Queue of quote history requests.
 
@@ -209,6 +210,9 @@ private slots:
     /// Slot for when connected state changes.
     void onConnectedStateChanged( TDAmeritrade::ConnectedState newState );
 
+    /// Slot for instruments changed.
+    void onInstrumentsChanged();
+
     /// Slot for market hours changed.
     void onMarketHoursChanged();
 
@@ -263,6 +267,15 @@ private:
     QDateTime fetchAccountsStamp_;
     QDateTime fetchEquityStamp_;
     QDateTime fetchOptionChainStamp_;
+
+    /// Check if fundamentals are needed for symbol.
+    bool needFundamentals( const QString& symbol ) const;
+
+    /// Check if quote history is needed for symbol.
+    bool needQuoteHistory( const QString& symbol ) const;
+
+    /// Check for idle (ready) status.
+    void checkIdleStatus();
 
     /// Process treasury yields state.
     bool processTreasYieldsState( const QDateTime& now );

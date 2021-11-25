@@ -183,6 +183,13 @@ public:
      */
     virtual bool isMarketOpen( const QDateTime& dt, const QString& marketType, const QString& product = QString(), bool *isExtended = nullptr ) const;
 
+    /// Retrieve last fundamental processed stamp.
+    /**
+     * @param[in] symbol  symbol
+     * @return  stamp of last fundamental processed
+     */
+    virtual QDateTime lastFundamentalProcessed( const QString& symbol ) const;
+
     /// Retrieve last quote history processed stamp.
     /**
      * @param[in] symbol  symbol
