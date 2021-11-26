@@ -6,17 +6,21 @@ Money4Options is a cross-platform stock options evaluation tool.
 
 Are you a fan of ThetaGang Θ stock option trading strategies as found on [r/thetagang](https://www.reddit.com/r/thetagang/)? Are you looking for an evaluation tool that can scan down and filter options on equities that you are interested in trading? If so this may be the tool for you...
 
-This software allows you to build up watchlists and continously scan down options on a configurable basis. Options that pass your filter criteria are then shown in a list so you can have a closer look and decide if your interested in selling puts or not. You can also scan down stocks you own and determine the best call to sell.
+This software allows you to build up watchlists and continously scan down options on a configurable time basis. Options that pass your filter criteria are then shown in a list so you can have a closer look and decide if your interested in selling puts or not. You can also scan down stocks you own and determine the best call to sell.
+
+This program uses TD Ameritrade API for fetching option and equity data. To make use of this software you will need to setup an account on their platform. Technically I don't believe you need to fund the account but their ToS platform is very nice and I higly recommend.
 
 ## Usage
 
-If you did not install from the debian package or run make install you will need to copy over the config files manually. Copy the following files to `/etc/mofo` (Linux) or your build folder (Windows):
+Before running you will need to copy over the config files manually. Copy the following files to `/etc/mofo` (Linux) or your build folder (Windows):
 ~~~~
 endpoints.config
 logging.config
 ~~~~
 
-For TDA api access you need to create a development account. Signup and add your app here:
+If you installed from the debian package or ran make install (Linux Only) then you can skip this manual copy process.
+
+For TDA API access you need to create a development account. Signup and add your app here:
 https://developer.tdameritrade.com/user/me/apps/add
 
 When you run the application enter your credentials into the TDA API > Credentials dialog and save. Optionally you may simply update the `credentials.json` file with your app information. On Linux this is in `~/.config/mofo` or in your build folder on Windows.
@@ -39,7 +43,7 @@ You will need to setup some watchlists of equities you are interested in. There 
 
 ### Filters
 
-You should also setup some filters for the results output windows. You don't have to do this, but if you don't you will get everything possible which includes Calls, Puts, Verticals, etc.  I recommend you setup a something simple like showing OTM Puts only for Singles (no Verticals or other strategies). Keep in mind this software is a work in progress some trading strategies dont work yet but Singles and Verticals should. Navigate to View > Filters to set this up.
+You should also setup some filters for the results output windows. You don't have to do this, but if you don't you will get everything possible which includes Calls, Puts, Verticals, etc. I recommend you setup something simple like showing OTM Puts only for Singles (no Verticals or other strategies). Keep in mind this software is a work in progress some trading strategies don't work yet but Singles and Verticals should. Navigate to View > Filters to set this up.
 
 You can create as many filters as you like.
 
@@ -59,7 +63,7 @@ Here you can mess with a number of things that control how TDA API is used and a
 
 The really important ones are:
 
-| Option | Description |
+| Config | Description |
 | --- | ----------- |
 | Option Chain Expiration End | This controls the maximum DTE that will be fetched by the daemon. By default this is set to 28 days which means options with a DTE greater than 28 days will not be evaluated. This is enforced no matter what your filter is set for! |
 | Option Chain Watchlists | Controls what symbols are scanned down by the daemon background scanning process. |
@@ -68,7 +72,7 @@ The really important ones are:
 
 ### Scanning your first option chain
 
-After setting up a few basic filters you can scan single option chains by using TDA API > View Option Chain. The first time you lookup an equity it will take a little bit longer as it needs to fetch market history and fundamental data. You will also see a slight performance hit the first time you use it each day (though not nearly as bad as the first time you lookup an equity) as well because it will update this information.
+After setting up a few basic filters you can scan single option chains by using TDA API > View Option Chain. The first time you lookup an equity it will take a little bit longer as it needs to fetch market history and fundamental data. Furthermore, you will also see a slight performance hit the first time you use it each day (though not nearly as bad as the first time you lookup an equity) as well because it will update this information.
 
 ![Option Chains](./docs/optionchains.png?raw=true)
 
@@ -82,13 +86,13 @@ For both tables (the chains up top and the analysis results below) you will prob
 
 ![Layout Customization](./docs/layoutcustomization.png?raw=true)
 
-The ability to save/restore layouts is provided. You can add/delete/copy these from the View > Layouts dialog.
+The ability to save/restore layouts is provided. You can rename/delete/copy these from the View > Layouts dialog.
 
 You can also sort results by whatever column you want.
 
 ### Background scanning
 
-Scanning option chains in a singular fashion is nice and all but this tool was really designed to be run in the background constantly scanning down juicy option premiums for you to execute on. To startup the background daemon use the TDA API > Start Daemon option. By default the daemon will only function during market hours but you can override this behavior with the Allow When Markets Closed option.
+Scanning option chains in a singular fashion is nice and all but this tool was really designed to be run in the background constantly scanning down juicy option premiums for you to execute on. To startup the background daemon use the TDA API > Start Daemon option. By default the daemon will only actively scan during market hours but you can override this behavior with the Allow When Markets Closed option.
 
 ![Start Daemon](./docs/startdaemon.png?raw=true)
 
