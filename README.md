@@ -35,7 +35,7 @@ To resolve this simply change the URL you get redirected to HTTP instead of HTTP
 
 You will need to setup some watchlists of equities you are interested in. There are some common indicies provided already but you should really setup your own. Navigate to View > Watchlists to get started.
 
-![Watchlists Dialog](./docs/credentials.png?raw=true)
+![Watchlists Dialog](./docs/watchlists.png?raw=true)
 
 ### Filters
 
@@ -62,7 +62,7 @@ The really important ones are:
 | Option | Description |
 | --- | ----------- |
 | Option Chain Expiration End | This controls the maximum DTE that will be fetched by the daemon. By default this is set to 28 days which means options with a DTE greater than 28 days will not be evaluated. This is enforced no matter what your filter is set for! |
-| Option Chain Watchlists | Controls what symbols are scanned down by the daemon. |
+| Option Chain Watchlists | Controls what symbols are scanned down by the daemon background scanning process. |
 | Option Pricing Evaluation Method | Pricing methods other than CRR Binomial Tree are a work in progress. Use with caution. |
 | Option Analysis Filtering Method | Filter used for background scanning process. |
 
@@ -105,6 +105,8 @@ Sometimes you may want to scan down a watchlist using some new filter you just s
 ![Custom Scan](./docs/customscan.png?raw=true)
 
 You will be asked to choose a watchlist and a filter. After doing so you can view results the same way as background scanning.
+
+![Custom Scan Dialog](./docs/customscanfilter.png?raw=true)
 
 ## Building
 
