@@ -18,7 +18,7 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 # Uncomment this to use clio logging library. You may need to adjust
 # include and lib paths below.
-DEFINES += HAVE_CLIO_H
+#DEFINES += HAVE_CLIO_H
 
 
 SOURCES += \
