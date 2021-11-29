@@ -194,7 +194,7 @@ int main( int argc, char *argv[] )
     QObject::connect( tda, &TDAmeritrade::priceHistoryReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformPriceHistory );
     QObject::connect( tda, &TDAmeritrade::quotesReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformQuotes );
 
-    QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, db, &AppDatabase::processData );
+    QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, db, &AppDatabase::processData, Qt::DirectConnection );
 
     // setup daemon
     [[maybe_unused]] TDAmeritradeDaemon *daemon( new TDAmeritradeDaemon( tda, usdot ) );

@@ -87,6 +87,9 @@ public slots:
     // Methods
     // ========================================================================
 
+    /// Halt analysis.
+    virtual void halt();
+
     /// Reset custom filter.
     virtual void resetCustomFilter() {customFilter_.clear();}
 
@@ -117,6 +120,8 @@ protected:
 
     QString customFilter_;                          ///< Custom filter.
 
+    bool halt_;                                     ///< Halt flag (for shutdown).
+
 private slots:
 
     /// Slot for when option chain background process goes active (or deactive).
@@ -130,8 +135,10 @@ private slots:
 
 private:
 
+    static constexpr int WAIT_TIME = 50;
+
     static constexpr bool THROTTLE = true;
-    static constexpr int THROTTLE_YIELD_TIME = 128;
+    static constexpr int THROTTLE_YIELD_TIME = 50;
 
     int symbolsTotal_;
 
@@ -145,6 +152,9 @@ private:
 
     QDateTime start_;
     QDateTime stop_;
+
+    /// Update status message.
+    void updateStatus( bool force );
 
     // not implemented
     OptionAnalyzer( const _Myt& ) = delete;

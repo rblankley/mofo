@@ -81,7 +81,6 @@ SymbolDatabase::SymbolDatabase( const QString& symbol, QObject *parent ) :
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolDatabase::~SymbolDatabase()
 {
-    db_.close();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -125,74 +124,81 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
         "WHERE DATE(date)=DATE(:date) "
         "ORDER BY depth ASC" );
 
+    const QDate d( dt.date() );
+
     // this method is used by background threads, need to open dedicated connection
     QSqlDatabase conn( openDatabaseConnection() );
 
-    QSqlQuery query( conn );
-    query.prepare( sql );
-
-    query.bindValue( ":" + DB_DATE, dt.date().toString( Qt::ISODate ) );
-
-    if ( !query.exec() )
+    for ( int days( 0 ); days < 7; ++days )
     {
-        const QSqlError e( query.lastError() );
+        QSqlQuery query( conn );
+        query.prepare( sql );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
-    }
-    else
-    {
-        double min( 0.0 );
-        int min_depth( 0 );
+        query.bindValue( ":" + DB_DATE, d.addDays( -days ).toString( Qt::ISODate ) );
 
-        double max( 0.0 );
-        int max_depth( 0 );
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
 
-        // find bounding volatility
-        QSqlQueryModel model;
+            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        }
+        else
+        {
+            double min( 0.0 );
+            int min_depth( 0 );
+
+            double max( 0.0 );
+            int max_depth( 0 );
+
+            // find bounding volatility
+            QSqlQueryModel model;
 #if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
+            model.setQuery( std::move( query ) );
 #else
-        model.setQuery( query );
+            model.setQuery( query );
 #endif
 
-        for ( int row( 0 ); row < model.rowCount(); ++row )
-        {
-            const QSqlRecord rec( model.record( row ) );
+            if ( !model.rowCount() )
+                continue;
 
-            const double v( rec.value( "volatility" ).toDouble() );
-            const int v_depth( rec.value( "depth" ).toInt() );
+            for ( int row( 0 ); row < model.rowCount(); ++row )
+            {
+                const QSqlRecord rec( model.record( row ) );
 
-            if ( v_depth == depth )
-                return v;
-            else if ( v_depth < depth )
-            {
-                min = v;
-                min_depth = v_depth;
+                const double v( rec.value( "volatility" ).toDouble() );
+                const int v_depth( rec.value( "depth" ).toInt() );
+
+                if ( v_depth == depth )
+                    return v;
+                else if ( v_depth < depth )
+                {
+                    min = v;
+                    min_depth = v_depth;
+                }
+                else
+                {
+                    max = v;
+                    max_depth = v_depth;
+                    break;
+                }
             }
-            else
-            {
-                max = v;
-                max_depth = v_depth;
-                break;
-            }
+
+            conn.close();
+
+            // requested depth BELOW table values
+            if (( !min_depth ) && ( max_depth ))
+                return max;
+
+            // requested depth ABOVE table values
+            if (( min_depth ) && ( !max_depth ))
+                return min;
+
+            // interpolate
+            return min + ((double)(depth - min_depth) / (double)(max_depth - min_depth)) * (max - min);
         }
-
-        conn.close();
-
-        // requested depth BELOW table values
-        if (( !min_depth ) && ( max_depth ))
-            return max;
-
-        // requested depth ABOVE table values
-        if (( min_depth ) && ( !max_depth ))
-            return min;
-
-        // interpolate
-        return min + ((double)(depth - min_depth) / (double)(max_depth - min_depth)) * (max - min);
     }
 
-    conn.close();
-
+    LOG_WARN << "no historical volatility found for " << qPrintable( symbol() ) << " " << qPrintable( d.toString() );
     return 0.0;
 }
 
@@ -256,7 +262,10 @@ bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObjec
     if ( symbol() != obj[DB_SYMBOL].toString() )
         return false;
 
-    if ( !db_.transaction() )
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    if ( !conn.transaction() )
     {
         LOG_WARN << "failed to start transaction";
         return false;
@@ -272,20 +281,20 @@ bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObjec
 
     if (( obj.constEnd() != fundamental ) && ( fundamental->isObject() ))
     {
-        result &= addFundamental( stamp, fundamental->toObject() );
+        result &= addFundamental( conn, stamp, fundamental->toObject() );
         fundamentalProcessed = true;
     }
 
     // commit to database
-    if (( result ) && ( !(result = db_.commit()) ))
+    if (( result ) && ( !(result = conn.commit()) ))
         LOG_WARN << "commit failed";
 
-    if (( !result ) && ( !db_.rollback() ))
+    if (( !result ) && ( !conn.rollback() ))
         LOG_ERROR << "rollback failed";
 
     // save last fundamental
     if (( result ) && ( fundamentalProcessed ))
-        writeSetting( LAST_FUNDAMENTAL, AppDatabase::instance()->currentDateTime().toString( Qt::ISODateWithMs ) );
+        writeSetting( LAST_FUNDAMENTAL, AppDatabase::instance()->currentDateTime().toString( Qt::ISODateWithMs ), conn );
 
     return result;
 }
@@ -296,7 +305,10 @@ bool SymbolDatabase::processOptionChain( const QDateTime& stamp, const QJsonObje
     if ( symbol() != obj[DB_UNDERLYING].toString() )
         return false;
 
-    if ( !db_.transaction() )
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    if ( !conn.transaction() )
     {
         LOG_WARN << "failed to start transaction";
         return false;
@@ -307,7 +319,7 @@ bool SymbolDatabase::processOptionChain( const QDateTime& stamp, const QJsonObje
     bool result( true );
 
     // add option chain
-    result &= addOptionChain( stamp, obj, expiryDates );
+    result &= addOptionChain( conn, stamp, obj, expiryDates );
 
     // add quotes (optional)
     const QJsonObject::const_iterator quotes( obj.constFind( DB_QUOTES ) );
@@ -316,14 +328,14 @@ bool SymbolDatabase::processOptionChain( const QDateTime& stamp, const QJsonObje
     {
         foreach ( const QJsonValue& v, quotes->toArray() )
             if ( v.isObject() )
-                result &= addQuote( v.toObject() );
+                result &= addQuote( conn, v.toObject() );
     }
 
     // commit to database
-    if (( result ) && ( !(result = db_.commit()) ))
+    if (( result ) && ( !(result = conn.commit()) ))
         LOG_WARN << "commit failed";
 
-    if (( !result ) && ( !db_.rollback() ))
+    if (( !result ) && ( !conn.rollback() ))
         LOG_ERROR << "rollback failed";
 
     return result;
@@ -334,7 +346,10 @@ bool SymbolDatabase::processQuote( const QDateTime& stamp, const QJsonObject& ob
 {
     Q_UNUSED( stamp )
 
-    if ( !db_.transaction() )
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    if ( !conn.transaction() )
     {
         LOG_WARN << "failed to start transaction";
         return false;
@@ -346,15 +361,15 @@ bool SymbolDatabase::processQuote( const QDateTime& stamp, const QJsonObject& ob
 
     // check for option
     if ( obj.contains( DB_UNDERLYING ) )
-        result &= addOption( obj );
+        result &= addOption( conn, obj );
     else
-        result &= addQuote( obj );
+        result &= addQuote( conn, obj );
 
     // commit to database
-    if (( result ) && ( !(result = db_.commit()) ))
+    if (( result ) && ( !(result = conn.commit()) ))
         LOG_WARN << "commit failed";
 
-    if (( !result ) && ( !db_.rollback() ))
+    if (( !result ) && ( !conn.rollback() ))
         LOG_ERROR << "rollback failed";
 
     return result;
@@ -366,7 +381,10 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
     if ( symbol() != obj[DB_SYMBOL].toString() )
         return false;
 
-    if ( !db_.transaction() )
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    if ( !conn.transaction() )
     {
         LOG_WARN << "failed to start transaction";
         return false;
@@ -383,22 +401,22 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
     {
         foreach ( const QJsonValue& v, history->toArray() )
             if ( v.isObject() )
-                result &= addQuoteHistory( v.toObject() );
+                result &= addQuoteHistory( conn, v.toObject() );
 
         // calculate historical volatility
-        calcHistoricalVolatility();
+        calcHistoricalVolatility( conn );
     }
 
     // commit to database
-    if (( result ) && ( !(result = db_.commit()) ))
+    if (( result ) && ( !(result = conn.commit()) ))
         LOG_WARN << "commit failed";
 
-    if (( !result ) && ( !db_.rollback() ))
+    if (( !result ) && ( !conn.rollback() ))
         LOG_ERROR << "rollback failed";
 
     // save last quote history
     if ( result )
-        writeSetting( LAST_QUOTE_HISTORY, AppDatabase::instance()->currentDateTime().toString( Qt::ISODateWithMs ) );
+        writeSetting( LAST_QUOTE_HISTORY, AppDatabase::instance()->currentDateTime().toString( Qt::ISODateWithMs ), conn );
 
     return result;
 }
@@ -431,7 +449,7 @@ QStringList SymbolDatabase::upgradeFiles( const QString& fromStr, const QString&
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolDatabase::addFundamental( const QDateTime& stamp, const QJsonObject& obj )
+bool SymbolDatabase::addFundamental( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
 {
     static const QString sql( "INSERT INTO fundamentals (stamp,symbol,"
         "high52,low52,divAmount,divYield,divDate,divFrequency,peRatio,pegRatio,pbRatio,prRatio,pcfRatio,"
@@ -446,7 +464,7 @@ bool SymbolDatabase::addFundamental( const QDateTime& stamp, const QJsonObject& 
                 ":revChangeTTM,:revChangeIn,:sharesOutstanding,:marketCapFloat,:marketCap,:bookValuePerShare,:shortIntToFloat,:shortIntDayToCover,:divGrowthRate3Year,:divPayAmount,"
                 ":divPayDate,:beta,:vol1DayAvg,:vol10DayAvg,:vol3MonthAvg) " );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
     query.bindValue( ":" + DB_SYMBOL, symbol() );
@@ -457,25 +475,25 @@ bool SymbolDatabase::addFundamental( const QDateTime& stamp, const QJsonObject& 
     if ( divFrequency_.isEmpty() )
     {
         if ( obj.contains( DB_DIV_DATE ) )
-            calcDividendFrequencyFromDate( obj[DB_DIV_DATE] );
+            calcDividendFrequencyFromDate( conn, obj[DB_DIV_DATE] );
 
         if ( obj.contains( DB_DIV_PAY_DATE ) )
-            calcDividendFrequencyFromPayDate( obj[DB_DIV_PAY_DATE] );
+            calcDividendFrequencyFromPayDate( conn, obj[DB_DIV_PAY_DATE] );
 
         if (( obj.contains( DB_DIV_PAY_AMOUNT ) ) && ( obj.contains( DB_DIV_AMOUNT ) ))
-            calcDividendFrequencyFromPayAmount( obj[DB_DIV_PAY_AMOUNT], obj[DB_DIV_AMOUNT] );
+            calcDividendFrequencyFromPayAmount( conn, obj[DB_DIV_PAY_AMOUNT], obj[DB_DIV_AMOUNT] );
     }
 
     // fill in missing values
-    updateDefaultValue( query, obj, DB_DIV_AMOUNT );
-    updateDefaultValue( query, obj, DB_DIV_YIELD );
-    updateDefaultValue( query, obj, DB_DIV_DATE );
-    updateDefaultValue( query, obj, DB_DIV_FREQUENCY );
+    updateDefaultValue( query, obj, DB_DIV_AMOUNT, conn );
+    updateDefaultValue( query, obj, DB_DIV_YIELD, conn );
+    updateDefaultValue( query, obj, DB_DIV_DATE, conn );
+    updateDefaultValue( query, obj, DB_DIV_FREQUENCY, conn );
 
-    updateDefaultValue( query, obj, DB_DIV_PAY_AMOUNT );
-    updateDefaultValue( query, obj, DB_DIV_PAY_DATE );
+    updateDefaultValue( query, obj, DB_DIV_PAY_AMOUNT, conn );
+    updateDefaultValue( query, obj, DB_DIV_PAY_DATE, conn );
 
-    updateDefaultValue( query, obj, DB_PE_RATIO );
+    updateDefaultValue( query, obj, DB_PE_RATIO, conn );
 
     // exec sql
     if ( !query.exec() )
@@ -490,7 +508,7 @@ bool SymbolDatabase::addFundamental( const QDateTime& stamp, const QJsonObject& 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolDatabase::addOption( const QJsonObject& obj )
+bool SymbolDatabase::addOption( const QSqlDatabase& conn, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO options (stamp,symbol,"
         "underlying,type,strikePrice,description,bidAskSize,bidPrice,bidSize,askPrice,askSize,lastPrice,"
@@ -508,7 +526,7 @@ bool SymbolDatabase::addOption( const QJsonObject& obj )
     const double strikePrice( obj[DB_STRIKE_PRICE].toDouble() );
     const QString type( obj[DB_TYPE].toString() );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":" + DB_UNDERLYING, symbol() );
 
@@ -540,7 +558,7 @@ bool SymbolDatabase::addOption( const QJsonObject& obj )
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -548,14 +566,14 @@ bool SymbolDatabase::addOption( const QJsonObject& obj )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& obj, QList<QDate>& expiryDates )
+bool SymbolDatabase::addOptionChain( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj, QList<QDate>& expiryDates )
 {
     static const QString sql( "INSERT INTO optionChains (stamp,underlying,"
         "underlyingPrice,interestRate,isDelayed,isIndex,numberOfContracts,volatility) "
             "VALUES (:stamp,:underlying,"
                 ":underlyingPrice,:interestRate,:isDelayed,:isIndex,:numberOfContracts,:volatility) " );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
 
@@ -600,11 +618,11 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
                 const QDateTime expiryDate( QDateTime::fromString( expiryDateIt->toString(), Qt::ISODate ) );
 
                 // add option
-                if ( !addOption( option ) )
+                if ( !addOption( conn, option ) )
                     return false;
 
                 // add strike price to chain
-                else if ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), typeIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble() ) )
+                else if ( !addOptionChainStrikePrice( conn, stamp, optionStampIt->toString(), optionSymbolIt->toString(), typeIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble() ) )
                     return false;
 
                 // track expiry dates for caller
@@ -617,7 +635,7 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolDatabase::addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice )
+bool SymbolDatabase::addOptionChainStrikePrice( const QSqlDatabase& conn, const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice )
 {
     static const QString sql( "INSERT INTO optionChainStrikePrices (stamp,underlying,expirationDate,strikePrice,"
         "%1Stamp,%1Symbol) "
@@ -626,7 +644,7 @@ bool SymbolDatabase::addOptionChainStrikePrice( const QDateTime& stamp, const QS
             "ON CONFLICT (stamp,underlying,expirationDate,strikePrice) DO UPDATE SET "
                 "%1Stamp=:optionStamp,%1Symbol=:optionSymbol " );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql.arg( type ) );
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
     query.bindValue( ":" + DB_UNDERLYING, symbol() );
@@ -649,7 +667,7 @@ bool SymbolDatabase::addOptionChainStrikePrice( const QDateTime& stamp, const QS
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolDatabase::addQuote( const QJsonObject& obj )
+bool SymbolDatabase::addQuote( const QSqlDatabase& conn, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO quotes (stamp,symbol,"
         "description,assetMainType,assetSubType,assetType,cusip,bidAskSize,bidPrice,bidSize,bidId,bidTick,"
@@ -666,7 +684,7 @@ bool SymbolDatabase::addQuote( const QJsonObject& obj )
                 ":divAmount,:divYield,:divDate,:divFrequency,:securityStatus,:regularMarketLastPrice,:regularMarketLastSize,:regularMarketChange,:regularMarketPercentChange,:regularMarketTradeTime,:tick,"
                 ":tickAmount,:product,:tradingHours,:isTradable,:marketMaker) " );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
 
     // update values
@@ -676,31 +694,31 @@ bool SymbolDatabase::addQuote( const QJsonObject& obj )
     if ( divFrequency_.isEmpty() )
     {
         if ( obj.contains( DB_DIV_DATE ) )
-            calcDividendFrequencyFromDate( obj[DB_DIV_DATE] );
+            calcDividendFrequencyFromDate( conn, obj[DB_DIV_DATE] );
     }
 
     // fill in missing values
-    updateDefaultValue( query, obj, DB_ASSET_MAIN_TYPE );
-    updateDefaultValue( query, obj, DB_ASSET_SUB_TYPE );
-    updateDefaultValue( query, obj, DB_ASSET_TYPE );
-    updateDefaultValue( query, obj, DB_CUSIP );
+    updateDefaultValue( query, obj, DB_ASSET_MAIN_TYPE, conn );
+    updateDefaultValue( query, obj, DB_ASSET_SUB_TYPE, conn );
+    updateDefaultValue( query, obj, DB_ASSET_TYPE, conn );
+    updateDefaultValue( query, obj, DB_CUSIP, conn );
 
-    updateDefaultValue( query, obj, DB_DIV_AMOUNT );
-    updateDefaultValue( query, obj, DB_DIV_YIELD );
-    updateDefaultValue( query, obj, DB_DIV_DATE );
-    updateDefaultValue( query, obj, DB_DIV_FREQUENCY );
+    updateDefaultValue( query, obj, DB_DIV_AMOUNT, conn );
+    updateDefaultValue( query, obj, DB_DIV_YIELD, conn );
+    updateDefaultValue( query, obj, DB_DIV_DATE, conn );
+    updateDefaultValue( query, obj, DB_DIV_FREQUENCY, conn );
 
-    updateDefaultValue( query, obj, DB_SECURITY_STATUS );
+    updateDefaultValue( query, obj, DB_SECURITY_STATUS, conn );
 
-    updateDefaultValue( query, obj, DB_NAV );
-    updateDefaultValue( query, obj, DB_PE_RATIO );
+    updateDefaultValue( query, obj, DB_NAV, conn );
+    updateDefaultValue( query, obj, DB_PE_RATIO, conn );
 
     // exec sql
     if ( !query.exec() )
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -708,7 +726,7 @@ bool SymbolDatabase::addQuote( const QJsonObject& obj )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolDatabase::addQuoteHistory( const QJsonObject& obj )
+bool SymbolDatabase::addQuoteHistory( const QSqlDatabase& conn, const QJsonObject& obj )
 {
     static const QString sql( "INSERT INTO quoteHistory (date,symbol,"
         "openPrice,highPrice,lowPrice,closePrice,totalVolume) "
@@ -721,7 +739,7 @@ bool SymbolDatabase::addQuoteHistory( const QJsonObject& obj )
                 "closePrice=:closePrice, "
                 "totalVolume=:totalVolume " );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":" + DB_SYMBOL, symbol() );
 
@@ -742,10 +760,16 @@ bool SymbolDatabase::addQuoteHistory( const QJsonObject& obj )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SymbolDatabase::writeSetting( const QString& key, const QVariant& value )
 {
+    return _Mybase::writeSetting( key, value );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolDatabase::writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& conn )
+{
     bool result;
 
     // write setting
-    if ( (result = _Mybase::writeSetting( key, value )) )
+    if ( (result = _Mybase::writeSetting( key, value, conn )) )
     {
         // dividend information
         if ( DB_DIV_AMOUNT == key )
@@ -762,7 +786,7 @@ bool SymbolDatabase::writeSetting( const QString& key, const QVariant& value )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolDatabase::calcHistoricalVolatility()
+void SymbolDatabase::calcHistoricalVolatility( const QSqlDatabase& conn )
 {
     const double annualized( sqrt( AppDatabase::instance()->numTradingDays() ) );
 
@@ -791,7 +815,7 @@ void SymbolDatabase::calcHistoricalVolatility()
 
     // ---- //
 
-    QSqlTableModel model( nullptr, db_ );
+    QSqlTableModel model( nullptr, conn );
     model.setTable( "quoteHistory" );
     model.setSort( model.fieldIndex( DB_STAMP ), Qt::AscendingOrder );
     model.select();
@@ -862,7 +886,7 @@ void SymbolDatabase::calcHistoricalVolatility()
         "SET depth=:depth "
             "WHERE date=:date AND symbol=:symbol" );
 
-    QSqlQuery quoteQuery( db_ );
+    QSqlQuery quoteQuery( conn );
     quoteQuery.prepare( quoteSql );
 
     quoteQuery.bindValue( ":" + DB_DATE, quoteDates );
@@ -884,7 +908,7 @@ void SymbolDatabase::calcHistoricalVolatility()
             "VALUES (:date,:symbol,:depth,"
                 ":volatility) " );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
 
     query.bindValue( ":" + DB_DATE, histVolDates );
@@ -897,12 +921,12 @@ void SymbolDatabase::calcHistoricalVolatility()
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolDatabase::calcDividendFrequencyFromDate( const QJsonValue& newValue )
+void SymbolDatabase::calcDividendFrequencyFromDate( const QSqlDatabase& conn, const QJsonValue& newValue )
 {
     if ( divFrequency_.length() )
         return;
@@ -929,13 +953,13 @@ void SymbolDatabase::calcDividendFrequencyFromDate( const QJsonValue& newValue )
             else
                 freq = "Q";
 
-            writeSetting( DB_DIV_FREQUENCY, freq );
+            writeSetting( DB_DIV_FREQUENCY, freq, conn );
         }
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolDatabase::calcDividendFrequencyFromPayAmount( const QJsonValue& payAmountVal, const QJsonValue& amountVal )
+void SymbolDatabase::calcDividendFrequencyFromPayAmount( const QSqlDatabase& conn, const QJsonValue& payAmountVal, const QJsonValue& amountVal )
 {
     if ( divFrequency_.length() )
         return;
@@ -960,12 +984,12 @@ void SymbolDatabase::calcDividendFrequencyFromPayAmount( const QJsonValue& payAm
         else
             freq = "Q";
 
-        writeSetting( DB_DIV_FREQUENCY, freq );
+        writeSetting( DB_DIV_FREQUENCY, freq, conn );
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolDatabase::calcDividendFrequencyFromPayDate( const QJsonValue& newValue )
+void SymbolDatabase::calcDividendFrequencyFromPayDate( const QSqlDatabase& conn, const QJsonValue& newValue )
 {
     if ( divFrequency_.length() )
         return;
@@ -992,7 +1016,7 @@ void SymbolDatabase::calcDividendFrequencyFromPayDate( const QJsonValue& newValu
             else
                 freq = "Q";
 
-            writeSetting( DB_DIV_FREQUENCY, freq );
+            writeSetting( DB_DIV_FREQUENCY, freq, conn );
         }
     }
 }

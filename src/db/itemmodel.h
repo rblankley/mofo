@@ -27,6 +27,7 @@
 #include <QList>
 #include <QMap>
 #include <QMutex>
+#include <QReadWriteLock>
 #include <QVariant>
 #include <QVector>
 
@@ -273,11 +274,7 @@ public:
 
 protected:
 
-#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
-    mutable QRecursiveMutex m_;                     ///< Mutex.
-#else
-    mutable QMutex m_;                              ///< Mutex.
-#endif
+    mutable QReadWriteLock lock_;                   ///< Lock.
 
     int numColumns_;                                ///< Number of columns.
 

@@ -224,6 +224,8 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
     if ( !hheader )
         return;
 
+    LOG_DEBUG << "header section pressed " << button << " " << from << " " << to;
+
     // ----------------------
     // create menu of actions
     // ----------------------
@@ -301,8 +303,14 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
     // show menu
     // ---------
 
+show_menu:
+
+    LOG_DEBUG << "show menu...";
+
     // show context menu
     a = contextMenu.exec( hheader->mapToGlobal( pos ) );
+
+    LOG_DEBUG << "show menu complete";
 
     // ---------------------
     // process menu response
@@ -327,14 +335,26 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
         const int putColumn( model_->mappedColumn( (model_type::ColumnIndex) callColumn ) );
 
         bool hide( true );
+        bool keepLooping( false );
 
         if ( a->isCheckable() )
+        {
             hide = !a->isChecked();
+            keepLooping = true;
+        }
 
         LOG_TRACE << "set columns " << callColumn << " " << putColumn << " hidden " << hide;
 
         setColumnHidden( callColumn, hide );
         setColumnHidden( putColumn, hide );
+
+        // prompt again...
+        if ( keepLooping )
+        {
+            saveHeaderState( hheader );
+
+            goto show_menu;
+        }
     }
 
     // resize column to contents

@@ -33,8 +33,9 @@ OptionAnalyzer::OptionAnalyzer( model_type *model, QObject *parent ) :
     _Mybase( parent ),
     active_( false ),
     analysis_( model ),
+    halt_( false ),
     workers_( 0 ),
-    maxWorkers_( 4 * std::thread::hardware_concurrency() )
+    maxWorkers_( std::thread::hardware_concurrency() )
 {
     // connect signals/slots
     connect( AbstractDaemon::instance(), &AbstractDaemon::optionChainBackgroundProcess, this, &_Myt::onOptionChainBackgroundProcess );
@@ -49,19 +50,34 @@ OptionAnalyzer::~OptionAnalyzer()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool OptionAnalyzer::isActive() const
 {
-    return (( active_ ) || ( numThreadsComplete_ < numThreads_ ));
+    return (( active_ ) || ( numThreadsComplete_ < numThreads_ ) || ( symbols_.length() ));
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionAnalyzer::halt()
+{
+    // set halt flag
+    halt_ = true;
+
+    // wait for analysis threads to complete
+    while (( active_ ) || ( numThreadsComplete_ < numThreads_ ))
+    {
+        static const QEventLoop::ProcessEventsFlags flags( QEventLoop::AllEvents | QEventLoop::WaitForMoreEvents );
+
+        QApplication::processEvents( flags, WAIT_TIME );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionAnalyzer::onOptionChainBackgroundProcess( bool active, const QStringList& symbols )
 {
-    // nothing to do
-    if ( active_ == active )
-        return;
+    const bool prevActive( isActive() );
 
+    // new state
     active_ = active;
 
-    if ( active_ )
+    // moving from inactive -> active
+    if (( active_ ) && ( !prevActive ))
     {
         // remove all previous rows
         analysis_->removeAllRows();
@@ -78,13 +94,32 @@ void OptionAnalyzer::onOptionChainBackgroundProcess( bool active, const QStringL
         start_ = QDateTime::currentDateTime();
     }
 
-    emit activeChanged( active_ );
+    // moving from active -> active
+    // additional symbols probably added to list
+    else if (( active_ ) && ( prevActive ))
+    {
+        symbolsTotal_ -= symbols_.size();
+
+        // save off total number of symbols to analyze
+        symbols_ = symbols;
+        symbolsTotal_ += symbols_.size();
+    }
+
+    // state changed!
+    if ( active_ != prevActive )
+        emit activeChanged( active_ );
+
+    // refresh status
+    if (( active_ ) || ( prevActive ))
+        updateStatus( true );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QDate>& expiryDates, bool background )
 {
-    if ( !background )
+    if ( halt_ )
+        return;
+    else if ( !background )
         return;
     else if ( !symbols_.contains( symbol ) )
         return;
@@ -110,7 +145,8 @@ void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QD
     symbols_.removeOne( symbol );
 
     // create thread(s) for analysis
-    LOG_DEBUG << "processing " << qPrintable( symbol ) << " " << expiryDates.size() << " chains...";
+    LOG_INFO << "processing " << qPrintable( symbol ) << " " << expiryDates.size() << " chains...";
+    LOG_DEBUG << symbols_.size() << " symbols remaining...";
 
     foreach ( const QDate& d, expiryDates )
     {
@@ -128,17 +164,26 @@ void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QD
         ++numThreads_;
         ++workers_;
     }
+
+    LOG_DEBUG << "workers started";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionAnalyzer::onWorkerFinished()
 {
-    static const double MIN_PROGRESS( 2.0 );
-
     sender()->deleteLater();
     --workers_;
 
     ++numThreadsComplete_;
+
+    // refresh status
+    updateStatus( false );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionAnalyzer::updateStatus( bool force )
+{
+    static const double MIN_PROGRESS( 2.0 );
 
     // analysis complete
     if ( !isActive() )
@@ -171,7 +216,7 @@ void OptionAnalyzer::onWorkerFinished()
         currentProgress = qMin( currentProgress, (100.0 * (symbolsTotal_ - symbols_.size())) / (double) symbolsTotal_ );
 
         // update message
-        if ( MIN_PROGRESS <= (currentProgress - progress_) )
+        if (( force ) || ( MIN_PROGRESS <= (currentProgress - progress_) ))
         {
             const QString message( tr( "Options analysis in progress... %1% complete..." ) );
 

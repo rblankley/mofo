@@ -39,6 +39,8 @@
 OptionProfitCalculator::OptionProfitCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     valid_( true ),
     underlying_( underlying ),
+    histVolatility_( 0.0 ),
+    riskFreeRate_( 0.0 ),
     totalDivAmount_( 0.0 ),
     totalDivYield_( 0.0 ),
     chains_( chains ),
@@ -59,41 +61,57 @@ OptionProfitCalculator::OptionProfitCalculator( double underlying, const table_m
     if ( daysToExpiry_ < 0 )
         valid_ = false;
 
-    double timeToExpiryYears = daysToExpiry_;
-    timeToExpiryYears /= AppDatabase::instance()->numDays();
-
-    // calculate dividends
-    QDate divDate;
-    double divFreq;
-
-    const double divAmount = AppDatabase::instance()->dividendAmount( chains_->symbol(), divDate, divFreq );
-    const double divYield = AppDatabase::instance()->dividendYield( chains_->symbol() );
-
-    if (( divDate.isValid() ) && ( 0.0 < divFreq ) && ( 0.0 < divYield ))
+    else
     {
-        double timeToDivYears = now.date().daysTo( divDate );
-        timeToDivYears /= AppDatabase::instance()->numDays();
+        // historical volatility
+        double tradingDaysToExpiry( daysToExpiry_ );
+        tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
+        tradingDaysToExpiry /= AppDatabase::instance()->numDays();
 
-        // make dividend payment in the future
-        if ( timeToDivYears < 0.0 )
-            timeToDivYears += divFreq;
+        histVolatility_ = AppDatabase::instance()->historicalVolatility( chains_->symbol(), now, std::round( tradingDaysToExpiry ) );
 
-        if ( 0.0 <= timeToDivYears )
+        // risk free rate
+        double timeToExpiryYears = daysToExpiry_;
+        timeToExpiryYears /= AppDatabase::instance()->numDays();
+
+        riskFreeRate_ = AppDatabase::instance()->riskFreeRate( timeToExpiryYears );
+
+        if ( riskFreeRate_ <= 0.0 )
+            LOG_WARN << "risk free rate is zero";
+
+        // calculate dividends
+        QDate divDate;
+        double divFreq;
+
+        const double divAmount = AppDatabase::instance()->dividendAmount( chains_->symbol(), divDate, divFreq );
+        const double divYield = AppDatabase::instance()->dividendYield( chains_->symbol() );
+
+        if (( divDate.isValid() ) && ( 0.0 < divFreq ) && ( 0.0 < divYield ))
         {
-            // make list of dividend payment dates and yields
-            while ( timeToDivYears < timeToExpiryYears )
-            {
-                const double yield( divYield * divFreq );
+            double timeToDivYears = now.date().daysTo( divDate );
+            timeToDivYears /= AppDatabase::instance()->numDays();
 
-                divTimes_.push_back( timeToDivYears );
-                div_.push_back( yield );
-
-                // accumulate dividend
-                totalDivAmount_ += (divAmount * divFreq);
-                totalDivYield_ += yield;
-
-                // next dividend
+            // make dividend payment in the future
+            if ( timeToDivYears < 0.0 )
                 timeToDivYears += divFreq;
+
+            if ( 0.0 <= timeToDivYears )
+            {
+                // make list of dividend payment dates and yields
+                while ( timeToDivYears < timeToExpiryYears )
+                {
+                    const double yield( divYield * divFreq );
+
+                    divTimes_.push_back( timeToDivYears );
+                    div_.push_back( yield );
+
+                    // accumulate dividend
+                    totalDivAmount_ += (divAmount * divFreq);
+                    totalDivYield_ += yield;
+
+                    // next dividend
+                    timeToDivYears += divFreq;
+                }
             }
         }
     }
@@ -399,7 +417,7 @@ void OptionProfitCalculator::populateResultModelSingle( int row, bool isCall, it
     tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
     tradingDaysToExpiry /= AppDatabase::instance()->numDays();
 
-    result[item_model_type::HIST_VOLATILITY] = 100.0 * AppDatabase::instance()->historicalVolatility( chains_->symbol(), quoteTime, tradingDaysToExpiry );
+    result[item_model_type::HIST_VOLATILITY] = 100.0 * histVolatility_;
 
     // expected dividend
     result[item_model_type::DIV_AMOUNT] = totalDivAmount_;
@@ -584,7 +602,7 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
     tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
     tradingDaysToExpiry /= AppDatabase::instance()->numDays();
 
-    result[item_model_type::HIST_VOLATILITY] = 100.0 * AppDatabase::instance()->historicalVolatility( chains_->symbol(), quoteTime, tradingDaysToExpiry );
+    result[item_model_type::HIST_VOLATILITY] = 100.0 * histVolatility_;
 
     // expected dividend
     result[item_model_type::DIV_AMOUNT] = totalDivAmount_;

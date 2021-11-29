@@ -194,30 +194,34 @@ protected:
 
     /// Add fundamental to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  date time
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addFundamental( const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addFundamental( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add option to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addOption( const QJsonObject& obj );
+    virtual bool addOption( const QSqlDatabase& conn, const QJsonObject& obj );
 
     /// Add option chain to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  date time
      * @param[in] obj  data
      * @param[out] expiryDates  expiration dates added
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addOptionChain( const QDateTime& stamp, const QJsonObject& obj, QList<QDate>& expiryDates );
+    virtual bool addOptionChain( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj, QList<QDate>& expiryDates );
 
     /// Add option chain strike price to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  date time
      * @param[in] optionStamp  option date time
      * @param[in] optionSymbol  option symbol
@@ -226,21 +230,23 @@ protected:
      * @param[in] strikePrice  strike price
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice );
+    virtual bool addOptionChainStrikePrice( const QSqlDatabase& conn, const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice );
 
     /// Add quote information.
     /**
+     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addQuote( const QJsonObject& obj );
+    virtual bool addQuote( const QSqlDatabase& conn, const QJsonObject& obj );
 
     /// Add quote history.
     /**
+     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addQuoteHistory( const QJsonObject& obj );
+    virtual bool addQuoteHistory( const QSqlDatabase& conn, const QJsonObject& obj );
 
     /// Write setting to db.
     /**
@@ -250,21 +256,30 @@ protected:
      */
     virtual bool writeSetting( const QString& key, const QVariant& value ) override;
 
+    /// Write setting to db.
+    /**
+     * @param[in] key  setting to write
+     * @param[in] value  setting value
+     * @param[in] db  sql database
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& db ) override;
+
 private:
 
     static const int HIST_VOL_FORCED = 5;
 
     /// Calculate historical volatility (standard deviation).
-    void calcHistoricalVolatility();
+    void calcHistoricalVolatility( const QSqlDatabase& conn );
 
     /// Calculate dividend frequency.
-    void calcDividendFrequencyFromDate( const QJsonValue& date );
+    void calcDividendFrequencyFromDate( const QSqlDatabase& conn, const QJsonValue& date );
 
     /// Calculate dividend frequency.
-    void calcDividendFrequencyFromPayAmount( const QJsonValue& payAmount, const QJsonValue& amount );
+    void calcDividendFrequencyFromPayAmount( const QSqlDatabase& conn, const QJsonValue& payAmount, const QJsonValue& amount );
 
     /// Calculate dividend frequency.
-    void calcDividendFrequencyFromPayDate( const QJsonValue& date );
+    void calcDividendFrequencyFromPayDate( const QSqlDatabase& conn, const QJsonValue& date );
 
     // not implemented
     SymbolDatabase( const _Myt& ) = delete;

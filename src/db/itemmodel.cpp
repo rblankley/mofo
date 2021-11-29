@@ -34,9 +34,7 @@ QList<ItemModel::item_type*> ItemModel::poolItems_;
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 ItemModel::ItemModel( int rows, int columns, QObject *parent ) :
     _Mybase( parent ),
-#if QT_VERSION < QT_VERSION_CHECK( 5, 14, 0 )
-    m_( QMutex::Recursive ),
-#endif
+    lock_( QReadWriteLock::Recursive ),
     numColumns_( columns ),
     columnIsText_( columns, false ),
     numDecimalPlaces_( columns, 0 ),
@@ -67,9 +65,9 @@ int ItemModel::columnCount( const QModelIndex& parent ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QVariant ItemModel::data( int row, int col, int role ) const
 {
-    QMutexLocker guard( &m_ );
+    QReadLocker guard( &lock_ );
 
-    if (( 0 <= row ) && ( row < rowCount() ))
+    if (( 0 <= row ) && ( row < rows_.count() ))
     {
         const item_type *item( rows_[row] );
 
@@ -103,7 +101,7 @@ Qt::ItemFlags ItemModel::flags( const QModelIndex& index ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QVariant ItemModel::headerData( int section, Qt::Orientation orientation, int role ) const
 {
-    QMutexLocker guard( &m_ );
+    QReadLocker guard( &lock_ );
 
     if ( Qt::Horizontal == orientation )
         if (( 0 <= section ) && ( section < columnCount() ))
@@ -115,9 +113,9 @@ QVariant ItemModel::headerData( int section, Qt::Orientation orientation, int ro
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool ItemModel::setData( int row, int col, const QVariant& value, int role )
 {
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
-    if (( 0 <= row ) && ( row < rowCount() ))
+    if (( 0 <= row ) && ( row < rows_.count() ))
     {
         item_type *items( rows_[row] );
 
@@ -148,7 +146,7 @@ bool ItemModel::setData( const QModelIndex& index, const QVariant &value, int ro
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool ItemModel::setHeaderData( int section, Qt::Orientation orientation, const QVariant& value, int role )
 {
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
     if ( Qt::Horizontal == orientation )
         if (( 0 <= section ) && ( section < columnCount() ))
@@ -171,8 +169,24 @@ int ItemModel::rowCount( const QModelIndex& parent ) const
 {
     Q_UNUSED( parent )
 
-    QMutexLocker guard( &m_ );
-    return rows_.size();
+    int result;
+
+    // yuck!
+    // when inserting rows the base class will invoke this method with a write lock already in
+    // place... because of this we cannot claim a read lock (which doesn't make a lot of sense to
+    // me but whatever)... so for workaround lets check for existing write lock first
+    if ( lock_.tryLockForWrite() )
+    {
+        result = rows_.size();
+        lock_.unlock();
+    }
+    else
+    {
+        QReadLocker guard( &lock_ );
+        result = rows_.size();
+    }
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -181,9 +195,9 @@ void ItemModel::appendRow( item_type *items )
     if ( !items )
         return;
 
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
-    const int row( rowCount() );
+    const int row( rows_.count() );
 
     // append to list
     beginInsertRows( QModelIndex(), row, row );
@@ -197,11 +211,11 @@ bool ItemModel::insertRows( int row, int count, const QModelIndex& parent )
     if ( count <= 0 )
         return true;
 
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
     // verify rows
     row = qMax( row, 0 );
-    row = qMin( row, rowCount() );
+    row = qMin( row, rows_.count() );
 
     beginInsertRows( parent, row, (row + count - 1) );
 
@@ -220,13 +234,13 @@ bool ItemModel::removeRows( int row, int count, const QModelIndex& parent )
     if ( count <= 0 )
         return true;
 
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
-    if (( row < 0 ) || ( rowCount() <= row ))
+    if (( row < 0 ) || ( rows_.count() <= row ))
         return false;
 
     // verify count of rows to remove
-    count = qMin( count, (rowCount() - row) );
+    count = qMin( count, (rows_.count() - row) );
 
     beginRemoveRows( parent, row, (row + count - 1) );
 
@@ -244,9 +258,9 @@ bool ItemModel::removeRows( int row, int count, const QModelIndex& parent )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void ItemModel::removeAllRows()
 {
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
-    const int rows( rowCount() );
+    const int rows( rows_.count() );
 
     if ( !rows )
         return;
@@ -298,9 +312,9 @@ void ItemModel::sort( int column, Qt::SortOrder order )
     if (( column < 0 ) || ( columnCount() <= column ))
         return;
 
-    QMutexLocker guard( &m_ );
+    QWriteLocker guard( &lock_ );
 
-    if ( !rowCount() )
+    if ( !rows_.count() )
         return;
 
     LOG_DEBUG << "sorting by column " << column << " order " << order << "...";

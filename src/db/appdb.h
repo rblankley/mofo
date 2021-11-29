@@ -459,39 +459,44 @@ protected:
 
     /// Add account to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addAccount( const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addAccount( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add account balances to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] accountId  account id
      * @param[in] type  balance type
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addAccountBalances( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj );
+    virtual bool addAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj );
 
     /// Add market hours to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addMarketHours( const QJsonObject& obj );
+    virtual bool addMarketHours( const QSqlDatabase& conn, const QJsonObject& obj );
 
     /// Add product type to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] type  type
      * @param[in] description  description
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addProductType( const QString& type, const QString& description );
+    virtual bool addProductType( const QSqlDatabase& conn, const QString& type, const QString& description );
 
     /// Add session hours to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] date  date
      * @param[in] marketType  market type
      * @param[in] product  product
@@ -499,23 +504,25 @@ protected:
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addSessionHours( const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj );
+    virtual bool addSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj );
 
     /// Add treasury bill rate to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addTreasuryBillRate( const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add treasury yield curve rate to database.
     /**
+     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addTreasuryYieldCurveRate( const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addTreasuryYieldCurveRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
 
 private:
 
@@ -532,10 +539,10 @@ private:
     void readSettings();
 
     /// Parse account balances.
-    bool parseAccountBalances( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
+    bool parseAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
 
     /// Parse session hours.
-    bool parseSessionHours( const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj );
+    bool parseSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj );
 
     /// Find symbol database.
     SymbolDatabase *findSymbol( const QString& symbol );

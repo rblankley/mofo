@@ -88,6 +88,9 @@ public slots:
 
 private slots:
 
+    /// Slot for about to quit.
+    void onAboutToQuit();
+
     /// Slot for accounts changed.
     void onAccountsChanged();
 

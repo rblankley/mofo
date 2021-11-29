@@ -58,6 +58,8 @@ void OptionAnalyzerThread::OptionAnalyzerThread::run()
 {
     const QDateTime now( AppDatabase::instance()->currentDateTime() );
 
+    QStringList cnames;
+
     // create filter for analysis
     OptionProfitCalculatorFilter calcFilter;
 
@@ -67,42 +69,55 @@ void OptionAnalyzerThread::OptionAnalyzerThread::run()
     if ( f.length() )
         calcFilter.restoreState( AppDatabase::instance()->filter( f ) );
 
-    // retrieve quote
-    QuoteTableModel quote( symbol_ );
-    quote.refreshTableData();
-
-    LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
-
-    // check filter for days to expiry
-    if (( calcFilter.minDaysToExpiry() ) && ( now.date().daysTo( expiryDate_ ) < calcFilter.minDaysToExpiry() ))
-        LOG_TRACE << "DTE below filter threshold";
-    else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < now.date().daysTo( expiryDate_ ) ))
-        LOG_TRACE << "DTE above filter threshold";
-    else
     {
-        // retrieve chain data
-        OptionChainTableModel chains( symbol_, expiryDate_ );
-        chains.refreshTableData();
+        // open connections to databases
+        QSqlDatabase connApp( AppDatabase::instance()->openDatabaseConnection() );
+        cnames.append( connApp.connectionName() );
 
-        // create a calculator
-        OptionProfitCalculator *calc( OptionProfitCalculator::create( quote.tableData( QuoteTableModel::MARK ).toDouble(), &chains, analysis_ ) );
+        QSqlDatabase connSymbol( AppDatabase::instance()->openDatabaseConnection( symbol_ ) );
+        cnames.append( connSymbol.connectionName() );
 
-        if ( !calc )
-            LOG_WARN << "no calculator";
+        // retrieve quote
+        QuoteTableModel quote( symbol_ );
+        quote.refreshTableData();
+
+        LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
+
+        // check filter for days to expiry
+        if (( calcFilter.minDaysToExpiry() ) && ( now.date().daysTo( expiryDate_ ) < calcFilter.minDaysToExpiry() ))
+            LOG_TRACE << "DTE below filter threshold";
+        else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < now.date().daysTo( expiryDate_ ) ))
+            LOG_TRACE << "DTE above filter threshold";
         else
         {
-            // setup calculator
-            calc->setFilter( calcFilter );
-            calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+            // retrieve chain data
+            OptionChainTableModel chains( symbol_, expiryDate_ );
+            chains.refreshTableData();
 
-            // analyze
-            calc->analyze( OptionTradingItemModel::SINGLE );
-            calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
-            calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+            // create a calculator
+            OptionProfitCalculator *calc( OptionProfitCalculator::create( quote.tableData( QuoteTableModel::MARK ).toDouble(), &chains, analysis_ ) );
 
-            OptionProfitCalculator::destroy( calc );
+            if ( !calc )
+                LOG_WARN << "no calculator";
+            else
+            {
+                // setup calculator
+                calc->setFilter( calcFilter );
+                calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+
+                // analyze
+                calc->analyze( OptionTradingItemModel::SINGLE );
+                calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
+                calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+
+                OptionProfitCalculator::destroy( calc );
+            }
         }
     }
+
+    // remove databases
+    foreach ( const QString& cname, cnames )
+        QSqlDatabase::removeDatabase( cname );
 
     LOG_DEBUG << "processing complete";
 }

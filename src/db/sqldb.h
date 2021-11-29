@@ -156,6 +156,15 @@ protected:
      */
     virtual bool readSetting( const QString& key, QVariant& value ) const;
 
+    /// Read setting from db.
+    /**
+     * @param[in] key  setting to read
+     * @param[out] value  setting value
+     * @param[in] db  sql database
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool readSetting( const QString& key, QVariant& value, const QSqlDatabase& db ) const;
+
     /// Update default field value.
     /**
      * Set global default value when @p field is populated, otherwise take value from global default.
@@ -164,6 +173,16 @@ protected:
      * @param[in] field  field to populate
      */
     virtual void updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field );
+
+    /// Update default field value.
+    /**
+     * Set global default value when @p field is populated, otherwise take value from global default.
+     * @param[in,out] query to update
+     * @param[in] obj  object to parse
+     * @param[in] field  field to populate
+     * @param[in] db  sql database
+     */
+    virtual void updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field, const QSqlDatabase& db );
 
     /// Upgrade database.
     /**
@@ -178,6 +197,15 @@ protected:
      * @return  @c true upon success, @c false otherwise
      */
     virtual bool writeSetting( const QString& key, const QVariant& value );
+
+    /// Write setting to db.
+    /**
+     * @param[in] key  setting to write
+     * @param[in] value  setting value
+     * @param[in] db  sql database
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& db );
 
 private:
 

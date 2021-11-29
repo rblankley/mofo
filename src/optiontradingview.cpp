@@ -133,8 +133,6 @@ void OptionTradingView::onHeaderSectionMoved( int logicalIndex, int oldVisualInd
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton button, int from, int to )
 {
-    Q_UNUSED( to )
-
     if ( Qt::RightButton != button )
         return;
 
@@ -142,6 +140,8 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
 
     if ( !hheader )
         return;
+
+    LOG_DEBUG << "header section pressed " << button << " " << from << " " << to;
 
     // ----------------------
     // create menu of actions
@@ -217,8 +217,14 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
     // show menu
     // ---------
 
+show_menu:
+
+    LOG_DEBUG << "show menu...";
+
     // show context menu
     a = contextMenu.exec( hheader->mapToGlobal( pos ) );
+
+    LOG_DEBUG << "show menu complete";
 
     // ---------------------
     // process menu response
@@ -239,13 +245,25 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
         const int column( columnMap[a] );
 
         bool hide( true );
+        bool keepLooping( false );
 
         if ( a->isCheckable() )
+        {
             hide = !a->isChecked();
+            keepLooping = true;
+        }
 
         LOG_TRACE << "set column " << column << " hidden " << hide;
 
         setColumnHidden( column, hide );
+
+        // prompt again...
+        if ( keepLooping )
+        {
+            saveHeaderState( hheader );
+
+            goto show_menu;
+        }
     }
 
     // sort ascending

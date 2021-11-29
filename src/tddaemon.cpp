@@ -137,8 +137,10 @@ void TDAmeritradeDaemon::authorize()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDaemon::setCurrentState( state value )
 {
+    const state prevState( currentState() );
+
     // nothing to do
-    if ( currentState() == value )
+    if ( prevState == value )
         return;
 
     LOG_DEBUG << "new state " << value;
@@ -164,6 +166,14 @@ void TDAmeritradeDaemon::setCurrentState( state value )
         break;
     case ACTIVE:
         checkIdleStatus();
+
+        // no longer processing chains or equities
+        if ( ACTIVE_BACKGROUND == prevState )
+        {
+            emit quotesBackgroundProcess( false );
+            emit optionChainBackgroundProcess( false );
+        }
+
         break;
     case ACTIVE_BACKGROUND:
         emit statusMessageChanged( tr( "Processing watchlists..." ) );
@@ -222,13 +232,6 @@ void TDAmeritradeDaemon::dequeue()
 
     if ( !processActiveState( now ) )
         return;
-
-    // no longer processing chains or equities
-    if ( ACTIVE_BACKGROUND == currentState() )
-    {
-        quotesBackgroundProcess( false );
-        optionChainBackgroundProcess( false );
-    }
 
     // clear background processing flag
     setCurrentState( ACTIVE );
@@ -333,7 +336,7 @@ void TDAmeritradeDaemon::queueOptionChainRequests( const QStringList& symbols, c
     }
 
     // retrieve list
-    optionChainQueue_ = symbols;
+    optionChainQueue_.append( symbols );
     optionChainQueue_.removeDuplicates();
 
     // determine if fundamental data needed
@@ -395,6 +398,13 @@ void TDAmeritradeDaemon::onActiveChanged( bool newValue )
         fundamentalsQueue_.clear();
         optionChainQueue_.clear();
         quoteHistoryQueue_.clear();
+
+        equityBackgroundPending_.clear();
+        optionChainBackgroundPending_.clear();
+
+        // stop background process
+        quotesBackgroundProcess( false );
+        optionChainBackgroundProcess( false );
     }
 }
 
@@ -428,17 +438,37 @@ void TDAmeritradeDaemon::onMarketHoursChanged()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDaemon::onOptionChainChanged( const QString& symbol, const QList<QDate>& expiryDates )
 {
-    emit optionChainUpdated( symbol, expiryDates, (ACTIVE_BACKGROUND == currentState()) );
+    // check for symbol request from background process
+    const bool background( optionChainBackgroundPending_.contains( symbol ) );
 
-    checkIdleStatus();
+    if ( background )
+        optionChainBackgroundPending_.removeOne( symbol );
+
+    // update!
+    emit optionChainUpdated( symbol, expiryDates, background );
+
+    if ( !background )
+        checkIdleStatus();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDaemon::onQuotesChanged( const QStringList& symbols )
 {
-    emit quotesUpdated( symbols, (ACTIVE_BACKGROUND == currentState()) );
+    // check for symbol request from background process
+    bool background( false );
 
-    checkIdleStatus();
+    foreach ( const QString& symbol, symbols )
+        if ( equityBackgroundPending_.contains( symbol ) )
+        {
+            equityBackgroundPending_.removeOne( symbol );
+            background = true;
+        }
+
+    // update!
+    emit quotesUpdated( symbols, background );
+
+    if ( !background )
+        checkIdleStatus();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -694,9 +724,11 @@ bool TDAmeritradeDaemon::processActiveState( const QDateTime& now )
 
         while (( equityQueue_.size() ) && ( symbols.size() < EQUITY_DEQUEUE_SIZE ))
         {
-            symbols.push_back( equityQueue_.front() );
+            symbols.append( equityQueue_.front() );
             equityQueue_.pop_front();
         }
+
+        equityBackgroundPending_.append( symbols );
 
         setCurrentState( ACTIVE_BACKGROUND );
 
@@ -704,11 +736,6 @@ bool TDAmeritradeDaemon::processActiveState( const QDateTime& now )
         api_->getQuotes( symbols );
 
         emit statusMessageChanged( tr( "Fetching quotes..." ) );
-        return false;
-    }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for equity";
         return false;
     }
 
@@ -728,11 +755,6 @@ bool TDAmeritradeDaemon::processActiveState( const QDateTime& now )
         emit statusMessageChanged( MESSAGE.arg( symbol ) );
         return false;
     }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for fundamental data";
-        return false;
-    }
 
     // request quote history
     if ( quoteHistoryQueue_.size() )
@@ -750,28 +772,32 @@ bool TDAmeritradeDaemon::processActiveState( const QDateTime& now )
         emit statusMessageChanged( MESSAGE.arg( symbol ) );
         return false;
     }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for quote history";
-        return false;
-    }
 
     // request option chain
-    if ( optionChainQueue_.size() )
+    while ( optionChainQueue_.size() )
     {
         const QString symbol( optionChainQueue_.front() );
         optionChainQueue_.pop_front();
+
+        // skip symbols we have no information on
+        if (( needFundamentals( symbol ) ) || ( needQuoteHistory( symbol ) ))
+        {
+            static const QList<QDate> empty;
+
+            // emit empty option chain
+            emit optionChainUpdated( symbol, empty, true );
+
+            LOG_WARN << "symbol " << qPrintable( symbol ) << " is missing required data for option processing... skipping...";
+            continue;
+        }
+
+        optionChainBackgroundPending_.append( symbol );
 
         setCurrentState( ACTIVE_BACKGROUND );
 
         // fetch option chain
         retrieveOptionChain( symbol, now, optionChainExpiryEndDate() );
 
-        return false;
-    }
-    else if ( requestsPending() )
-    {
-        LOG_TRACE << "waiting for option chain";
         return false;
     }
 

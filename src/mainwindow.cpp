@@ -48,7 +48,7 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.7" );
+static const QString applicationVersion( "0.0.8" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -82,6 +82,8 @@ MainWindow::MainWindow( QWidget *parent ) :
     connect( analysis_, &OptionAnalyzer::activeChanged, this, &_Myt::updateMenuState );
     connect( analysis_, &OptionAnalyzer::complete, this, &_Myt::updateMenuState );
     connect( analysis_, &OptionAnalyzer::statusMessageChanged, statusBar_, &QStatusBar::showMessage );
+
+    connect( QApplication::instance(), &QApplication::aboutToQuit, this, &_Myt::onAboutToQuit );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -154,6 +156,23 @@ void MainWindow::updateMenuState()
     accounts_->setEnabled( accountsExist );
 
     customScan_->setEnabled( online && active && !analysis_->isActive() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void MainWindow::onAboutToQuit()
+{
+    // stop background daemon
+    if ( !daemon_->isActive() )
+        return;
+
+    statusBar_->showMessage( tr( "Shutting Daemon Down..." ) );
+
+    daemon_->setActive( false );
+
+    LOG_INFO << "waiting for analysis to complete...";
+    analysis_->halt();
+
+    LOG_DEBUG << "analysis complete";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -128,6 +128,10 @@ protected:
 
     double underlying_;                             ///< Underlying price.
 
+    double histVolatility_;                         ///< Historical volatility.
+
+    double riskFreeRate_;                           ///< Risk free interest rate.
+
     double totalDivAmount_;                         ///< Total dividend amount (expected).
     double totalDivYield_;                          ///< Total dividend yield (expected).
 

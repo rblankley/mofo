@@ -145,8 +145,6 @@ OptionTradingItemModel::~OptionTradingItemModel()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 Qt::ItemFlags OptionTradingItemModel::flags( const QModelIndex& index ) const
 {
-    QMutexLocker guard( &m_ );
-
     // disable item
     Qt::ItemFlags f( _Mybase::flags( index ) );
     f &= ~Qt::ItemIsEnabled;
@@ -324,7 +322,6 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
     }
 
     // append row!
-    QMutexLocker guard( &m_ );
     appendRow( items );
 }
 

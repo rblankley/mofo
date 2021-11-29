@@ -22,6 +22,7 @@
 #include "common.h"
 #include "sqldb.h"
 
+#include <QApplication>
 #include <QDateTime>
 #include <QFile>
 #include <QJsonObject>
@@ -64,13 +65,16 @@ void SqlDatabase::setVersion( const QString &version )
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QSqlDatabase SqlDatabase::openDatabaseConnection() const
 {
-    const QString connName( connectionName() + QString::number( (quintptr) QThread::currentThreadId() ) );
+    static const QString SUFFIX( "_%1" );
 
-    QSqlDatabase db( QSqlDatabase::database( connName ) );
+    const bool mt( QApplication::instance()->thread() == QThread::currentThread() );
+    const QString cname( connectionName() + (mt ? QString() : SUFFIX.arg( (quintptr) QThread::currentThreadId() ) ) );
+
+    QSqlDatabase db( QSqlDatabase::database( cname ) );
 
     if (( !db.isOpen() ) || ( !db.isValid() ))
     {
-       db = QSqlDatabase::cloneDatabase( db_, connName );
+       db = QSqlDatabase::cloneDatabase( db_, cname );
 
        if ( !db.open() )
            LOG_ERROR << "failed to open db connection";
@@ -82,9 +86,15 @@ QSqlDatabase SqlDatabase::openDatabaseConnection() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SqlDatabase::readSetting( const QString& key, QVariant& value ) const
 {
+    return readSetting( key, value, db_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SqlDatabase::readSetting( const QString& key, QVariant& value, const QSqlDatabase& conn ) const
+{
     static const QString sql( "SELECT value FROM settings WHERE ?=key" );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.addBindValue( key );
 
@@ -111,10 +121,16 @@ bool SqlDatabase::readSetting( const QString& key, QVariant& value ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SqlDatabase::writeSetting( const QString& key, const QVariant& value )
 {
+    return writeSetting( key, value, db_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SqlDatabase::writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& conn )
+{
     static const QString sql( "REPLACE INTO settings (key,value) "
         "VALUES(?,?);" );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.addBindValue( key );
     query.addBindValue( value );
@@ -126,7 +142,7 @@ bool SqlDatabase::writeSetting( const QString& key, const QVariant& value )
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during update " << e.type() << " " << qPrintable( e.text() );
+        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -227,6 +243,12 @@ bool SqlDatabase::open()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field )
 {
+    updateDefaultValue( query, obj, field, db_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field, const QSqlDatabase& conn )
+{
     QJsonValue value;
 
     if ( obj.contains( field ) )
@@ -237,14 +259,14 @@ void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, 
     {
         QVariant v;
 
-        if ( readSetting( field, v ) )
+        if ( readSetting( field, v, conn ) )
             query.bindValue( ":" + field, v.toString() );
     }
 
     // set default value
     else
     {
-        writeSetting( field, value.toVariant() );
+        writeSetting( field, value.toVariant(), conn );
     }
 }
 

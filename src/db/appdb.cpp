@@ -25,12 +25,14 @@
 #include "stringsdb.h"
 #include "symboldb.h"
 
+#include <QApplication>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSqlError>
 #include <QSqlQuery>
 #include <QSqlQueryModel>
 #include <QSqlRecord>
+#include <QThread>
 
 static const QString DB_NAME( "appdb.db" );
 static const QString DB_VERSION( "7" );
@@ -219,8 +221,6 @@ QByteArray AppDatabase::filter( const QString& name ) const
             result.append( rec.value( "value" ).toByteArray() );
         }
     }
-
-    conn.close();
 
     return result;
 }
@@ -583,8 +583,6 @@ double AppDatabase::riskFreeRate( double term ) const
             lowerRate = upperRate;
         }
     }
-
-    conn.close();
 
     return rate;
 }
@@ -992,6 +990,7 @@ AppDatabase *AppDatabase::instance()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool AppDatabase::processData( const QJsonObject& obj )
 {
+    const bool mt( QApplication::instance()->thread() == QThread::currentThread() );
     const QDateTime now( currentDateTime() );
 
     bool accountsProcessed( false );
@@ -1008,26 +1007,10 @@ bool AppDatabase::processData( const QJsonObject& obj )
     QList<QDate> optionChainExpiryDates;
     QString optionChainSymbol;
 
-    // START DB TRANSACION
-    if ( !db_.transaction() )
-    {
-        LOG_WARN << "failed to start transaction";
-        return false;
-    }
-
     bool result( true );
+    QStringList cnames;
 
-    // iterate accounts
-    const QJsonObject::const_iterator accounts( obj.constFind( DB_ACCOUNTS ) );
-
-    if (( obj.constEnd() != accounts ) && ( accounts->isArray() ))
-    {
-        foreach ( const QJsonValue& accountVal, accounts->toArray() )
-           if ( accountVal.isObject() )
-              result &= addAccount( now, accountVal.toObject() );
-
-        accountsProcessed = true;
-    }
+    // ---- //
 
     // iterate instruments
     const QJsonObject::const_iterator instruments( obj.constFind( DB_INSTRUMENTS ) );
@@ -1035,31 +1018,24 @@ bool AppDatabase::processData( const QJsonObject& obj )
     if (( obj.constEnd() != instruments ) && ( instruments->isArray() ))
     {
         foreach ( const QJsonValue& instrumentVal, instruments->toArray() )
-           if ( instrumentVal.isObject() )
-           {
-               const QJsonObject instrument( instrumentVal.toObject() );
+            if ( instrumentVal.isObject() )
+            {
+                const QJsonObject instrument( instrumentVal.toObject() );
 
-               const QString symbol( instrument[DB_SYMBOL].toString() );
+                const QString symbol( instrument[DB_SYMBOL].toString() );
 
-               SymbolDatabase *child( findSymbol( symbol ) );
+                SymbolDatabase *child( findSymbol( symbol ) );
 
-               if ( child )
-                   result &= child->processInstrument( now, instrument );
-           }
+                if ( child )
+                {
+                    result &= child->processInstrument( now, instrument );
 
-        instrumentsProcessed = true;
-    }
+                    // track connections
+                    cnames.append( openDatabaseConnection( symbol ).connectionName() );
+                }
+            }
 
-    // iterate market hours
-    const QJsonObject::const_iterator marketHours( obj.constFind( DB_MARKET_HOURS ) );
-
-    if (( obj.constEnd() != marketHours ) && ( marketHours->isArray() ))
-    {
-        foreach ( const QJsonValue& hoursVal, marketHours->toArray() )
-           if ( hoursVal.isObject() )
-              result &= addMarketHours( hoursVal.toObject() );
-
-        marketHoursProcessed = true;
+        instrumentsProcessed = result;
     }
 
     // process quote history
@@ -1074,9 +1050,14 @@ bool AppDatabase::processData( const QJsonObject& obj )
         SymbolDatabase *child( findSymbol( symbol ) );
 
         if ( child )
+        {
             result &= child->processQuoteHistory( quoteHistory );
 
-        quoteHistoryProcessed = true;
+            // track connections
+            cnames.append( openDatabaseConnection( symbol ).connectionName() );
+        }
+
+        quoteHistoryProcessed = result;
         quoteHistorySymbol = symbol;
     }
 
@@ -1104,9 +1085,14 @@ bool AppDatabase::processData( const QJsonObject& obj )
                 SymbolDatabase *child( findSymbol( symbol ) );
 
                 if ( child )
+                {
                     result &= child->processQuote( now, quote );
 
-                quotesProcessed = true;
+                    // track connections
+                    cnames.append( openDatabaseConnection( symbol ).connectionName() );
+                }
+
+                quotesProcessed = result;
                 quoteSymbols.append( symbol );
             }
     }
@@ -1123,67 +1109,119 @@ bool AppDatabase::processData( const QJsonObject& obj )
         SymbolDatabase *child( findSymbol( symbol ) );
 
         if ( child )
+        {
             result &= child->processOptionChain( now, optionChain, optionChainExpiryDates );
 
-        optionChainProcessed = true;
+            // track connections
+            cnames.append( openDatabaseConnection( symbol ).connectionName() );
+        }
+
+        optionChainProcessed = result;
         optionChainSymbol = symbol;
     }
 
-    // process treasury bill rates
-    const QJsonObject::const_iterator treasBillRatesIt( obj.constFind( DB_TREAS_BILL_RATES ) );
+    // ---- //
 
-    if (( obj.constEnd() != treasBillRatesIt ) && ( treasBillRatesIt->isObject() ))
     {
-        const QJsonObject treasBillRates( treasBillRatesIt->toObject() );
+        QSqlDatabase conn( openDatabaseConnection() );
+        cnames.append( conn.connectionName() );
 
-        const QJsonObject::const_iterator rates( treasBillRates.constFind( DB_DATA ) );
-        const QString updated( treasBillRates[DB_UPDATED].toString() );
-
-        if ( rates->isArray() )
+        // START DB TRANSACION
+        if ( !conn.transaction() )
         {
-            LOG_DEBUG << "process treasury bill rates";
+            LOG_WARN << "failed to start transaction";
+            result = false;
+        }
+        else
+        {
+            // iterate accounts
+            const QJsonObject::const_iterator accounts( obj.constFind( DB_ACCOUNTS ) );
 
-            foreach ( const QJsonValue& rateVal, rates->toArray() )
-               if ( rateVal.isObject() )
-                  result &= addTreasuryBillRate( QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
+            if (( obj.constEnd() != accounts ) && ( accounts->isArray() ))
+            {
+                foreach ( const QJsonValue& accountVal, accounts->toArray() )
+                   if ( accountVal.isObject() )
+                      result &= addAccount( conn, now, accountVal.toObject() );
 
-            treasBillRatesProcessed = true;
+                accountsProcessed = result;
+            }
+
+            // iterate market hours
+            const QJsonObject::const_iterator marketHours( obj.constFind( DB_MARKET_HOURS ) );
+
+            if (( obj.constEnd() != marketHours ) && ( marketHours->isArray() ))
+            {
+                foreach ( const QJsonValue& hoursVal, marketHours->toArray() )
+                   if ( hoursVal.isObject() )
+                      result &= addMarketHours( conn, hoursVal.toObject() );
+
+                marketHoursProcessed = result;
+            }
+
+
+            // process treasury bill rates
+            const QJsonObject::const_iterator treasBillRatesIt( obj.constFind( DB_TREAS_BILL_RATES ) );
+
+            if (( obj.constEnd() != treasBillRatesIt ) && ( treasBillRatesIt->isObject() ))
+            {
+                const QJsonObject treasBillRates( treasBillRatesIt->toObject() );
+
+                const QJsonObject::const_iterator rates( treasBillRates.constFind( DB_DATA ) );
+                const QString updated( treasBillRates[DB_UPDATED].toString() );
+
+                if ( rates->isArray() )
+                {
+                    LOG_DEBUG << "process treasury bill rates";
+
+                    foreach ( const QJsonValue& rateVal, rates->toArray() )
+                       if ( rateVal.isObject() )
+                          result &= addTreasuryBillRate( conn, QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
+
+                    treasBillRatesProcessed = result;
+                }
+            }
+
+            // process treasury yield curve rates
+            const QJsonObject::const_iterator treasYieldCurveRatesIt( obj.constFind( DB_TREAS_YIELD_CURVE_RATES ) );
+
+            if (( obj.constEnd() != treasYieldCurveRatesIt ) && ( treasYieldCurveRatesIt->isObject() ))
+            {
+                const QJsonObject treasYieldCurveRates( treasYieldCurveRatesIt->toObject() );
+
+                const QJsonObject::const_iterator rates( treasYieldCurveRates.constFind( DB_DATA ) );
+                const QString updated( treasYieldCurveRates[DB_UPDATED].toString() );
+
+                if ( rates->isArray() )
+                {
+                    LOG_DEBUG << "process treasury yield curve rates";
+
+                    foreach ( const QJsonValue& rateVal, rates->toArray() )
+                       if ( rateVal.isObject() )
+                          result &= addTreasuryYieldCurveRate( conn, QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
+
+                    treasYieldCurveRatesProcessed = result;
+                }
+            }
+
+            // COMMIT DB TRANSACION
+
+            // commit to database
+            if (( result ) && ( !(result = conn.commit()) ))
+                LOG_WARN << "commit failed";
+
+            if (( !result ) && ( !conn.rollback() ))
+                LOG_ERROR << "rollback failed";
         }
     }
 
-    // process treasury yield curve rates
-    const QJsonObject::const_iterator treasYieldCurveRatesIt( obj.constFind( DB_TREAS_YIELD_CURVE_RATES ) );
-
-    if (( obj.constEnd() != treasYieldCurveRatesIt ) && ( treasYieldCurveRatesIt->isObject() ))
+    // remove databases
+    if (( cnames.length() ) && ( !mt ))
     {
-        const QJsonObject treasYieldCurveRates( treasYieldCurveRatesIt->toObject() );
+        cnames.removeDuplicates();
 
-        const QJsonObject::const_iterator rates( treasYieldCurveRates.constFind( DB_DATA ) );
-        const QString updated( treasYieldCurveRates[DB_UPDATED].toString() );
-
-        if ( rates->isArray() )
-        {
-            LOG_DEBUG << "process treasury yield curve rates";
-
-            foreach ( const QJsonValue& rateVal, rates->toArray() )
-               if ( rateVal.isObject() )
-                  result &= addTreasuryYieldCurveRate( QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
-
-            treasYieldCurveRatesProcessed = true;
-        }
+        foreach ( const QString& cname, cnames )
+            QSqlDatabase::removeDatabase( cname );
     }
-
-    // COMMIT DB TRANSACION
-
-    // commit to database
-    if (( result ) && ( !(result = db_.commit()) ))
-        LOG_WARN << "commit failed";
-
-    if (( !result ) && ( !db_.rollback() ))
-        LOG_ERROR << "rollback failed";
-
-    if ( !result )
-        return false;
 
     // EMIT SIGNALS
 
@@ -1211,7 +1249,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
     if ( treasYieldCurveRatesProcessed )
         emit treasuryYieldCurveRatesChanged();
 
-    return true;
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1242,7 +1280,7 @@ QStringList AppDatabase::upgradeFiles( const QString& fromStr, const QString& to
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addAccount( const QDateTime& stamp, const QJsonObject& obj )
+bool AppDatabase::addAccount( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO accounts (accountId,"
         "type,isClosingOnlyRestricted,isDayTrader,roundTrips) "
@@ -1254,7 +1292,7 @@ bool AppDatabase::addAccount( const QDateTime& stamp, const QJsonObject& obj )
     if ( accountId.isEmpty() )
         return false;
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
 
     bindQueryValues( query, obj );
@@ -1269,14 +1307,14 @@ bool AppDatabase::addAccount( const QDateTime& stamp, const QJsonObject& obj )
     }
 
     // parse account balances
-    if ( !parseAccountBalances( stamp, accountId, obj ) )
+    if ( !parseAccountBalances( conn, stamp, accountId, obj ) )
         return false;
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addAccountBalances( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj )
+bool AppDatabase::addAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO balances (stamp,accountId,type,"
         "accruedInterest,cashBalance,cashReceipts,longOptionMarketValue,liquidationValue,longMarketValue,moneyMarketFund,savings,shortMarketValue,pendingDeposits,"
@@ -1291,7 +1329,7 @@ bool AppDatabase::addAccountBalances( const QDateTime& stamp, const QString& acc
                 ":equityPercentage,:longMarginValue,:maintenanceCall,:maintenanceRequirement,:marginBalance,:regTCall,:shortBalance,:shortMarginValue,:sma,:isInCall,"
                 ":stockBuyingPower,:optionBuyingPower,:dayTradingEquityCall,:margin,:marginEquity)" );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
     query.bindValue( ":" + DB_ACCOUNT_ID, accountId );
@@ -1312,7 +1350,7 @@ bool AppDatabase::addAccountBalances( const QDateTime& stamp, const QString& acc
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addMarketHours( const QJsonObject& obj )
+bool AppDatabase::addMarketHours( const QSqlDatabase& conn, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO marketHours (date,marketType,product,"
         "isOpen,category,exchange) "
@@ -1330,11 +1368,11 @@ bool AppDatabase::addMarketHours( const QJsonObject& obj )
     QJsonObject::const_iterator productName( obj.constFind( DB_PRODUCT_NAME ) );
 
     if (( obj.constEnd() != productName ) && ( productName->isString() ))
-        if ( !addProductType( product, productName->toString() ) )
+        if ( !addProductType( conn, product, productName->toString() ) )
             return false;
 
     // add market hours
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
 
     bindQueryValues( query, obj );
@@ -1352,14 +1390,14 @@ bool AppDatabase::addMarketHours( const QJsonObject& obj )
     QJsonObject::const_iterator sessionHours( obj.constFind( DB_SESSION_HOURS ) );
 
     if (( obj.constEnd() != sessionHours ) && ( sessionHours->isObject() ))
-        if ( !parseSessionHours( date, marketType, product, sessionHours->toObject() ) )
+        if ( !parseSessionHours( conn, date, marketType, product, sessionHours->toObject() ) )
             return false;
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addProductType( const QString& type, const QString& description )
+bool AppDatabase::addProductType( const QSqlDatabase& conn, const QString& type, const QString& description )
 {
     static const QString sql( "REPLACE INTO productType (type,"
         "name) "
@@ -1370,7 +1408,7 @@ bool AppDatabase::addProductType( const QString& type, const QString& descriptio
         return false;
     else if ( description.length() )
     {
-        QSqlQuery query( db_ );
+        QSqlQuery query( conn );
         query.prepare( sql );
         query.addBindValue( type );
         query.addBindValue( description );
@@ -1389,7 +1427,7 @@ bool AppDatabase::addProductType( const QString& type, const QString& descriptio
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addSessionHours( const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj )
+bool AppDatabase::addSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO sessionHours (date,marketType,product,sessionHoursType,"
         "start,end) "
@@ -1402,7 +1440,7 @@ bool AppDatabase::addSessionHours( const QDate& date, const QString& marketType,
     if (( !start.isValid() ) || ( !end.isValid() ) || ( end <= start ))
         return false;
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":" + DB_DATE, date.toString( Qt::ISODate ) );
     query.bindValue( ":" + DB_MARKET_TYPE, marketType );
@@ -1424,7 +1462,7 @@ bool AppDatabase::addSessionHours( const QDate& date, const QString& marketType,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addTreasuryBillRate( const QDateTime& stamp, const QJsonObject& obj )
+bool AppDatabase::addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
 {
     Q_UNUSED( stamp )
 
@@ -1442,7 +1480,7 @@ bool AppDatabase::addTreasuryBillRate( const QDateTime& stamp, const QJsonObject
 
     const double daysToMaturity( date.daysTo( maturityDate ) );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":date", date.date().toString( Qt::ISODate ) );
     query.bindValue( ":term", (daysToMaturity / numDays_) );
@@ -1462,7 +1500,7 @@ bool AppDatabase::addTreasuryBillRate( const QDateTime& stamp, const QJsonObject
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addTreasuryYieldCurveRate( const QDateTime& stamp, const QJsonObject& obj )
+bool AppDatabase::addTreasuryYieldCurveRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
 {
     Q_UNUSED( stamp )
 
@@ -1478,7 +1516,7 @@ bool AppDatabase::addTreasuryYieldCurveRate( const QDateTime& stamp, const QJson
     if (( !date.isValid() ) || ( months <= 0.0 ))
         return false;
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( conn );
     query.prepare( sql );
     query.bindValue( ":date", date.date().toString( Qt::ISODate ) );
     query.bindValue( ":term", (months / 12.0) );
@@ -1525,7 +1563,7 @@ void AppDatabase::readSettings()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::parseAccountBalances( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj )
+bool AppDatabase::parseAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QJsonObject& obj )
 {
     QStringList balanceKeys;
     balanceKeys.append( DB_INITIAL_BALANCES );
@@ -1537,7 +1575,7 @@ bool AppDatabase::parseAccountBalances( const QDateTime& stamp, const QString& a
         const QJsonObject::const_iterator it( obj.constFind( key ) );
 
         if (( obj.constEnd() != it ) && ( it->isObject() ))
-            if ( !addAccountBalances( stamp, accountId, key, it->toObject() ) )
+            if ( !addAccountBalances( conn, stamp, accountId, key, it->toObject() ) )
                 return false;
     }
 
@@ -1545,11 +1583,11 @@ bool AppDatabase::parseAccountBalances( const QDateTime& stamp, const QString& a
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::parseSessionHours( const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj )
+bool AppDatabase::parseSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj )
 {
     for ( QJsonObject::const_iterator i( obj.constBegin() ); i != obj.constEnd(); ++i )
         if ( i->isObject() )
-            if ( !addSessionHours( date, marketType, product, i.key(), i->toObject() ) )
+            if ( !addSessionHours( conn, date, marketType, product, i.key(), i->toObject() ) )
                 return false;
 
     return true;

@@ -843,11 +843,10 @@ bool ExpectedValueCalculator::generateGreeks( int row, double strike, bool isCal
         result.timeToExpiry /= SECONDS_PER_DAY;
         result.timeToExpiry /= AppDatabase::instance()->numDays();
 
-        // get risk free interest rate
-        result.riskFreeRate = AppDatabase::instance()->riskFreeRate( result.timeToExpiry );
+        assert( 0.0 < result.timeToExpiry );
 
-        if ( result.riskFreeRate <= 0.0 )
-            LOG_WARN << "risk free rate is zero";
+        // get risk free interest rate
+        result.riskFreeRate = riskFreeRate_;
 
         // generate VI for bid, ask, mark prices
         AbstractOptionPricing *o( createPricingMethod( underlying_, result.riskFreeRate, result.riskFreeRate, 0.0, result.timeToExpiry, divTimes_, div_ ) );

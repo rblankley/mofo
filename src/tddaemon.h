@@ -141,6 +141,9 @@ protected:
     QStringList optionChainQueue_;                  ///< Queue of option chain requests.
     QStringList quoteHistoryQueue_;                 ///< Queue of quote history requests.
 
+    QStringList equityBackgroundPending_;           ///< List of pending background equity requests.
+    QStringList optionChainBackgroundPending_;      ///< List of pending background option chain requests.
+
     // ========================================================================
     // Properties
     // ========================================================================
