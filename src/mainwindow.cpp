@@ -48,7 +48,7 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.8" );
+static const QString applicationVersion( "0.0.9" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -297,7 +297,7 @@ void MainWindow::onActionTriggered()
     {
         bool okay;
 
-        const QString symbol(
+        const QString str(
             QInputDialog::getText(
                 this,
                 tr( "Enter Symbol" ),
@@ -306,8 +306,10 @@ void MainWindow::onActionTriggered()
                 QString(),
                 &okay ) );
 
-        if (( okay ) && ( symbol.length() ))
+        if (( okay ) && ( str.length() ))
         {
+            const QString symbol( str.toUpper() ); // symbols should be upper case
+
             OptionViewerTabWidget *w( qobject_cast<OptionViewerTabWidget*>( centralWidget() ) );
 
             // set central widget

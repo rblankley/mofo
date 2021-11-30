@@ -63,6 +63,13 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve filter name.
+    /**
+     * Gives background filter when no custom filter in place.
+     * @return  filter name
+     */
+    virtual QString filter() const;
+
     /// Retrieve analysis is active.
     /**
      * @return  @c true if active, @c false otherwise

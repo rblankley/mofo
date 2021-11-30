@@ -369,7 +369,7 @@ QStringList WatchlistDialog::generateList( const QString& data )
         const QString str( d.trimmed() );
 
         if ( !str.isEmpty() )
-            result.append( str );
+            result.append( str.toUpper() ); // symbols should be upper case
     }
 
     // remove duplicates

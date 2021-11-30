@@ -158,7 +158,8 @@ private:
     QLabel *divDate_;
 
     QToolButton *clear_;
-    QToolButton *analysis_;
+    QToolButton *analysisOne_;
+    QToolButton *analysisAll_;
     QToolButton *refresh_;
 
     QSplitter *splitter_;

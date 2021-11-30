@@ -35,6 +35,7 @@ class OptionTradingItemModel;
 class OptionAnalyzerThread : public QThread
 {
     Q_OBJECT
+    Q_PROPERTY( QString filter READ filter WRITE setFilter )
 
     using _Myt = OptionAnalyzerThread;
     using _Mybase = QThread;
@@ -66,25 +67,15 @@ public:
 
     /// Retrieve filter name.
     /**
-     * Gives background filter when no custom filter in place.
      * @return  filter name
      */
-    virtual QString filter() const;
+    virtual QString filter() const {return filter_;}
 
-    /// Set custom filter.
+    /// Set filter.
     /**
      * @param[in] value  filter name
      */
-    virtual void setCustomFilter( const QString& value ) {customFilter_ = value;}
-
-public slots:
-
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Reset custom filter.
-    virtual void resetCustomFilter() {customFilter_.clear();}
+    virtual void setFilter( const QString& value ) {filter_ = value;}
 
 protected:
 
@@ -93,7 +84,7 @@ protected:
     QString symbol_;                                ///< Symbol.
     QDate expiryDate_;                              ///< Expiration date.
 
-    QString customFilter_;                          ///< Custom filter.
+    QString filter_;                                ///< Custom filter.
 
     // ========================================================================
     // Methods

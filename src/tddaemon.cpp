@@ -54,10 +54,10 @@ TDAmeritradeDaemon::TDAmeritradeDaemon( TDAmeritrade *api, DeptOfTheTreasury *us
     connect( usdot_, &TDAmeritrade::requestsPendingChanged, this, &_Myt::onRequestsPendingChanged );
 
     connect( db_, &AppDatabase::accountsChanged, this, &_Myt::onAccountsChanged );
-    connect( db_, &AppDatabase::instrumentsChanged, this, &_Myt::onInstrumentsChanged );
+    connect( db_, &AppDatabase::instrumentsChanged, this, &_Myt::onInstrumentsChanged, Qt::QueuedConnection );
     connect( db_, &AppDatabase::marketHoursChanged, this, &_Myt::onMarketHoursChanged );
-    connect( db_, &AppDatabase::optionChainChanged, this, &_Myt::onOptionChainChanged );
-    connect( db_, &AppDatabase::quotesChanged, this, &_Myt::onQuotesChanged );
+    connect( db_, &AppDatabase::optionChainChanged, this, &_Myt::onOptionChainChanged, Qt::QueuedConnection );
+    connect( db_, &AppDatabase::quotesChanged, this, &_Myt::onQuotesChanged, Qt::QueuedConnection );
     connect( db_, &AppDatabase::treasuryYieldCurveRatesChanged, this, &_Myt::onTreasuryYieldCurveRatesChanged );
 
     connect( this, &_Mybase::activeChanged, this, &_Myt::onActiveChanged );

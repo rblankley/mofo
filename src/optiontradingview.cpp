@@ -44,9 +44,6 @@ OptionTradingView::OptionTradingView( model_type *model, QWidget *parent ) :
     model_( model ),
     prevRow_( -1 )
 {
-    // take ownership of model
-    model->setParent( this );
-
     // init
     initialize();
     createLayout();

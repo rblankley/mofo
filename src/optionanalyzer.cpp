@@ -24,6 +24,7 @@
 #include "optionanalyzer.h"
 #include "optionanalyzerthread.h"
 
+#include "db/appdb.h"
 #include "db/optiontradingitemmodel.h"
 
 #include <QApplication>
@@ -45,6 +46,15 @@ OptionAnalyzer::OptionAnalyzer( model_type *model, QObject *parent ) :
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionAnalyzer::~OptionAnalyzer()
 {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString OptionAnalyzer::filter() const
+{
+    if ( customFilter_.isEmpty() )
+        return AppDatabase::instance()->optionAnalysisFilter();
+
+    return customFilter_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -152,9 +162,7 @@ void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QD
     {
         // create worker thread
         OptionAnalyzerThread *worker( new OptionAnalyzerThread( symbol, d, analysis_, this ) );
-
-        if ( customFilter_.length() )
-            worker->setCustomFilter( customFilter_ );
+        worker->setFilter( filter() );
 
         connect( worker, &QThread::finished, this, &_Myt::onWorkerFinished );
 
@@ -188,10 +196,16 @@ void OptionAnalyzer::updateStatus( bool force )
     // analysis complete
     if ( !isActive() )
     {
-        const QString message( tr( "Options analysis complete! %1 symbols scanned in %2 minutes." ) );
+        const QString message( tr( "Options analysis complete %1 using filter '%2'. %3 symbols scanned in %4 minutes." ) );
 
         LOG_INFO << "analysis complete!";
         QApplication::beep();
+
+        // retrieve filter name
+        QString f( filter() );
+
+        if ( f.isEmpty() )
+            f = tr( "NONE" );
 
         // reset custom filter
         resetCustomFilter();
@@ -204,7 +218,7 @@ void OptionAnalyzer::updateStatus( bool force )
         LOG_INFO << "scanned " << symbolsTotal_ << " symbols with " << numThreadsComplete_ << " total expirations in " << totalTime << " minutes (" << THROTTLE << ")";
         LOG_DEBUG << "average time per expiration " << (double) numThreadsComplete_ / start_.secsTo( stop_ ) << " sec (" << THROTTLE << ")";
 
-        emit statusMessageChanged( message.arg( symbolsTotal_ ).arg( totalTime, 0, 'f', 2 ) );
+        emit statusMessageChanged( message.arg( stop_.toString() ).arg( f ).arg( symbolsTotal_ ).arg( totalTime, 0, 'f', 2 ) );
         emit complete();
     }
 

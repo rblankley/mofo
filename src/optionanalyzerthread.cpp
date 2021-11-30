@@ -45,15 +45,6 @@ OptionAnalyzerThread::~OptionAnalyzerThread()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QString OptionAnalyzerThread::filter() const
-{
-    if ( customFilter_.isEmpty() )
-        return AppDatabase::instance()->optionAnalysisFilter();
-
-    return customFilter_;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionAnalyzerThread::OptionAnalyzerThread::run()
 {
     const QDateTime now( AppDatabase::instance()->currentDateTime() );
