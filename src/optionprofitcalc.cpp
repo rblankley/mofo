@@ -188,9 +188,28 @@ bool OptionProfitCalculator::isFilteredOut( int row, bool isCall ) const
             return true;
     }
 
+    // underlying price
+    if (( 0.0 < f_.minUnderlyingPrice() ) && ( underlying_ < f_.minUnderlyingPrice() ))
+        return true;
+    else if (( 0.0 < f_.maxUnderlyingPrice() ) && ( f_.maxUnderlyingPrice() < underlying_ ))
+        return true;
+
+    // DTE
     if (( f_.minDaysToExpiry() ) && ( daysToExpiry_ < f_.minDaysToExpiry() ))
         return true;
     else if (( f_.maxDaysToExpiry() ) && ( f_.maxDaysToExpiry() < daysToExpiry_ ))
+        return true;
+
+    // dividend amount
+    if (( 0.0 < f_.minDividendAmount() ) && ( dividendAmount() < f_.minDividendAmount() ))
+        return true;
+    if (( 0.0 < f_.maxDividendAmount() ) && ( f_.maxDividendAmount() < dividendAmount() ))
+        return true;
+
+    // dividend yield
+    if (( 0.0 < f_.minDividendYield() ) && ( dividendYield() < f_.minDividendYield() ))
+        return true;
+    if (( 0.0 < f_.maxDividendYield() ) && ( f_.maxDividendYield() < dividendYield() ))
         return true;
 
     return false;
@@ -228,59 +247,108 @@ void OptionProfitCalculator::addRowToItemModel( const item_model_type::ColumnVal
     if (( 0 < f_.minAskSize() ) && ( result[item_model_type::ASK_SIZE].toInt() < f_.minAskSize() ))
         return;
 
+    // probability ITM
+    if (( 0.0 < f_.minProbITM() ) && ( result[item_model_type::PROBABILITY_ITM].toDouble() < f_.minProbITM() ))
+        return;
+    else if (( 0.0 < f_.maxProbITM() ) && ( f_.maxProbITM() < result[item_model_type::PROBABILITY_ITM].toDouble() ))
+        return;
+
+    // probability OTM
+    if (( 0.0 < f_.minProbOTM() ) && ( result[item_model_type::PROBABILITY_OTM].toDouble() < f_.minProbOTM() ))
+        return;
+    else if (( 0.0 < f_.maxProbOTM() ) && ( f_.maxProbOTM() < result[item_model_type::PROBABILITY_OTM].toDouble() ))
+        return;
+
     // probability of profit
     if (( 0.0 < f_.minProbProfit() ) && ( result[item_model_type::PROBABILITY_PROFIT].toDouble() < f_.minProbProfit() ))
         return;
     else if (( 0.0 < f_.maxProbProfit() ) && ( f_.maxProbProfit() < result[item_model_type::PROBABILITY_PROFIT].toDouble() ))
         return;
 
-    // DTE
-    if (( f_.minDaysToExpiry() ) && ( daysToExpiry_ < f_.minDaysToExpiry() ))
+    // ROR
+    if (( 0.0 != f_.minReturnOnRisk() ) && ( result[item_model_type::ROR].toDouble() < f_.minReturnOnRisk() ) && ( !freeMoney ))
         return;
-    else if (( f_.maxDaysToExpiry() ) && ( f_.maxDaysToExpiry() < daysToExpiry_ ))
+    if (( 0.0 != f_.maxReturnOnRisk() ) && ( f_.maxReturnOnRisk() < result[item_model_type::ROR].toDouble() ))
+        return;
+
+    // ROR / Time
+    if (( 0.0 != f_.minReturnOnRiskTime() ) && ( result[item_model_type::ROR_TIME].toDouble() < f_.minReturnOnRiskTime() ) && ( !freeMoney ))
+        return;
+    if (( 0.0 != f_.maxReturnOnRiskTime() ) && ( f_.maxReturnOnRiskTime() < result[item_model_type::ROR_TIME].toDouble() ))
         return;
 
     // ROI
-    if (( 0.0 < f_.minReturnOnInvestment() ) && ( result[item_model_type::ROI].toDouble() < f_.minReturnOnInvestment() ) && ( !freeMoney ))
+    if (( 0.0 != f_.minReturnOnInvestment() ) && ( result[item_model_type::ROI].toDouble() < f_.minReturnOnInvestment() ) && ( !freeMoney ))
         return;
-    if (( 0.0 < f_.maxReturnOnInvestment() ) && ( f_.maxReturnOnInvestment() < result[item_model_type::ROI].toDouble() ))
+    if (( 0.0 != f_.maxReturnOnInvestment() ) && ( f_.maxReturnOnInvestment() < result[item_model_type::ROI].toDouble() ))
         return;
 
     // ROI / Time
-    if (( 0.0 < f_.minReturnOnInvestmentTime() ) && ( result[item_model_type::ROI_TIME].toDouble() < f_.minReturnOnInvestmentTime() ) && ( !freeMoney ))
+    if (( 0.0 != f_.minReturnOnInvestmentTime() ) && ( result[item_model_type::ROI_TIME].toDouble() < f_.minReturnOnInvestmentTime() ) && ( !freeMoney ))
         return;
-    if (( 0.0 < f_.maxReturnOnInvestmentTime() ) && ( f_.maxReturnOnInvestmentTime() < result[item_model_type::ROI_TIME].toDouble() ))
+    if (( 0.0 != f_.maxReturnOnInvestmentTime() ) && ( f_.maxReturnOnInvestmentTime() < result[item_model_type::ROI_TIME].toDouble() ))
         return;
 
+    // EV
+    if (( 0.0 != f_.minExpectedValue() ) && ( result[item_model_type::EXPECTED_VALUE].toDouble() < f_.minExpectedValue() ) && ( !freeMoney ))
+        return;
+    if (( 0.0 != f_.maxExpectedValue() ) && ( f_.maxExpectedValue() < result[item_model_type::EXPECTED_VALUE].toDouble() ))
+        return;
+
+    // EV-ROI
+    if (( 0.0 != f_.minExpectedValueReturnOnInvestment() ) && ( result[item_model_type::EXPECTED_VALUE_ROI].toDouble() < f_.minExpectedValueReturnOnInvestment() ) && ( !freeMoney ))
+        return;
+    if (( 0.0 != f_.maxExpectedValueReturnOnInvestment() ) && ( f_.maxExpectedValueReturnOnInvestment() < result[item_model_type::EXPECTED_VALUE_ROI].toDouble() ))
+        return;
+
+    // EV-ROI / Time
+    if (( 0.0 != f_.minExpectedValueReturnOnInvestmentTime() ) && ( result[item_model_type::EXPECTED_VALUE_ROI_TIME].toDouble() < f_.minExpectedValueReturnOnInvestmentTime() ) && ( !freeMoney ))
+        return;
+    if (( 0.0 != f_.maxExpectedValueReturnOnInvestmentTime() ) && ( f_.maxExpectedValueReturnOnInvestmentTime() < result[item_model_type::EXPECTED_VALUE_ROI_TIME].toDouble() ))
+        return;
+
+    // spread percent
     if ( 0.0 < f_.maxSpreadPercent() )
     {
-        // spread percent is populated
-        if ( result[item_model_type::BID_ASK_SPREAD_PERCENT].isNull() )
+        // spread amount is populated
+        if ( result[item_model_type::BID_ASK_SPREAD].isNull() )
             return;
 
-        const double spreadPercent( result[item_model_type::BID_ASK_SPREAD_PERCENT].toDouble() );
+        const double spreadAmount( result[item_model_type::BID_ASK_SPREAD].toDouble() );
 
-        // spread percent is valid
-        if (( std::isinf( spreadPercent ) ) || ( std::isnan( spreadPercent ) ))
-            return;
+        if ( f_.minSpreadAmountFiltered() < spreadAmount )
+        {
+            // spread percent is populated
+            if ( result[item_model_type::BID_ASK_SPREAD_PERCENT].isNull() )
+                return;
 
-        if ( f_.maxSpreadPercent() < spreadPercent )
-            return;
+            const double spreadPercent( result[item_model_type::BID_ASK_SPREAD_PERCENT].toDouble() );
+
+            // spread percent is valid
+            if (( std::isinf( spreadPercent ) ) || ( std::isnan( spreadPercent ) ))
+                return;
+
+            if ( f_.maxSpreadPercent() < spreadPercent )
+                return;
+        }
     }
 
+    // volatility
     if (( 0.0 < f_.minVolatility() ) && ( result[item_model_type::CALC_THEO_VOLATILITY].toDouble() < f_.minVolatility() ))
         return;
     if (( 0.0 < f_.maxVolatility() ) && ( f_.maxVolatility() < result[item_model_type::CALC_THEO_VOLATILITY].toDouble() ))
         return;
 
-    const bool itm( (OptionProfitCalculatorFilter::ITM_CALLS | OptionProfitCalculatorFilter::ITM_PUTS) & f_.optionTypeFilter() );
-    const bool otm( (OptionProfitCalculatorFilter::OTM_CALLS | OptionProfitCalculatorFilter::OTM_PUTS) & f_.optionTypeFilter() );
+    // theo price versus market price
+    const bool theoPriceLowerThanMarket( OptionProfitCalculatorFilter::THEO_LTE_MARKET & f_.priceFilter() );
+    const bool theoPriceHigherThanMarketd( OptionProfitCalculatorFilter::THEO_GT_MARKET & f_.priceFilter() );
 
-    if (( result[item_model_type::IS_IN_THE_MONEY].toBool() ) && ( !itm ))
+    if (( -0.005 <= result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO].toDouble() ) && ( !theoPriceLowerThanMarket ))
         return;
-    else if (( !result[item_model_type::IS_IN_THE_MONEY].toBool() ) && ( !otm ))
+    else if (( result[item_model_type::INVESTMENT_OPTION_PRICE_VS_THEO].toDouble() < -0.005 ) && ( !theoPriceHigherThanMarketd ))
         return;
 
+    // hist volatility versus implied volatility
     const bool histLowerThanImplied( OptionProfitCalculatorFilter::HV_LTE_VI & f_.volatilityFilter() );
     const bool histHigherThanImplied( OptionProfitCalculatorFilter::HV_GT_VI & f_.volatilityFilter() );
 

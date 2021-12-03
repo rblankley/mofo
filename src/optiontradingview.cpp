@@ -48,6 +48,9 @@ OptionTradingView::OptionTradingView( model_type *model, QWidget *parent ) :
     initialize();
     createLayout();
     translate();
+
+    // connect signals/slots
+    connect( this, &_Myt::itemPressed, this, &_Myt::onItemPressed );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,6 +95,21 @@ void OptionTradingView::mouseMoveEvent( QMouseEvent *event )
     }
 
     _Mybase::mouseMoveEvent( event );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingView::mouseReleaseEvent( QMouseEvent *event )
+{
+    _Mybase::mouseReleaseEvent( event );
+
+    // ---- //
+
+    const QModelIndex idx( indexAt( event->pos() ) );
+
+    if ( !idx.isValid() )
+        return;
+
+    emit itemPressed( event->pos(), event->button(), idx.row(), idx.column() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -155,22 +173,22 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
     columnMap[a] = from;
 
     // show all columns
-    QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w All Columns" ) ) );
+    const QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w All Columns" ) ) );
 
     // sort ascending
-    QAction *sortAsc( contextMenu.addAction( QIcon( ":/res/sort-asc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&ASC" ) ) );
+    const QAction *sortAsc( contextMenu.addAction( QIcon( ":/res/sort-asc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&ASC" ) ) );
 
     // sort descending
-    QAction *sortDesc( contextMenu.addAction( QIcon( ":/res/sort-desc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&DESC" ) ) );
+    const QAction *sortDesc( contextMenu.addAction( QIcon( ":/res/sort-desc.png" ), tr( "Sort by" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "&DESC" ) ) );
 
     // resize column to content
-    QAction *resizeColumn( contextMenu.addAction( QIcon( ":/res/width.png" ), tr( "Resi&ze" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "to Content" ) ) );
+    const QAction *resizeColumn( contextMenu.addAction( QIcon( ":/res/width.png" ), tr( "Resi&ze" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "to Content" ) ) );
 
     // resize all column to content
-    QAction *resizeAllColumns( contextMenu.addAction( QIcon(), tr( "Resize All Co&lumns to Content" ) ) );
+    const QAction *resizeAllColumns( contextMenu.addAction( QIcon(), tr( "Resize All Co&lumns to Content" ) ) );
 
     // save state as...
-    QAction *saveStateAs( contextMenu.addAction( QIcon( ":/res/disk.png" ), tr( "Save Layou&t As..." ) ) );
+    const QAction *saveStateAs( contextMenu.addAction( QIcon( ":/res/disk.png" ), tr( "Save Layou&t As..." ) ) );
 
     // save state
     QAction *saveState( nullptr );
@@ -193,7 +211,7 @@ void OptionTradingView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButt
     }
 
     // reset state
-    QAction *reset( contextMenu.addAction( QIcon(), tr( "R&eset Layout to Default" ) ) );
+    const QAction *reset( contextMenu.addAction( QIcon(), tr( "R&eset Layout to Default" ) ) );
 
     // cancel
     contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );
@@ -354,6 +372,68 @@ void OptionTradingView::onHeaderSectionResized( int logicalIndex, int oldSize, i
         return;
 
     saveHeaderState( hheader );
+}
+
+//////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button, int row, int column )
+{
+    if ( Qt::RightButton != button )
+        return;
+
+    LOG_DEBUG << "item pressed " << button << " " << row << " " << column;
+
+    // ----------------------
+    // create menu of actions
+    // ----------------------
+
+    const QString symbol( model_->data( row, model_type::UNDERLYING ).toString() );
+
+    QMenu contextMenu;
+    QAction *a;
+
+    // remove symbol from table
+    const QAction *removeSymbol( contextMenu.addAction( QIcon( ":/res/hide.png" ), tr( "&Remove" ) + " \"" + symbol + "\" from Results" ) );
+
+    // show only symbol (remove everything else from table)
+    const QAction *showOnlySymbol( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w Only " ) + " \"" + symbol + "\" (Remove all Other Results)" ) );
+
+    // cancel
+    contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );
+
+    // ---------
+    // show menu
+    // ---------
+
+    LOG_DEBUG << "show menu...";
+
+    // show context menu
+    a = contextMenu.exec( mapToGlobal( pos ) );
+
+    LOG_DEBUG << "show menu complete";
+
+    // ---------------------
+    // process menu response
+    // ---------------------
+
+    // remove symbol from table
+    if ( removeSymbol == a )
+    {
+        // remove some rows
+        model_->removeRowsIf( model_type::UNDERLYING, symbol, model_type::RemovalRule::Equal );
+    }
+
+    // show only symbol (remove everything else from table)
+    else if ( showOnlySymbol == a )
+    {
+        // remove some rows
+        model_->removeRowsIf( model_type::UNDERLYING, symbol, model_type::RemovalRule::NotEqual );
+    }
+
+    // cancel
+    else
+    {
+        return;
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -183,8 +183,6 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
                 }
             }
 
-            conn.close();
-
             // requested depth BELOW table values
             if (( !min_depth ) && ( max_depth ))
                 return max;

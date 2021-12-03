@@ -247,7 +247,7 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
         }
 
     // show all columns
-    QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w All Columns" ) ) );
+    const QAction *showAll( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w All Columns" ) ) );
 
     // resize column to content
     QAction *resizeColumn( nullptr );
@@ -256,10 +256,10 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
         resizeColumn = contextMenu.addAction( QIcon( ":/res/width.png" ), tr( "Resi&ze" ) + " \"" + columnHeaderText( from ) + "\" " + tr( "to Content" ) );
 
     // resize all column to content
-    QAction *resizeAllColumns( contextMenu.addAction( QIcon(), tr( "Resize All Co&lumns to Content" ) ) );
+    const QAction *resizeAllColumns( contextMenu.addAction( QIcon(), tr( "Resize All Co&lumns to Content" ) ) );
 
     // save state as...
-    QAction *saveStateAs( contextMenu.addAction( QIcon( ":/res/disk.png" ), tr( "Save Layou&t As..." ) ) );
+    const QAction *saveStateAs( contextMenu.addAction( QIcon( ":/res/disk.png" ), tr( "Save Layou&t As..." ) ) );
 
     // save state
     QAction *saveState( nullptr );
@@ -282,7 +282,7 @@ void OptionChainView::onHeaderSectionPressed( const QPoint& pos, Qt::MouseButton
     }
 
     // reset state
-    QAction *reset( contextMenu.addAction( QIcon(), tr( "R&eset Layout to Default" ) ) );
+    const QAction *reset( contextMenu.addAction( QIcon(), tr( "R&eset Layout to Default" ) ) );
 
     // cancel
     contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );

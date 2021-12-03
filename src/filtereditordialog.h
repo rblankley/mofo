@@ -33,6 +33,7 @@ class QGroupBox;
 class QLabel;
 class QPushButton;
 class QSpinBox;
+class QTabWidget;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -73,7 +74,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods
@@ -84,8 +85,36 @@ public:
 
 protected:
 
+    // ========================================================================
+    // Events
+    // ========================================================================
+
+    /// Resize event.
+    /**
+     * @param[in,out] event  event
+     */
+    virtual void resizeEvent( QResizeEvent *event ) override;
+
+protected:
+
     QLabel *minColumnLabel_;
     QLabel *maxColumnLabel_;
+
+    QLabel *underlyingPriceLabel_;
+    QDoubleSpinBox *minUnderlyingPrice_;
+    QDoubleSpinBox *maxUnderlyingPrice_;
+
+    QLabel *verticalDepthLabel_;
+    QSpinBox *verticalDepth_;
+
+    QTabWidget *tabs_;
+
+    // ---- //
+
+    QWidget *tab0_;
+
+    QLabel *minColumnLabel0_;
+    QLabel *maxColumnLabel0_;
 
     QLabel *investAmountLabel_;
     QDoubleSpinBox *minInvestAmount_;
@@ -114,9 +143,40 @@ protected:
     QDoubleSpinBox *minImplVolatility_;
     QDoubleSpinBox *maxImplVolatility_;
 
+    QLabel *divAmountLabel_;
+    QDoubleSpinBox *minDivAmount_;
+    QDoubleSpinBox *maxDivAmount_;
+
+    QLabel *divYieldLabel_;
+    QDoubleSpinBox *minDivYield_;
+    QDoubleSpinBox *maxDivYield_;
+
+    // ---- //
+
+    QWidget *tab1_;
+
+    QLabel *minColumnLabel1_;
+    QLabel *maxColumnLabel1_;
+
+    QLabel *probITMLabel_;
+    QDoubleSpinBox *minProbITM_;
+    QDoubleSpinBox *maxProbITM_;
+
+    QLabel *probOTMLabel_;
+    QDoubleSpinBox *minProbOTM_;
+    QDoubleSpinBox *maxProbOTM_;
+
     QLabel *probProfitLabel_;
     QDoubleSpinBox *minProbProfit_;
     QDoubleSpinBox *maxProbProfit_;
+
+    QLabel *returnOnRiskLabel_;
+    QDoubleSpinBox *minReturnOnRisk_;
+    QDoubleSpinBox *maxReturnOnRisk_;
+
+    QLabel *returnOnRiskTimeLabel_;
+    QDoubleSpinBox *minReturnOnRiskTime_;
+    QDoubleSpinBox *maxReturnOnRiskTime_;
 
     QLabel *returnOnInvestmentLabel_;
     QDoubleSpinBox *minReturnOnInvestment_;
@@ -126,8 +186,19 @@ protected:
     QDoubleSpinBox *minReturnOnInvestmentTime_;
     QDoubleSpinBox *maxReturnOnInvestmentTime_;
 
-    QLabel *verticalDepthLabel_;
-    QSpinBox *verticalDepth_;
+    QLabel *expectedValueLabel_;
+    QDoubleSpinBox *minExpectedValue_;
+    QDoubleSpinBox *maxExpectedValue_;
+
+    QLabel *expectedValueReturnOnInvestmentLabel_;
+    QDoubleSpinBox *minExpectedValueReturnOnInvestment_;
+    QDoubleSpinBox *maxExpectedValueReturnOnInvestment_;
+
+    QLabel *expectedValueReturnOnInvestmentTimeLabel_;
+    QDoubleSpinBox *minExpectedValueReturnOnInvestmentTime_;
+    QDoubleSpinBox *maxExpectedValueReturnOnInvestmentTime_;
+
+    // ---- //
 
     QGroupBox *optionTypes_;
     QCheckBox *itmCalls_;
@@ -146,6 +217,10 @@ protected:
     QCheckBox *diagonal_;
     QCheckBox *collar_;
 
+    QGroupBox *pricing_;
+    QCheckBox *theoPriceLessThanMarket_;
+    QCheckBox *theoPriceGreaterThanMarket_;
+
     QGroupBox *volatility_;
     QCheckBox *histLessThanImpl_;
     QCheckBox *histGreaterThanImpl_;
@@ -158,11 +233,16 @@ private slots:
     /// Slot for button clicked.
     void onButtonClicked();
 
+    /// Slot for double spin box value changed.
+    void onDoubleSpinBoxValueChanged( double value );
+
 private:
 
     QString name_;
 
     OptionProfitCalculatorFilter f_;
+
+    bool sized_;
 
     /// Initialize.
     void initialize();

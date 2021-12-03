@@ -122,6 +122,12 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve mark.
+    /**
+     * @return  amount
+     */
+    virtual double mark() const;
+
     /// Retrieve symbol.
     /**
      * @return  symbol

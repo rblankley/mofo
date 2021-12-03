@@ -118,6 +118,17 @@ public:
     /// Item type.
     using item_type = MapItem;
 
+    /// Removal rules.
+    enum class RemovalRule
+    {
+        LessThan,                                   ///< Item less than value.
+        LessThanEqual,                              ///< Item less than or equal to value.
+        Equal,                                      ///< Item equal to value.
+        GreaterThanEqual,                           ///< Item greather than or equal to value.
+        GreaterThan,                                ///< Item greater than value.
+        NotEqual,                                   ///< Item not equal to value.
+    };
+
     // ========================================================================
     // CTOR / DTOR
     // ========================================================================
@@ -253,6 +264,9 @@ public:
      */
     virtual bool insertRows( int row, int count, const QModelIndex& parent = QModelIndex() ) override;
 
+    /// Remove all rows from model.
+    virtual void removeAllRows();
+
     /// Remove model rows.
     /**
      * @param[in] row  remove location
@@ -262,8 +276,14 @@ public:
      */
     virtual bool removeRows( int row, int count, const QModelIndex& parent = QModelIndex() ) override;
 
-    /// Remove all rows from model.
-    virtual void removeAllRows();
+    /// Remove model rows if column value matches rule.
+    /**
+     * @param[in] column  column to check
+     * @param[in] value  value to check against
+     * @param[in] rule  rule to follow
+     * @return  number of rows removed
+     */
+    virtual int removeRowsIf( int column, const QVariant& value, RemovalRule rule = RemovalRule::Equal );
 
     /// Sort model by @p column in given @p order.
     /**
@@ -286,6 +306,20 @@ protected:
     item_type *horzHeader_;                         ///< Horizontal header data.
 
     int sortRole_;                                  ///< Sorting role.
+
+    // ========================================================================
+    // Properties
+    // ========================================================================
+
+    /// Retrieve model data.
+    /**
+     * Implementation, does not lock!
+     * @param[in] row  row
+     * @param[in] col  column
+     * @param[in] role  role
+     * @return  data
+     */
+    virtual QVariant dataImpl( int row, int col, int role = Qt::DisplayRole ) const;
 
     // ========================================================================
     // Methods

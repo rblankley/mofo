@@ -47,3 +47,9 @@ QuoteTableModel::QuoteTableModel( const QString& symbol, const QDateTime& stamp,
 QuoteTableModel::~QuoteTableModel()
 {
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double QuoteTableModel::mark() const
+{
+    return data0( MARK ).toDouble();
+}

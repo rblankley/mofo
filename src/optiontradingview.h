@@ -41,6 +41,18 @@ class OptionTradingView : public GridTableView
 
 signals:
 
+    /// Clear hover region.
+    void clearHoverRegion();
+
+    /// Signal for table item pressed.
+    /**
+     * @param[in] pos  position of button pressed
+     * @param[in] button  button pressed
+     * @param[in] row  row of item pressed
+     * @param[in] column  column of item pressed
+     */
+    void itemPressed( const QPoint& pos, Qt::MouseButton button, int row, int column );
+
     /// Set hover region.
     /**
      * @param[in] row  item row
@@ -48,9 +60,6 @@ signals:
      * @param[in] to  column end
      */
     void setHoverRegion( int row, int from, int to );
-
-    /// Clear hover region.
-    void clearHoverRegion();
 
 public:
 
@@ -106,6 +115,12 @@ protected:
      */
     virtual void mouseMoveEvent( QMouseEvent *event ) override;
 
+    /// Mouse release event.
+    /**
+     * @param[in,out] event  event
+     */
+    virtual void mouseReleaseEvent( QMouseEvent *event ) override;
+
 private slots:
 
     /// Slot for header section moved.
@@ -116,6 +131,9 @@ private slots:
 
     /// Slot for header section resized.
     void onHeaderSectionResized( int logicalIndex, int oldSize, int newSize );
+
+    /// Slot for table item pressed.
+    void onItemPressed( const QPoint& pos, Qt::MouseButton button, int row, int column );
 
 private:
 

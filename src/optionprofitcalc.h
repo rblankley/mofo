@@ -58,6 +58,18 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve expected dividend amount (estimated from previous payouts).
+    /**
+     * @return  amount
+     */
+    virtual double dividendAmount() const {return totalDivAmount_;}
+
+    /// Retrieve expected dividend yield (estimated from previous payouts).
+    /**
+     * @return  percent
+     */
+    virtual double dividendYield() const {return totalDivYield_;}
+
     /// Retrieve filter.
     /**
      * @return  filter

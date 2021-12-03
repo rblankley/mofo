@@ -235,7 +235,7 @@ private:
 
     static constexpr int REQUEST_TIMEOUT = 120;             // 120s
 
-    static constexpr int DEQUEUE_TIME = 600;                // 600ms
+    static constexpr int DEQUEUE_TIME = 510;                // 510ms (do not go below 500ms, TDA throttles to 120 requests/min)
 
     static constexpr int EQUITY_DEQUEUE_SIZE = 8;
 

@@ -74,11 +74,20 @@ void OptionAnalyzerThread::OptionAnalyzerThread::run()
 
         LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
 
+        const double markPrice( quote.mark() );
+
+        // check filter for underlying (spot price)
+        if (( 0.0 < calcFilter.minUnderlyingPrice() ) && ( markPrice < calcFilter.minUnderlyingPrice() ))
+            LOG_TRACE << "spot price below filter threshold";
+        else if (( 0.0 < calcFilter.maxUnderlyingPrice() ) && ( calcFilter.maxUnderlyingPrice() < markPrice ))
+            LOG_TRACE << "spot price below filter threshold";
+
         // check filter for days to expiry
-        if (( calcFilter.minDaysToExpiry() ) && ( now.date().daysTo( expiryDate_ ) < calcFilter.minDaysToExpiry() ))
+        else if (( calcFilter.minDaysToExpiry() ) && ( now.date().daysTo( expiryDate_ ) < calcFilter.minDaysToExpiry() ))
             LOG_TRACE << "DTE below filter threshold";
         else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < now.date().daysTo( expiryDate_ ) ))
             LOG_TRACE << "DTE above filter threshold";
+
         else
         {
             // retrieve chain data
@@ -86,10 +95,24 @@ void OptionAnalyzerThread::OptionAnalyzerThread::run()
             chains.refreshTableData();
 
             // create a calculator
-            OptionProfitCalculator *calc( OptionProfitCalculator::create( quote.tableData( QuoteTableModel::MARK ).toDouble(), &chains, analysis_ ) );
+            OptionProfitCalculator *calc( OptionProfitCalculator::create( markPrice, &chains, analysis_ ) );
 
+            // no calculator
             if ( !calc )
                 LOG_WARN << "no calculator";
+
+            // check filter for dividend amount
+            else if (( 0.0 < calcFilter.minDividendAmount() ) && ( calc->dividendAmount() < calcFilter.minDividendAmount() ))
+                LOG_TRACE << "dividend amount below filter threshold";
+            else if (( 0.0 < calcFilter.maxDividendAmount() ) && ( calcFilter.maxDividendAmount() < calc->dividendAmount() ))
+                LOG_TRACE << "dividend amount above filter threshold";
+
+            // check filter for dividend yield
+            else if (( 0.0 < calcFilter.minDividendYield() ) && ( calc->dividendYield() < calcFilter.minDividendYield() ))
+                LOG_TRACE << "dividend yield below filter threshold";
+            else if (( 0.0 < calcFilter.maxDividendYield() ) && ( calcFilter.maxDividendYield() < calc->dividendYield() ))
+                LOG_TRACE << "dividend yield above filter threshold";
+
             else
             {
                 // setup calculator

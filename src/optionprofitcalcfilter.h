@@ -37,39 +37,48 @@ public:
     /// Option types.
     enum OptionTypeFilter
     {
-        ITM_CALLS = 0x1,                            ///< In the money calls.
-        OTM_CALLS = 0x2,                            ///< Out of the money calls.
-        ITM_PUTS = 0x4,                             ///< In the money puts.
-        OTM_PUTS = 0x8,                             ///< Out of the money puts.
+        ITM_CALLS = 0x1,                                    ///< In the money calls.
+        OTM_CALLS = 0x2,                                    ///< Out of the money calls.
+        ITM_PUTS = 0x4,                                     ///< In the money puts.
+        OTM_PUTS = 0x8,                                     ///< Out of the money puts.
 
-        ONLY_CALLS = ITM_CALLS | OTM_CALLS,         ///< Only call options.
-        ONLY_PUTS = ITM_PUTS | OTM_PUTS,            ///< Only put options.
-        ALL_OPTION_TYPES = ONLY_CALLS | ONLY_PUTS,  ///< All options.
+        ONLY_CALLS = ITM_CALLS | OTM_CALLS,                 ///< Only call options.
+        ONLY_PUTS = ITM_PUTS | OTM_PUTS,                    ///< Only put options.
+        ALL_OPTION_TYPES = ONLY_CALLS | ONLY_PUTS,          ///< All options.
     };
 
     /// Option strategies.
     enum OptionTradingStrategyFilter
     {
-        SINGLE = 0x0001,                            ///< Single options (CSP and CC).
-        VERTICAL = 0x0002,                          ///< Verticals.
-        CALENDAR = 0x0004,                          ///< Calendar trades.
-        STRANGLE = 0x0008,                          ///< Strangles.
-        STRADDLE = 0x0010,                          ///< Straddles.
-        BUTTERFLY = 0x0020,                         ///< Butterflies.
-        CONDOR = 0x0040,                            ///< Iron Condor.
-        DIAGONAL = 0x0080,                          ///< Diagonals.
-        COLLAR = 0x0100,                            ///< Collar trades.
+        SINGLE = 0x0001,                                    ///< Single options (CSP and CC).
+        VERTICAL = 0x0002,                                  ///< Verticals.
+        CALENDAR = 0x0004,                                  ///< Calendar trades.
+        STRANGLE = 0x0008,                                  ///< Strangles.
+        STRADDLE = 0x0010,                                  ///< Straddles.
+        BUTTERFLY = 0x0020,                                 ///< Butterflies.
+        CONDOR = 0x0040,                                    ///< Iron Condor.
+        DIAGONAL = 0x0080,                                  ///< Diagonals.
+        COLLAR = 0x0100,                                    ///< Collar trades.
 
-        ALL_STRATEGIES = 0xffff,                    ///< All trading strategies.
+        ALL_STRATEGIES = 0xffff,                            ///< All trading strategies.
+    };
+
+    /// Price.
+    enum PriceFilter
+    {
+        THEO_LTE_MARKET = 0x1,                              ///< Theoretical option price less than or equal to market price.
+        THEO_GT_MARKET = 0x2,                               ///< Theoretical option price greater than market price.
+
+        ALL_PRICES = THEO_LTE_MARKET | THEO_GT_MARKET,      ///< All prices.
     };
 
     /// Volatility.
     enum VolatilityFilter
     {
-        HV_LTE_VI = 0x1,                            ///< Historical volatility less than or equal to implied volatility.
-        HV_GT_VI = 0x2,                             ///< Historical volatility greater than implied volatility.
+        HV_LTE_VI = 0x1,                                    ///< Historical volatility less than or equal to implied volatility.
+        HV_GT_VI = 0x2,                                     ///< Historical volatility greater than implied volatility.
 
-        ALL_VOLATILITY = HV_LTE_VI | HV_GT_VI,      ///< All volatilities.
+        ALL_VOLATILITY = HV_LTE_VI | HV_GT_VI,              ///< All volatilities.
     };
 
     // ========================================================================
@@ -115,6 +124,30 @@ public:
      * @return  amount
      */
     virtual double maxInvestAmount() const {return maxInvestAmount_;}
+
+    /// Set minimum underlying price.
+    /**
+     * @param[in] value  amount
+     */
+    virtual void setMinUnderlyingPrice( double value ) {minUnderlyingPrice_ = value;}
+
+    /// Retrieve minimum underlying price.
+    /**
+     * @return  amount
+     */
+    virtual double minUnderlyingPrice() const {return minUnderlyingPrice_;}
+
+    /// Set maximum underlying price.
+    /**
+     * @param[in] value  amount
+     */
+    virtual void setMaxUnderlyingPrice( double value ) {maxUnderlyingPrice_ = value;}
+
+    /// Retrieve maximum underlying price.
+    /**
+     * @return  amount
+     */
+    virtual double maxUnderlyingPrice() const {return maxUnderlyingPrice_;}
 
     /// Set maximum loss amount.
     /**
@@ -164,6 +197,54 @@ public:
      */
     virtual int minAskSize() const {return minAskSize_;}
 
+    /// Set minimum probability of ITM.
+    /**
+     * @param[in] value  percentage
+     */
+    virtual void setMinProbITM( double value ) {minProbITM_ = value;}
+
+    /// Retrieve minimum probability of ITM.
+    /**
+     * @return  percentage
+     */
+    virtual double minProbITM() const {return minProbITM_;}
+
+    /// Set maximum probability of ITM.
+    /**
+     * @param[in] value  percentage
+     */
+    virtual void setMaxProbITM( double value ) {maxProbITM_ = value;}
+
+    /// Retrieve maximum probability of ITM.
+    /**
+     * @return  percentage
+     */
+    virtual double maxProbITM() const {return maxProbITM_;}
+
+    /// Set minimum probability of OTM.
+    /**
+     * @param[in] value  percentage
+     */
+    virtual void setMinProbOTM( double value ) {minProbOTM_ = value;}
+
+    /// Retrieve minimum probability of OTM.
+    /**
+     * @return  percentage
+     */
+    virtual double minProbOTM() const {return minProbOTM_;}
+
+    /// Set maximum probability of OTM.
+    /**
+     * @param[in] value  percentage
+     */
+    virtual void setMaxProbOTM( double value ) {maxProbOTM_ = value;}
+
+    /// Retrieve maximum probability of OTM.
+    /**
+     * @return  percentage
+     */
+    virtual double maxProbOTM() const {return maxProbOTM_;}
+
     /// Set minimum probability of profit.
     /**
      * @param[in] value  percentage
@@ -212,6 +293,102 @@ public:
      */
     virtual int maxDaysToExpiry() const {return maxDaysToExpiry_;}
 
+    /// Set minimum dividend amount.
+    /**
+     * @param[in] value  amount
+     */
+    virtual void setMinDividendAmount( int value ) {minDividendAmount_ = value;}
+
+    /// Retrieve minimum dividend amount.
+    /**
+     * @return  amount
+     */
+    virtual int minDividendAmount() const {return minDividendAmount_;}
+
+    /// Set maximum dividend amount.
+    /**
+     * @param[in] value  amount
+     */
+    virtual void setMaxDividendAmount( int value ) {maxDividendAmount_ = value;}
+
+    /// Retrieve maximum dividend amount.
+    /**
+     * @return  amount
+     */
+    virtual int maxDividendAmount() const {return maxDividendAmount_;}
+
+    /// Set minimum dividend yield.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMinDividendYield( int value ) {minDividendYield_ = value;}
+
+    /// Retrieve minimum dividend yield.
+    /**
+     * @return  percent
+     */
+    virtual int minDividendYield() const {return minDividendYield_;}
+
+    /// Set maximum dividend yield.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMaxDividendYield( int value ) {maxDividendYield_ = value;}
+
+    /// Retrieve maximum dividend yield.
+    /**
+     * @return  percent
+     */
+    virtual int maxDividendYield() const {return maxDividendYield_;}
+
+    /// Set minimum ROR.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMinReturnOnRisk( double value ) {minReturnOnRisk_ = value;}
+
+    /// Retrieve minimum ROR.
+    /**
+     * @return  percent
+     */
+    virtual double minReturnOnRisk() const {return minReturnOnRisk_;}
+
+    /// Set maximum ROR.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMaxReturnOnRisk( double value ) {maxReturnOnRisk_ = value;}
+
+    /// Retrieve maximum ROR.
+    /**
+     * @return  percent
+     */
+    virtual double maxReturnOnRisk() const {return maxReturnOnRisk_;}
+
+    /// Set minimum ROR over time.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMinReturnOnRiskTime( double value ) {minReturnOnRiskTime_ = value;}
+
+    /// Retrieve minimum ROR over time.
+    /**
+     * @return  percent
+     */
+    virtual double minReturnOnRiskTime() const {return minReturnOnRiskTime_;}
+
+    /// Set maximum ROR over time.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMaxReturnOnRiskTime( double value ) {maxReturnOnRiskTime_ = value;}
+
+    /// Retrieve maximum ROR over time.
+    /**
+     * @return  percent
+     */
+    virtual double maxReturnOnRiskTime() const {return maxReturnOnRiskTime_;}
+
     /// Set minimum ROI.
     /**
      * @param[in] value  percent
@@ -259,6 +436,84 @@ public:
      * @return  percent
      */
     virtual double maxReturnOnInvestmentTime() const {return maxReturnOnInvestmentTime_;}
+
+    /// Set minimum EV.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMinExpectedValue( double value ) {minExpectedValue_ = value;}
+
+    /// Retrieve minimum EV.
+    /**
+     * @return  percent
+     */
+    virtual double minExpectedValue() const {return minExpectedValue_;}
+
+    /// Set maximum EV.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMaxExpectedValue( double value ) {maxExpectedValue_ = value;}
+
+    /// Retrieve maximum EV.
+    /**
+     * @return  percent
+     */
+    virtual double maxExpectedValue() const {return maxExpectedValue_;}
+
+    /// Set minimum EV ROI.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMinExpectedValueReturnOnInvestment( double value ) {minExpectedValueReturnOnInvestment_ = value;}
+
+    /// Retrieve minimum EV ROI.
+    /**
+     * @return  percent
+     */
+    virtual double minExpectedValueReturnOnInvestment() const {return minExpectedValueReturnOnInvestment_;}
+
+    /// Set maximum EV ROI.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMaxExpectedValueReturnOnInvestment( double value ) {maxExpectedValueReturnOnInvestment_ = value;}
+
+    /// Retrieve maximum EV ROI.
+    /**
+     * @return  percent
+     */
+    virtual double maxExpectedValueReturnOnInvestment() const {return maxExpectedValueReturnOnInvestment_;}
+
+    /// Set minimum EV ROI over time.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMinExpectedValueReturnOnInvestmentTime( double value ) {minExpectedValueReturnOnInvestmentTime_ = value;}
+
+    /// Retrieve minimum EV ROI over time.
+    /**
+     * @return  percent
+     */
+    virtual double minExpectedValueReturnOnInvestmentTime() const {return minExpectedValueReturnOnInvestmentTime_;}
+
+    /// Set maximum EV ROI over time.
+    /**
+     * @param[in] value  percent
+     */
+    virtual void setMaxExpectedValueReturnOnInvestmentTime( double value ) {maxExpectedValueReturnOnInvestmentTime_ = value;}
+
+    /// Retrieve maximum EV ROI over time.
+    /**
+     * @return  percent
+     */
+    virtual double maxExpectedValueReturnOnInvestmentTime() const {return maxExpectedValueReturnOnInvestmentTime_;}
+
+    /// Retrieve minimum spread amount required to apply filter.
+    /**
+     * @return  amount
+     */
+    virtual double minSpreadAmountFiltered() const {return minSpreadAmountFilter_;}
 
     /// Set maximum bid/ask spread percent.
     /**
@@ -320,6 +575,18 @@ public:
      */
     virtual OptionTradingStrategyFilter optionTradingStrategyFilter() const {return optionTradingStrats_;}
 
+    /// Set option price filtering.
+    /**
+     * @param[in] value  price filter
+     */
+    virtual void setPriceFilter( PriceFilter value ) {price_ = value;}
+
+    /// Retrieve option price filtering.
+    /**
+     * @return  price filter
+     */
+    virtual PriceFilter priceFilter() const {return price_;}
+
     /// Set option volatility filtering.
     /**
      * @param[in] value  volatility filter
@@ -362,38 +629,72 @@ public:
 
 protected:
 
-    double minInvestAmount_;                                ///< Minimum investment amount.
-    double maxInvestAmount_;                                ///< Maximum investment amount.
+    static constexpr double minSpreadAmountFilter_ = 0.05;      ///< Minimum spread amount required to apply filter.
 
-    double maxLossAmount_;                                  ///< Maximum loss amount.
-    double minGainAmount_;                                  ///< Minimum gain amount.
+    double minInvestAmount_;                                    ///< Minimum investment amount.
+    double maxInvestAmount_;                                    ///< Maximum investment amount.
 
-    int minBidSize_;                                        ///< Minimum bid size.
-    int minAskSize_;                                        ///< Minimum ask size.
+    double minUnderlyingPrice_;                                 ///< Minimum underlying (equity spot) price.
+    double maxUnderlyingPrice_;                                 ///< Maximum underlying (equity spot) price.
 
-    double minProbProfit_;                                  ///< Minimum probability of profit.
-    double maxProbProfit_;                                  ///< Maximum probability of profit.
+    double maxLossAmount_;                                      ///< Maximum loss amount.
+    double minGainAmount_;                                      ///< Minimum gain amount.
 
-    int minDaysToExpiry_;                                   ///< Minimum days to expiration.
-    int maxDaysToExpiry_;                                   ///< Maximum days to expiration.
+    int minBidSize_;                                            ///< Minimum bid size.
+    int minAskSize_;                                            ///< Minimum ask size.
 
-    double minReturnOnInvestment_;                          ///< Minimum return on investment.
-    double maxReturnOnInvestment_;                          ///< Maximum return on investment.
+    double minProbITM_;
+    double maxProbITM_;
 
-    double minReturnOnInvestmentTime_;                      ///< Minimum return on investment over time.
-    double maxReturnOnInvestmentTime_;                      ///< Maximum return on investment over time.
+    double minProbOTM_;
+    double maxProbOTM_;
 
-    double maxSpreadPercent_;                               ///< Maximum spread bid/ask amount.
+    double minProbProfit_;                                      ///< Minimum probability of profit.
+    double maxProbProfit_;                                      ///< Maximum probability of profit.
 
-    double minVolatility_;                                  ///< Minimum volatility.
-    double maxVolatility_;                                  ///< Maximum volatility.
+    int minDaysToExpiry_;                                       ///< Minimum days to expiration.
+    int maxDaysToExpiry_;                                       ///< Maximum days to expiration.
 
-    OptionTypeFilter optionTypes_;                          ///< Option type filter.
-    OptionTradingStrategyFilter optionTradingStrats_;       ///< Option trading strategies.
+    double minDividendAmount_;
+    double maxDividendAmount_;
 
-    VolatilityFilter volatility_;                           ///< Volatility filter.
+    double minDividendYield_;
+    double maxDividendYield_;
 
-    int vertDepth_;                                         ///< Depth for vertical analysis.
+    double minReturnOnRisk_;                                    ///< Minimum return on risk.
+    double maxReturnOnRisk_;                                    ///< Maximum return on risk.
+
+    double minReturnOnRiskTime_;                                ///< Minimum return on risk over time.
+    double maxReturnOnRiskTime_;                                ///< Maximum return on risk over time.
+
+    double minReturnOnInvestment_;                              ///< Minimum return on investment.
+    double maxReturnOnInvestment_;                              ///< Maximum return on investment.
+
+    double minReturnOnInvestmentTime_;                          ///< Minimum return on investment over time.
+    double maxReturnOnInvestmentTime_;                          ///< Maximum return on investment over time.
+
+    double minExpectedValue_;
+    double maxExpectedValue_;
+
+    double minExpectedValueReturnOnInvestment_;
+    double maxExpectedValueReturnOnInvestment_;
+
+    double minExpectedValueReturnOnInvestmentTime_;
+    double maxExpectedValueReturnOnInvestmentTime_;
+
+    double maxSpreadPercent_;                                   ///< Maximum spread bid/ask amount.
+
+    double minVolatility_;                                      ///< Minimum volatility.
+    double maxVolatility_;                                      ///< Maximum volatility.
+
+    OptionTypeFilter optionTypes_;                              ///< Option type filter.
+    OptionTradingStrategyFilter optionTradingStrats_;           ///< Option trading strategies.
+
+    PriceFilter price_;
+
+    VolatilityFilter volatility_;                               ///< Volatility filter.
+
+    int vertDepth_;                                             ///< Depth for vertical analysis.
 
 private:
 

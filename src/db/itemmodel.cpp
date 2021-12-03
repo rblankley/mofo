@@ -63,10 +63,8 @@ int ItemModel::columnCount( const QModelIndex& parent ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QVariant ItemModel::data( int row, int col, int role ) const
+QVariant ItemModel::dataImpl( int row, int col, int role ) const
 {
-    QReadLocker guard( &lock_ );
-
     if (( 0 <= row ) && ( row < rows_.count() ))
     {
         const item_type *item( rows_[row] );
@@ -76,6 +74,13 @@ QVariant ItemModel::data( int row, int col, int role ) const
     }
 
     return QVariant();
+}
+
+QVariant ItemModel::data( int row, int col, int role ) const
+{
+    QReadLocker guard( &lock_ );
+
+    return dataImpl( row, col, role );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,6 +234,22 @@ bool ItemModel::insertRows( int row, int count, const QModelIndex& parent )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void ItemModel::removeAllRows()
+{
+    QWriteLocker guard( &lock_ );
+
+    const int rows( rows_.count() );
+
+    if ( !rows )
+        return;
+
+    LOG_DEBUG << "removing " << rows << " rows...";
+    removeRows( 0, rows );
+
+    LOG_DEBUG << "removal complete";
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 bool ItemModel::removeRows( int row, int count, const QModelIndex& parent )
 {
     if ( count <= 0 )
@@ -244,11 +265,26 @@ bool ItemModel::removeRows( int row, int count, const QModelIndex& parent )
 
     beginRemoveRows( parent, row, (row + count - 1) );
 
-    // free some data
-    freeRowItems( rows_ );
+    // free ALL row data
+    if (( 0 == row ) && ( rows_.count() == count ))
+    {
+        freeRowItems( rows_ );
 
-    // remove rows
-    rows_.clear();
+        rows_.clear();
+    }
+
+    // free row data
+    else
+    {
+        while ( count-- )
+        {
+            const int i( row + count );
+
+            freeRowItems( rows_[i] );
+
+            rows_.removeAt( i );
+        }
+    }
 
     endRemoveRows();
 
@@ -256,19 +292,56 @@ bool ItemModel::removeRows( int row, int count, const QModelIndex& parent )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void ItemModel::removeAllRows()
+int ItemModel::removeRowsIf( int column, const QVariant& value, RemovalRule rule )
 {
+    QList<int> doomed;
+
     QWriteLocker guard( &lock_ );
 
-    const int rows( rows_.count() );
+    // make list of rows to remove
+    for ( int row( rows_.count() ); row--; )
+    {
+        const QVariant v( dataImpl( row, column, Qt::UserRole ) );
 
-    if ( !rows )
-        return;
+        bool addToList( false );
 
-    LOG_DEBUG << "removing " << rows << " rows...";
-    removeRows( 0, rows );
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+        const QPartialOrdering result( QVariant::compare( v, value ) );
+
+        if ( QPartialOrdering::Equivalent == result )
+            addToList = (( RemovalRule::LessThanEqual == rule ) || ( RemovalRule::Equal == rule ) || ( RemovalRule::GreaterThanEqual == rule ));
+        else if ( QPartialOrdering::Less == result )
+            addToList = (( RemovalRule::LessThan == rule ) || ( RemovalRule::NotEqual == rule ));
+        else if ( QPartialOrdering::Greater == result )
+            addToList = (( RemovalRule::GreaterThan == rule ) || ( RemovalRule::NotEqual == rule ));
+#else
+        if ( RemovalRule::LessThan == rule )
+            addToList = (v < value);
+        else if ( RemovalRule::LessThanEqual == rule )
+            addToList = (v <= value);
+        else if ( RemovalRule::Equal == rule )
+            addToList = (v == value);
+        else if ( RemovalRule::GreaterThanEqual == rule )
+            addToList = (value <= v);
+        else if ( RemovalRule::GreaterThan == rule )
+            addToList = (value < v);
+        else if ( RemovalRule::NotEqual == rule )
+            addToList = (v != value);
+#endif
+
+        if ( addToList )
+            doomed.append( row );
+    }
+
+    // remove some rows
+    LOG_DEBUG << "removing " << doomed.size() << " rows...";
+
+    foreach ( int row, doomed )
+        removeRows( row, 1 );
 
     LOG_DEBUG << "removal complete";
+
+    return doomed.size();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
