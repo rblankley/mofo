@@ -1,5 +1,5 @@
 /**
- * @file phelimboyle.cpp
+ * @file kamradritchken.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -19,7 +19,7 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "phelimboyle.h"
+#include "kamradritchken.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,14 +28,14 @@
 #define pow2(n) ((n) * (n))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-PhelimBoyle::PhelimBoyle( double S, double r, double b, double sigma, double T, size_t N, bool european  ) :
+KamradRitchken::KamradRitchken( double S, double r, double b, double sigma, double T, size_t N, bool european  ) :
     _Mybase( S, r, b, sigma, T, N, european )
 {
     init();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& veg, double& rh ) const
+void KamradRitchken::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& veg, double& rh ) const
 {
     // calc partials
     calcPartials( u_, d_, delta, gamma, theta );
@@ -48,7 +48,7 @@ void PhelimBoyle::partials( OptionType type, double X, double& delta, double& ga
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::setSigma( double value )
+void KamradRitchken::setSigma( double value )
 {
     _Mybase::setSigma( value );
 
@@ -56,14 +56,14 @@ void PhelimBoyle::setSigma( double value )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double PhelimBoyle::optionPrice( OptionType type, double X ) const
+double KamradRitchken::optionPrice( OptionType type, double X ) const
 {
     // calc!
     return calcOptionPrice( (OptionType::Call == type), S_, X, u_, d_, pu_, pd_, pm_, Df_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::copy( const _Myt& other )
+void KamradRitchken::copy( const _Myt& other )
 {
     _Mybase::copy( other );
 
@@ -78,7 +78,7 @@ void PhelimBoyle::copy( const _Myt& other )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::move( const _Myt&& other )
+void KamradRitchken::move( const _Myt&& other )
 {
     _Mybase::move( std::move( other ) );
 
@@ -93,21 +93,21 @@ void PhelimBoyle::move( const _Myt&& other )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::init()
+void KamradRitchken::init()
 {
     const double dt = T_ / N_;
 
-    const double epvsdt = exp( sigma_ * sqrt( 0.5 * dt ) );
-    const double envsdt = exp( -sigma_ * sqrt( 0.5 * dt ) );
-    const double ebdt = exp( 0.5 * b_ * dt );
+    // lamda = sqrt( 3/2 )
+    const double mu( b_ - 0.5 * pow2( sigma_ ) );
+    const double musdt( (mu / sigma_) * sqrt( dt / 6.0 ) );
 
     // quantities for the tree
-    u_ = exp( sigma_ * sqrt( 2.0 * dt ) );
-    d_ = exp( -sigma_ * sqrt( 2.0 * dt ) );
+    u_ = exp( sigma_ * sqrt( (3.0 * dt) / 2.0 ) );
+    d_ = 1.0 / u_;
 
-    pu_ = pow( (ebdt - envsdt) / (epvsdt - envsdt), 2 );
-    pd_ = pow( (epvsdt - ebdt) / (epvsdt - envsdt), 2 );
-    pm_ = 1.0 - pu_ - pd_;
+    pu_ = (1.0 / 3.0) + musdt;
+    pd_ = (1.0 / 3.0) - musdt;
+    pm_ = (1.0 / 3.0);
 
     Df_ = exp( -r_ * dt );
 }
@@ -117,53 +117,38 @@ void PhelimBoyle::init()
 
 #define Q_ASSERT_DOUBLE( fn, v ) {const double result = fn; Q_ASSERT( v-0.0001 <= result && result <= v+0.0001 );}
 
-void PhelimBoyle::validate()
+void KamradRitchken::validate()
 {
+    // Wiley, Table 4.1
     {
-        const double S = 30.0;
-        const double X = 30.0;
-        const double r = 0.05;
-        const double sigma = 0.3;
-        const double T = 0.4167;
-
-        BlackScholes bs( S, r, r, sigma, T );
-        _Myt pb( S, r, r, sigma, T, 32 * 100, true );
-
-        const double cm0 = bs.optionPrice( OptionType::Put, X );
-        const double cm1 = pb.optionPrice( OptionType::Put, X );
-
-        Q_ASSERT_DOUBLE( cm0, cm1 );
-    }
-
-    {
-        const double S = 30.0;
-        const double X = 29.0;
-        const double r = 0.05;
-        const double b = 0.025;
-        const double sigma = 0.3;
+        const double S = 50.0;
+        const double X = 50.0;
+        const double r = 0.06;
+        const double q = 0.03;
+        const double sigma = 0.2;
         const double T = 1.0;
 
-        _Myt pb( S, r, b, sigma, T, 100 );
+        _Myt kr( S, r, (r-q), sigma, T, 50 );
 
-        const double cm0 = 4.2918;
-        const double cm1 = pb.optionPrice( OptionType::Call, X );
+        const double cm0 = 4.5624;
+        const double cm1 = kr.optionPrice( OptionType::Call, X );
 
         Q_ASSERT_DOUBLE( cm0, cm1 );
     }
 
-    // Haug, Example from 7.3
+    // Wiley, Table 4.1
     {
-        const double S = 100.0;
-        const double X = 110.0;
-        const double r = 0.1;
-        const double b = 0.1;
-        const double sigma = 0.27;
-        const double T = 0.5;
+        const double S = 50.0;
+        const double X = 50.0;
+        const double r = 0.06;
+        const double q = 0.03;
+        const double sigma = 0.2;
+        const double T = 1.0;
 
-        _Myt pb( S, r, b, sigma, T, 30 );
+        _Myt kr( S, r, (r-q), sigma, T, 200 );
 
-        const double cm0 = 11.6493;
-        const double cm1 = pb.optionPrice( OptionType::Put, X );
+        const double cm0 = 4.5663;
+        const double cm1 = kr.optionPrice( OptionType::Call, X );
 
         Q_ASSERT_DOUBLE( cm0, cm1 );
     }

@@ -250,7 +250,7 @@ public:
 
     /// Append row to model.
     /**
-     * Model will assume ownership over @p items.
+     * Model will assume ownership over @a items.
      * @param[in] items  pointer to array of items
      */
     virtual void appendRow( item_type *items );
@@ -285,7 +285,7 @@ public:
      */
     virtual int removeRowsIf( int column, const QVariant& value, RemovalRule rule = RemovalRule::Equal );
 
-    /// Sort model by @p column in given @p order.
+    /// Sort model by @a column in given @a order.
     /**
      * @param[in] column  column to sort by
      * @param[in] order  order of sort

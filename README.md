@@ -174,12 +174,7 @@ $ dpkg-buildpackage -uc -us
 
 For documentation you will need the following packages:
 ~~~~
-$ sudo apt-get install doxygen
-~~~~
-
-If you want PDF/PS support install these packages too (its quite large):
-~~~~
-$ sudo apt-get install texlive texlive-latex-extra
+$ sudo apt-get install doxygen graphviz
 ~~~~
 
 Then run the following to generate all doxygen documentation:
@@ -187,9 +182,17 @@ Then run the following to generate all doxygen documentation:
 $ make doxygen-doc
 ~~~~
 
-If you only want HTML output instead run the following:
+By default you get html documention placed in the `doc` folder.
+
+If you want PDF/PS support install these packages too (its quite large):
 ~~~~
-$ make doxygen-html
+$ sudo apt-get install texlive texlive-latex-extra
+~~~~
+
+And you will also need to configure them before running make.
+~~~~
+$ ./configure --enable-doxygen-pdf --enable-doxygen-ps
+$ make doxygen-doc 
 ~~~~
 
 ## Final Note and a Word of Caution

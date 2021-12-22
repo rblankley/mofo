@@ -1,6 +1,6 @@
 /**
- * @file phelimboyle.h
- * Phelim-Boyle Trinomial Tree Option Pricing methods.
+ * @file alttrinomial.h
+ * Alternative Trinomial Tree Option Pricing methods.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,17 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PHELIMBOYLE_H
-#define PHELIMBOYLE_H
+#ifndef ALTTRINOMIAL_H
+#define ALTTRINOMIAL_H
 
 #include "trinomial.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Phelim-Boyle Trinomial Tree Option Pricing methods.
-class PhelimBoyle : public TrinomialTree
+/// Alternative Trinomial Tree Option Pricing methods.
+class AlternativeTrinomialTree : public TrinomialTree
 {
-    using _Myt = PhelimBoyle;
+    using _Myt = AlternativeTrinomialTree;
     using _Mybase = TrinomialTree;
 
 public:
@@ -49,19 +49,19 @@ public:
      * @param[in] N  trinomial tree depth
      * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
      */
-    PhelimBoyle( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
+    AlternativeTrinomialTree( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
 
     /// Constructor.
     /**
      * @param[in] other  object to copy
      */
-    PhelimBoyle( const _Myt& other ) : _Mybase() {copy( other );}
+    AlternativeTrinomialTree( const _Myt& other ) : _Mybase() {copy( other );}
 
     /// Constructor.
     /**
      * @param[in] other  object to move
      */
-    PhelimBoyle( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
+    AlternativeTrinomialTree( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
 
     // ========================================================================
     // Operators
@@ -96,8 +96,6 @@ public:
 
     /// Compute partials.
     /**
-     * @note
-     * Assumes you calculated the option price prior to calling this.
      * @param[in] type  option type
      * @param[in] X  strike price
      * @param[out] delta  partial with respect to underlying price
@@ -105,7 +103,6 @@ public:
      * @param[out] theta  partial with respect to time
      * @param[out] vega  partial with respect to sigma
      * @param[out] rho  partial with respect to rate
-     * @sa  optionPrice()
      */
     virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const override;
 
@@ -184,4 +181,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // PHELIMBOYLE_H
+#endif // ALTTRINOMIAL_H

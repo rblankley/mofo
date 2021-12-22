@@ -22,9 +22,11 @@
 #include "common.h"
 #include "optionprofitcalc.h"
 
+#include "calc/alttrinomialcalc.h"
 #include "calc/binomialcalc.h"
 #include "calc/blackscholescalc.h"
 #include "calc/epbinomialcalc.h"
+#include "calc/krtrinomialcalc.h"
 #include "calc/montecarlocalc.h"
 #include "calc/trinomialcalc.h"
 
@@ -133,14 +135,14 @@ OptionProfitCalculator *OptionProfitCalculator::create( double underlying, const
         return new EqualProbBinomialCalculator( underlying, chains, results );
     else if ( "BLACKSCHOLES" == method )
         return new BlackScholesCalculator( underlying, chains, results );
-/*
-    // do not use
-    // not consistent enough to calculate implied volatility reliably
     else if ( "MONTECARLO" == method )
         return new MonteCarloCalculator( underlying, chains, results );
-*/
     else if ( "TRINOM" == method )
         return new TrinomialCalculator( underlying, chains, results );
+    else if ( "TRINOM_ALT" == method )
+        return new AlternativeTrinomialCalculator( underlying, chains, results );
+    else if ( "TRINOM_KR" == method )
+        return new KamradRitchkenTrinomialCalculator( underlying, chains, results );
 
     LOG_WARN << "unhandled option calc method " << qPrintable( method );
 

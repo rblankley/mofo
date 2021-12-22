@@ -30,9 +30,13 @@
 
 static const double one_div_sqrt2pi = 0.39894228040143270286;
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
+
+/// Standard normal distribution function.
 #define normdist(x) ( one_div_sqrt2pi * exp(-(((x) * (x))/ 2.0)))
 
+/// Continuous normal distribution function.
 double cnd( double x );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

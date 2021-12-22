@@ -59,7 +59,7 @@ public:
 
 protected:
 
-    bool european_;
+    bool european_;                                 ///< Flag for european style option when @c true, or american style (early exercise) when @c false.
 
     // ========================================================================
     // CTOR / DTOR
@@ -99,20 +99,22 @@ protected:
 
     /// Copy object.
     /**
-     * @param[in] rhs  object to copy
+     * @param[in] other  object to copy
      * @return  reference to this
      */
-    void copy( const _Myt& other ) {
+    void copy( const _Myt& other )
+    {
         _Mybase::copy( other );
         european_ = other.european_;
     }
 
     /// Move object.
     /**
-     * @param[in] rhs  object to move
+     * @param[in] other  object to move
      * @return  reference to this
      */
-    void move( const _Myt&& other ) {
+    void move( const _Myt&& other )
+    {
         _Mybase::move( std::move( other ) );
         european_ = std::move( other.european_ );
     }

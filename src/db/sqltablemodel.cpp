@@ -24,6 +24,7 @@
 
 #include <QLocale>
 #include <QSqlError>
+#include <QThread>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SqlTableModel::SqlTableModel( int columns, QObject *parent, QSqlDatabase db ) :
@@ -53,15 +54,23 @@ QVariant SqlTableModel::data0( int col, int role ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SqlTableModel::refreshTableData()
 {
-    if ( !select() )
+    size_t attempts( 3 );
+
+    do
     {
-        const QSqlError e( lastError() );
+        if ( select() )
+            return true;
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
-        return false;
-    }
+        // wait a moment
+        QThread::msleep( SELECT_TIMEOUT );
 
-    return true;
+    } while ( --attempts );
+
+    // log out error
+    const QSqlError e( lastError() );
+
+    LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    return false;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

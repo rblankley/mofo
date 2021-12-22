@@ -50,7 +50,7 @@ SerializedWebInterface::SerializedWebInterface( QObject *parent ) :
     if ( !d.exists( TEMP_FILE_CACHE_DIR ) )
     {
         if ( !d.mkdir( TEMP_FILE_CACHE_DIR ) )
-            LOG_ERROR << "error creating cache dir " << qPrintable( TEMP_FILE_CACHE_DIR );
+            LOG_FATAL << "error creating cache dir " << qPrintable( TEMP_FILE_CACHE_DIR );
     }
     else if ( !d.cd( TEMP_FILE_CACHE_DIR ) )
         LOG_WARN << "could not cd to " << qPrintable( TEMP_FILE_CACHE_DIR );

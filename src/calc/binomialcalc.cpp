@@ -51,6 +51,9 @@ AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 AbstractOptionPricing *BinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
 {
+    // for this mode we should have no dividend already passed in
+    assert( b == r );
+
     return new CoxRossRubinstein( S, r, b, sigma, T, BINOM_DEPTH, divTimes, divYields, european );
 }
 

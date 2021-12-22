@@ -19,12 +19,15 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "altbisection.h"
+#include "alttrinomial.h"
 #include "baroneadesiwhaley.h"
 #include "bisection.h"
 #include "bjerksundstensland.h"
 #include "blackscholes.h"
 #include "coxrossrubinstein.h"
 #include "equalprobbinomial.h"
+#include "kamradritchken.h"
 #include "montecarlo.h"
 #include "newtonraphson.h"
 #include "phelimboyle.h"
@@ -45,12 +48,14 @@ void validateOptionPricing()
 {
     cbnd_validate();
 
+    AlternativeTrinomialTree::validate();
     BaroneAdesiWhaley::validate();
     BjerksundStensland::validate();
     BinomialTree::validate();
     BlackScholes::validate();
     CoxRossRubinstein::validate();
     EqualProbBinomialTree::validate();
+    KamradRitchken::validate();
     MonteCarlo::validate();
     NewtonRaphson::validate();
     PhelimBoyle::validate();
@@ -69,18 +74,20 @@ void validateOptionPricing()
     double op_put = 0.08;
 
     const QString format8( "%1 %2 %3 %4 %5 %6 %7 %8" );
-    const QString format5( "%1 %2 %3 %4 %5" );
+    const QString format7( "%1 %2 %3 %4 %5 %6 %7" );
 
     QStringList results;
 
     {
+        AlternativeTrinomialTree at( S, r, r-q, v_call, T, 528 );
         BaroneAdesiWhaley baw( S, r, r-q, v_call, T );
         BjerksundStensland bjs( S, r, r-q, v_call, T );
         BlackScholes bs( S, r, r-q, v_call, T );
-        CoxRossRubinstein crr( S, r, r-q, v_call, T, 1000 );
-        EqualProbBinomialTree eqpb( S, r, r-q, v_call, T, 1000 );
-        MonteCarlo mc( S, r, r-q, v_call, T, 10000000 );
-        PhelimBoyle pb( S, r, r-q, v_call, T, 500 );
+        CoxRossRubinstein crr( S, r, r-q, v_call, T, 1024 );
+        EqualProbBinomialTree eqpb( S, r, r-q, v_call, T, 1024 );
+        KamradRitchken kr( S, r, r-q, v_call, T, 528 );
+        MonteCarlo mc( S, r, r-q, v_call, T, 32*1024 );
+        PhelimBoyle pb( S, r, r-q, v_call, T, 528 );
         RollGeskeWhaley rgw( S, r, v_call, T, 0.0, T );
 
         results << format8
@@ -92,6 +99,16 @@ void validateOptionPricing()
             .arg( K0+2.0, 12 )
             .arg( K0+4.0, 12 )
             .arg( K0+6.0, 12 );
+
+        results << format8
+            .arg( "Alt Trinom", 10 )
+            .arg( at.optionPrice( OptionType::Call, K0-6.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Call, K0-4.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Call, K0-2.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Call, K0     ), 12 )
+            .arg( at.optionPrice( OptionType::Call, K0+2.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Call, K0+4.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Call, K0+6.0 ), 12 );
 
         results << format8
             .arg( "BAW", 10 )
@@ -144,6 +161,16 @@ void validateOptionPricing()
             .arg( eqpb.optionPrice( OptionType::Call, K0+6.0 ), 12 );
 
         results << format8
+            .arg( "KR Trinom", 10 )
+            .arg( kr.optionPrice( OptionType::Call, K0-6.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Call, K0-4.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Call, K0-2.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Call, K0     ), 12 )
+            .arg( kr.optionPrice( OptionType::Call, K0+2.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Call, K0+4.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Call, K0+6.0 ), 12 );
+
+        results << format8
             .arg( "PB Trinom", 10 )
             .arg( pb.optionPrice( OptionType::Call, K0-6.0 ), 12 )
             .arg( pb.optionPrice( OptionType::Call, K0-4.0 ), 12 )
@@ -177,13 +204,15 @@ void validateOptionPricing()
     }
 
     {
+        AlternativeTrinomialTree at( S, r, r-q, v_put, T, 528 );
         BaroneAdesiWhaley baw( S, r, r-q, v_put, T );
         BjerksundStensland bjs( S, r, r-q, v_put, T );
         BlackScholes bs( S, r, r-q, v_put, T );
-        CoxRossRubinstein crr( S, r, r-q, v_put, T, 1000 );
-        EqualProbBinomialTree eqpb( S, r, r-q, v_put, T, 1000 );
-        MonteCarlo mc( S, r, r-q, v_put, T, 10000000 );
-        PhelimBoyle pb( S, r, r-q, v_put, T, 500 );
+        CoxRossRubinstein crr( S, r, r-q, v_put, T, 1024 );
+        EqualProbBinomialTree eqpb( S, r, r-q, v_put, T, 1024 );
+        KamradRitchken kr( S, r, r-q, v_put, T, 528 );
+        MonteCarlo mc( S, r, r-q, v_put, T, 32*1024 );
+        PhelimBoyle pb( S, r, r-q, v_put, T, 528 );
         RollGeskeWhaley rgw( S, r, v_put, T, 0.0, T );
 
         results << format8
@@ -195,6 +224,16 @@ void validateOptionPricing()
             .arg( K0+2.0, 12 )
             .arg( K0+4.0, 12 )
             .arg( K0+6.0, 12 );
+
+        results << format8
+            .arg( "Alt Trinom", 10 )
+            .arg( at.optionPrice( OptionType::Put, K0-6.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Put, K0-4.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Put, K0-2.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Put, K0     ), 12 )
+            .arg( at.optionPrice( OptionType::Put, K0+2.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Put, K0+4.0 ), 12 )
+            .arg( at.optionPrice( OptionType::Put, K0+6.0 ), 12 );
 
         results << format8
             .arg( "BAW", 10 )
@@ -247,6 +286,16 @@ void validateOptionPricing()
             .arg( eqpb.optionPrice( OptionType::Put, K0+6.0 ), 12 );
 
         results << format8
+            .arg( "KR Trinom", 10 )
+            .arg( kr.optionPrice( OptionType::Put, K0-6.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Put, K0-4.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Put, K0-2.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Put, K0     ), 12 )
+            .arg( kr.optionPrice( OptionType::Put, K0+2.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Put, K0+4.0 ), 12 )
+            .arg( kr.optionPrice( OptionType::Put, K0+6.0 ), 12 );
+
+        results << format8
             .arg( "PB Trinom", 10 )
             .arg( pb.optionPrice( OptionType::Put, K0-6.0 ), 12 )
             .arg( pb.optionPrice( OptionType::Put, K0-4.0 ), 12 )
@@ -258,13 +307,13 @@ void validateOptionPricing()
 
         results << format8
             .arg( "RGW", 10 )
-            .arg( rgw.optionPrice( OptionType::Put, K0-6.0 ), 12 )
-            .arg( rgw.optionPrice( OptionType::Put, K0-4.0 ), 12 )
-            .arg( rgw.optionPrice( OptionType::Put, K0-2.0 ), 12 )
-            .arg( rgw.optionPrice( OptionType::Put, K0     ), 12 )
-            .arg( rgw.optionPrice( OptionType::Put, K0+2.0 ), 12 )
-            .arg( rgw.optionPrice( OptionType::Put, K0+4.0 ), 12 )
-            .arg( rgw.optionPrice( OptionType::Put, K0+6.0 ), 12 );
+            .arg( "N/A", 12 )
+            .arg( "N/A", 12 )
+            .arg( "N/A", 12 )
+            .arg( "N/A", 12 )
+            .arg( "N/A", 12 )
+            .arg( "N/A", 12 )
+            .arg( "N/A", 12 );
 
         results << format8
             .arg( "M Carlo", 10 )
@@ -280,78 +329,116 @@ void validateOptionPricing()
     }
 
     {
+        AlternativeTrinomialTree at( S, r, r-q, 0.0, T, 528 );
         BaroneAdesiWhaley baw( S, r, r-q, 0.0, T );
         BjerksundStensland bjs( S, r, r-q, 0.0, T );
         BlackScholes bs( S, r, r-q, 0.0, T );
-        CoxRossRubinstein crr( S, r, r-q, 0.0, T, 1000 );
-        EqualProbBinomialTree eqpb( S, r, r-q, 0.0, T, 1000 );
-        MonteCarlo mc( S, r, r-q, 0.0, T, 10000000 );
-        PhelimBoyle pb( S, r, r-q, 0.0, T, 500 );
+        CoxRossRubinstein crr( S, r, r-q, 0.0, T, 1024 );
+        EqualProbBinomialTree eqpb( S, r, r-q, 0.0, T, 1024 );
+        KamradRitchken kr( S, r, r-q, 0.0, T, 528 );
+        MonteCarlo mc( S, r, r-q, 0.0, T, 32*1024 );
+        PhelimBoyle pb( S, r, r-q, 0.0, T, 528 );
         RollGeskeWhaley rgw( S, r, 0.0, T, 0.0, T );
 
-        results << format5
+        results << format7
             .arg( "IV", 10 )
-            .arg( "Bi Call", 14 )
+            .arg( "Bisect Call", 14 )
+            .arg( "AltBi Call", 14 )
             .arg( "NR Call", 14 )
-            .arg( "Bi Put", 14 )
+            .arg( "Bisect Put", 14 )
+            .arg( "AltBi Put", 14 )
             .arg( "NR Put", 14 );
 
-        results << format5
+        results << format7
+            .arg( "Alt Trinom", 10 )
+            .arg( Bisection::calcImplVol( &at, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &at, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &at, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &at, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &at, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &at, OptionType::Put, K0, op_put ), 14 );
+
+        results << format7
             .arg( "BAW", 10 )
             .arg( Bisection::calcImplVol( &baw, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &baw, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &baw, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &baw, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &baw, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &baw, OptionType::Put, K0, op_put ), 14 );
 
-        results << format5
+        results << format7
             .arg( "BJS", 10 )
             .arg( Bisection::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 );
 
-        results << format5
+        results << format7
             .arg( "BS", 10 )
             .arg( Bisection::calcImplVol( &bs, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bs, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &bs, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &bs, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bs, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &bs, OptionType::Put, K0, op_put ), 14 );
 
-        results << format5
+        results << format7
             .arg( "CRR Binom", 10 )
             .arg( Bisection::calcImplVol( &crr, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &crr, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &crr, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &crr, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &crr, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &crr, OptionType::Put, K0, op_put ), 14 );
 
-        results << format5
+        results << format7
             .arg( "EQP Binom", 10 )
             .arg( Bisection::calcImplVol( &eqpb, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &eqpb, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &eqpb, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &eqpb, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &eqpb, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &eqpb, OptionType::Put, K0, op_put ), 14 );
 
-        results << format5
+        results << format7
+            .arg( "KR Trinom", 10 )
+            .arg( Bisection::calcImplVol( &kr, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &kr, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &kr, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &kr, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &kr, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &kr, OptionType::Put, K0, op_put ), 14 );
+
+        results << format7
             .arg( "PB Trinom", 10 )
             .arg( Bisection::calcImplVol( &pb, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &pb, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &pb, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &pb, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &pb, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &pb, OptionType::Put, K0, op_put ), 14 );
 
-        results << format5
+        results << format7
             .arg( "RGW", 10 )
             .arg( Bisection::calcImplVol( &rgw, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &rgw, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &rgw, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( &rgw, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( &rgw, OptionType::Put, K0, op_put ), 14 );
-/*
-        results << format5
+            .arg( "N/A", 14 )
+            .arg( "N/A", 14 )
+            .arg( "N/A", 14 );
+
+        results << format7
             .arg( "M Carlo", 10 )
             .arg( Bisection::calcImplVol( &mc, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &mc, OptionType::Call, K0, op_call ), 14 )
             .arg( NewtonRaphson::calcImplVol( &mc, OptionType::Call, K0, op_call ), 14 )
             .arg( Bisection::calcImplVol( &mc, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &mc, OptionType::Put, K0, op_put ), 14 )
             .arg( NewtonRaphson::calcImplVol( &mc, OptionType::Put, K0, op_put ), 14 );
-*/
+
         results << "";
     }
 

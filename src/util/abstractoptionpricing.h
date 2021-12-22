@@ -81,6 +81,12 @@ public:
      */
     virtual double sigma() const {return sigma_;}
 
+    /// Retrieve spot (underlying) price.
+    /**
+     * @return  spot price of underlying
+     */
+    virtual double spotPrice() const {return S_;}
+
     /// Compute vega greek.
     /**
      * @param[in] type  option type
@@ -155,14 +161,14 @@ protected:
 
     /// Copy object.
     /**
-     * @param[in] rhs  object to copy
+     * @param[in] other  object to copy
      * @return  reference to this
      */
     void copy( const _Myt& other );
 
     /// Move object.
     /**
-     * @param[in] rhs  object to move
+     * @param[in] other  object to move
      * @return  reference to this
      */
     void move( const _Myt&& other );

@@ -50,7 +50,7 @@ public:
      * @param[in] X  strike price
      * @param[in] price  option price
      * @param[out] okay  @c true if calculation okay, @c false otherwise
-     * @return  implied volatility of @p pricing
+     * @return  implied volatility of @a pricing
      */
     template <class T>
     static double calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay = nullptr );

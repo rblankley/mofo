@@ -48,7 +48,7 @@
 #include <QStyle>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.10" );
+static const QString applicationVersion( "0.0.11" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :

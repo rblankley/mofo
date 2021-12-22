@@ -190,7 +190,7 @@ bool ExpectedValueCalculator::generateGreeks()
         if (( !generateGreeks( row, strike, true ) ) ||     // calls
             ( !generateGreeks( row, strike, false ) ))      // puts
         {
-            LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " error generating greeks!";
+            LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " error generating greeks!";
             return false;
         }
     }
@@ -233,7 +233,7 @@ bool ExpectedValueCalculator::generateProbCurve()
                 continue;
             else if (( !probCurveCall_.contains( strike ) ) && ( !probCurvePut_.contains( strike )))
             {
-                LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " error generating probability from put/call parity";
+                LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " error generating probability from put/call parity";
                 return false;
             }
 
@@ -248,7 +248,7 @@ bool ExpectedValueCalculator::generateProbCurve()
     if (( !calcProbCurve( probCurveCall_, asc_, true ) ) ||      // calls
         ( !calcProbCurve( probCurvePut_, desc_, false ) ))       // puts
     {
-        LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " error calculating probablity curve!";
+        LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " error calculating probablity curve!";
         return false;
     }
 
@@ -301,7 +301,7 @@ bool ExpectedValueCalculator::generateProbCurve()
     if (( !calcProbCurvePrices( probCurveCall_, asc_, true ) ) ||      // calls
         ( !calcProbCurvePrices( probCurvePut_, desc_, false ) ))       // puts
     {
-        LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " error calculating probablity curve prices!";
+        LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " error calculating probablity curve prices!";
         return false;
     }
 
@@ -352,6 +352,19 @@ bool ExpectedValueCalculator::generateProbCurve()
     }
 
     return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+AbstractOptionPricing *ExpectedValueCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
+{
+    Q_UNUSED( divYields )
+    Q_UNUSED( divTimes )
+
+    // for this mode we should have no dividend already passed in
+    assert( b == r );
+
+    // support dividends
+    return createPricingMethod( S, r, (r - dividendYield()), sigma, T, european );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -964,7 +977,7 @@ bool ExpectedValueCalculator::calcProbCurvePrices( OptionProbCurve& curve, const
         {
             destroyPricingMethod( o );
 
-            LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " failed to calc greeks";
+            LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " failed to calc greeks";
             return false;
         }
 
@@ -1017,7 +1030,7 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
         // determine value for min
         const double v( std::ceil( 100.0 * o->optionPrice( type, strike ) ) / 100.0 );
 
-        if (( std::isnormal( v ) ) && ( v <= c.max ))
+        if (( !std::isinf( v ) ) && ( !std::isnan( v ) ) && ( v <= c.max ))
             c.minvi = calcImplVol( o, type, strike, (c.min = v) );
 
         destroyPricingMethod( o );
@@ -1051,7 +1064,7 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
             const double v( std::floor( 100.0 * o->optionPrice( type, strike ) ) / 100.0 );
 
             // found new value
-            if (( std::isnormal( v ) ) && ( v < c.max ) && ( vi <= 1000.0 ))
+            if (( !std::isinf( v ) ) && ( !std::isnan( v ) ) && ( v < c.max ) && ( vi <= 1000.0 ))
                 max = v;
 
             // reduce
@@ -1081,12 +1094,12 @@ bool ExpectedValueCalculator::generateProbCurve( double strike, bool isCall )
 
     if (( c.min < 0.0 ) || ( c.max < 0.0 ))
     {
-        LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " negative min/max";
+        LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " negative min/max";
         return false;
     }
     else if (( 0.0 < c.max ) && ( c.max < c.min ))
     {
-        LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " inverted min/max";
+        LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " inverted min/max";
         return false;
     }
 

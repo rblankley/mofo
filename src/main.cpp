@@ -40,6 +40,9 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+
+/// Set application style and palette.
 void setStyle( QApplication& a, const QString& theme, const QColor& highlight )
 {
     static const QColor blue( 42, 130, 218 );
@@ -113,6 +116,8 @@ void setStyle( QApplication& a, const QString& theme, const QColor& highlight )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Application entry point.
 int main( int argc, char *argv[] )
 {
 #if defined( HAVE_CLIO_H )
@@ -140,14 +145,14 @@ int main( int argc, char *argv[] )
     // create config directory
     if (( !d.exists( config ) ) && ( !d.mkdir( config ) ))
     {
-        LOG_ERROR << "failed to make config dir " << qPrintable( config );
+        LOG_FATAL << "failed to make config dir " << qPrintable( config );
         return -1;
     }
 
     // create cache directory
     if (( !d.exists( cache ) ) && ( !d.mkdir( cache ) ))
     {
-        LOG_ERROR << "failed to make cache dir " << qPrintable( cache );
+        LOG_FATAL << "failed to make cache dir " << qPrintable( cache );
         return -1;
     }
 #endif
@@ -161,7 +166,7 @@ int main( int argc, char *argv[] )
 
     if ( !db->isReady() )
     {
-        LOG_ERROR << "db not ready!";
+        LOG_FATAL << "db not ready!";
         return -1;
     }
 

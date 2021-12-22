@@ -168,7 +168,7 @@ public slots:
 
     /// Force a new scan.
     /**
-     * @param[in] watchlist  watchlist(s) to process
+     * @param[in] watchlists  watchlist(s) to process
      */
     virtual void scan( const QString& watchlists );
 

@@ -27,10 +27,15 @@
 
 static const double one_div_sqrt2pi = 0.39894228040143270286;
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
+
+/// Standard normal distribution function.
 #define normdist(x) ( one_div_sqrt2pi * exp(-(((x) * (x))/ 2.0)))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Continuous normal distribution function.
 double cnd( double x )
 {
     static const double
@@ -39,6 +44,9 @@ double cnd( double x )
         a3 = +1.781477937,
         a4 = -1.821255978,
         a5 = +1.330274429;
+
+    if ( 0.0 == x )
+        return 0.5;
 
     const double L = std::fabs(x);
     const double K = 1.0 / (1.0 + (0.2316419 * L));

@@ -52,6 +52,7 @@
 
 #else
 #include <QDebug>
+#define LOG_FATAL qCritical()
 #define LOG_ERROR qCritical()
 #define LOG_WARN qWarning()
 #define LOG_INFO qInfo()

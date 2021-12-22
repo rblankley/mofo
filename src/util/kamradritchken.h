@@ -1,6 +1,6 @@
 /**
- * @file phelimboyle.h
- * Phelim-Boyle Trinomial Tree Option Pricing methods.
+ * @file kamradritchken.h
+ * Kamrad-Ritchken Trinomial Tree Option Pricing methods.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,17 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PHELIMBOYLE_H
-#define PHELIMBOYLE_H
+#ifndef KAMRADRITCHKEN_H
+#define KAMRADRITCHKEN_H
 
 #include "trinomial.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Phelim-Boyle Trinomial Tree Option Pricing methods.
-class PhelimBoyle : public TrinomialTree
+/// Kamrad-Ritchken Trinomial Tree Option Pricing methods.
+class KamradRitchken : public TrinomialTree
 {
-    using _Myt = PhelimBoyle;
+    using _Myt = KamradRitchken;
     using _Mybase = TrinomialTree;
 
 public:
@@ -49,19 +49,19 @@ public:
      * @param[in] N  trinomial tree depth
      * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
      */
-    PhelimBoyle( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
+    KamradRitchken( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
 
     /// Constructor.
     /**
      * @param[in] other  object to copy
      */
-    PhelimBoyle( const _Myt& other ) : _Mybase() {copy( other );}
+    KamradRitchken( const _Myt& other ) : _Mybase() {copy( other );}
 
     /// Constructor.
     /**
      * @param[in] other  object to move
      */
-    PhelimBoyle( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
+    KamradRitchken( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
 
     // ========================================================================
     // Operators
@@ -184,4 +184,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // PHELIMBOYLE_H
+#endif // KAMRADRITCHKEN_H

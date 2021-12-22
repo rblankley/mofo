@@ -28,14 +28,17 @@ SOURCES += \
     apibase/serializedapi.cpp \
     apibase/serializedjsonapi.cpp \
     apibase/serializedxmlapi.cpp \
+    calc/alttrinomialcalc.cpp \
     calc/binomialcalc.cpp \
     calc/blackscholescalc.cpp \
     calc/epbinomialcalc.cpp \
     calc/expectedvaluecalc.cpp \
+    calc/krtrinomialcalc.cpp \
     calc/montecarlocalc.cpp \
     calc/trinomialcalc.cpp \
     configdialog.cpp \
     db/appdb.cpp \
+    db/fundamentalstablemodel.cpp \
     db/itemmodel.cpp \
     db/optionchaintablemodel.cpp \
     db/optiontradingitemmodel.cpp \
@@ -70,6 +73,7 @@ SOURCES += \
     usdot/dbadapterusdot.cpp \
     usdot/usdotapi.cpp \
     util/abstractoptionpricing.cpp \
+    util/alttrinomial.cpp \
     util/baroneadesiwhaley.cpp \
     util/binomial.cpp \
     util/bjerksundstensland.cpp \
@@ -79,12 +83,14 @@ SOURCES += \
     util/coxrossrubinstein.cpp \
     util/equalprobbinomial.cpp \
     util/fitpoly.cpp \
+    util/kamradritchken.cpp \
     util/montecarlo.cpp \
     util/newtonraphson.cpp \
     util/phelimboyle.cpp \
     util/rollgeskewhaley.cpp \
     util/stats.cpp \
     util/tests.cpp \
+    util/trinomial.cpp \
     watchlistdialog.cpp \
     watchlistselectiondialog.cpp \
     widgetstatesdialog.cpp
@@ -96,14 +102,17 @@ HEADERS += \
     apibase/serializedapi.h \
     apibase/serializedjsonapi.h \
     apibase/serializedxmlapi.h \
+    calc/alttrinomialcalc.h \
     calc/binomialcalc.h \
     calc/blackscholescalc.h \
     calc/epbinomialcalc.h \
     calc/expectedvaluecalc.h \
+    calc/krtrinomialcalc.h \
     calc/montecarlocalc.h \
     calc/trinomialcalc.h \
     configdialog.h \
     db/appdb.h \
+    db/fundamentalstablemodel.h \
     db/itemmodel.h \
     db/optionchaintablemodel.h \
     db/optiontradingitemmodel.h \
@@ -142,6 +151,8 @@ HEADERS += \
     usdot/stringsxml.h \
     usdot/usdotapi.h \
     util/abstractoptionpricing.h \
+    util/altbisection.h \
+    util/alttrinomial.h \
     util/baroneadesiwhaley.h \
     util/binomial.h \
     util/bisection.h \
@@ -151,6 +162,7 @@ HEADERS += \
     util/dualmodeoptionpricing.h \
     util/equalprobbinomial.h \
     util/fitpoly.h \
+    util/kamradritchken.h \
     util/montecarlo.h \
     util/newtonraphson.h \
     util/optiontype.h \
@@ -158,6 +170,7 @@ HEADERS += \
     util/rollgeskewhaley.h \
     util/stats.h \
     util/tests.h \
+    util/trinomial.h \
     watchlistdialog.h \
     watchlistselectiondialog.h \
     widgetstatesdialog.h

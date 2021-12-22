@@ -120,20 +120,21 @@ public slots:
 
 protected:
 
+    /// TDA daemon state.
     enum state
     {
-        INACTIVE,
-        FETCH_TREAS_YIELDS,
-        WAIT_TREAS_YIELDS,
-        FETCH_MARKET_HOURS,
-        WAIT_MARKET_HOURS,
-        FETCH_ACCOUNTS,
-        WAIT_ACCOUNTS,
-        ACTIVE,
-        ACTIVE_BACKGROUND,
+        INACTIVE,                                   ///< Not active.
+        FETCH_TREAS_YIELDS,                         ///< Fetching treasury yield rates.
+        WAIT_TREAS_YIELDS,                          ///< Waiting on treasury yields.
+        FETCH_MARKET_HOURS,                         ///< Fetching market hours.
+        WAIT_MARKET_HOURS,                          ///< Waiting on market hours.
+        FETCH_ACCOUNTS,                             ///< Fetching accounts.
+        WAIT_ACCOUNTS,                              ///< Waiting on accounts.
+        ACTIVE,                                     ///< Active (online and idle).
+        ACTIVE_BACKGROUND,                          ///< Fetching background data.
 
         // meta states
-        STARTUP = FETCH_TREAS_YIELDS,
+        STARTUP = FETCH_TREAS_YIELDS,               ///< Startup state.
     };
 
     QStringList equityQueue_;                       ///< Queue of equity requests.
@@ -235,7 +236,7 @@ private:
 
     static constexpr int REQUEST_TIMEOUT = 120;             // 120s
 
-    static constexpr int DEQUEUE_TIME = 510;                // 510ms (do not go below 500ms, TDA throttles to 120 requests/min)
+    static constexpr int DEQUEUE_TIME = 520;                // 520ms (do not go below 500ms, TDA throttles to 120 requests/min)
 
     static constexpr int EQUITY_DEQUEUE_SIZE = 8;
 

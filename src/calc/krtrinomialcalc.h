@@ -1,6 +1,6 @@
 /**
- * @file epbinomialcalc.h
- * Equal Probability Binomial tree based option profit calculator.
+ * @file krtrinomialcalc.h
+ * Kamrad-Ritchken Trinomial tree based option profit calculator.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,17 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef EPBINOMIALCALC_H
-#define EPBINOMIALCALC_H
+#ifndef KRTRINOMIALCALC_H
+#define KRTRINOMIALCALC_H
 
 #include "expectedvaluecalc.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Equal Probability Binomial tree based option profit calculator.
-class EqualProbBinomialCalculator : public ExpectedValueCalculator
+/// Kamrad-Ritchken Trinomial tree based option profit calculator.
+class KamradRitchkenTrinomialCalculator : public ExpectedValueCalculator
 {
-    using _Myt = EqualProbBinomialCalculator;
+    using _Myt = KamradRitchkenTrinomialCalculator;
     using _Mybase = ExpectedValueCalculator;
 
 public:
@@ -45,10 +45,10 @@ public:
      * @param[in] chains  chains to evaluate
      * @param[in] results  results
      */
-    EqualProbBinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results );
+    KamradRitchkenTrinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results );
 
     /// Destructor.
-    ~EqualProbBinomialCalculator();
+    ~KamradRitchkenTrinomialCalculator();
 
 protected:
 
@@ -79,22 +79,6 @@ protected:
      */
     virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, bool european = false ) const override;
 
-    /// Factory method for creation of Option Pricing Methods.
-    /**
-     * @warning
-     * Passed in @c vector classes @a divTimes and @a divYields are assumed to have equal sizes.
-     * @param[in] S  underlying (spot) price
-     * @param[in] r  risk-free interest rate
-     * @param[in] b  cost-of-carry rate of holding underlying
-     * @param[in] sigma  volatility of underlying
-     * @param[in] T  time to expiration (years)
-     * @param[in] divTimes  dividend times
-     * @param[in] divYields  dividend yields
-     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
-     * @return  pointer to pricing method
-     */
-    virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european = false ) const override;
-
     /// Factory method for destruction of Option Pricing Methods.
     /**
      * @param[in] doomed  pricing method to destroy
@@ -103,13 +87,13 @@ protected:
 
 private:
 
-    static constexpr int BINOM_DEPTH = 256;
+    static constexpr int TRINOM_DEPTH = 128;
 
     // not implemented
-    EqualProbBinomialCalculator( const _Myt& ) = delete;
+    KamradRitchkenTrinomialCalculator( const _Myt& ) = delete;
 
     // not implemented
-    EqualProbBinomialCalculator( const _Myt&& ) = delete;
+    KamradRitchkenTrinomialCalculator( const _Myt&& ) = delete;
 
     // not implemented
     _Myt &operator = ( const _Myt& ) = delete;
@@ -121,4 +105,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // EPBINOMIALCALC_H
+#endif // KRTRINOMIALCALC_H

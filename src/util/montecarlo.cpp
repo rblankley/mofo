@@ -28,54 +28,146 @@
 #include <cmath>
 #include <list>
 #include <numeric>
-#include <random>
 #include <thread>
 
 static const double pi = 3.14159265358979323846;
-static const double pi2 = pi * 2.0;
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MonteCarlo::MonteCarlo( double S, double r, double b, double sigma, double T, size_t N ) :
     _Mybase( S, r, b, sigma, T ),
-    N_( N )
+    N_( N ),
+    rng_( std::random_device{}() )
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+MonteCarlo::MonteCarlo( double S, double r, double b, double sigma, double T, size_t N, const rng_engine_t& rng ) :
+    _Mybase( S, r, b, sigma, T ),
+    N_( N ),
+    rng_( rng )
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double MonteCarlo::optionPrice( OptionType type, double X ) const
 {
-    const size_t numThreads( std::thread::hardware_concurrency() );
+    const double z( (OptionType::Call == type) ? 1.0 : -1.0 );
 
-    size_t payoffSize( N_ );
+    const double drift( (b_ - pow2( sigma_ ) / 2.0) * T_ );
 
-    while ( 0 != (payoffSize % numThreads) )
-        ++payoffSize;
+    rng_engine_t rng( rng_ );
+    std::uniform_real_distribution<double> dist( 0.0, 1.0 );
 
-    const size_t s( payoffSize / numThreads );
+    size_t n( N_ );
 
-    // allocate buffer for payoff
-    std::vector<double> payoff( payoffSize );
+    double sum( 0.0 );
 
-    // start some worker threads
-    std::vector<std::thread> threads;
+    double deltaSum( 0.0 );
+    double gammaSum( 0.0 );
 
-    for ( size_t i( numThreads ); i--; )
+    do
     {
-        std::vector<double>::iterator begin = payoff.begin() + s*i;
-        std::vector<double>::iterator end = payoff.begin() + s*(i+1);
+        // Independent uniform random variables
+        // Floor u1 to avoid errors with log function
+        const double u1 = std::fmax( dist( rng ), 1.0e-10 );
+        const double u2 = dist( rng );
 
-        threads.emplace_back( std::thread( &_Myt::calcOptionPrice, this, type, X, std::move( begin ), std::move( end ) ) );
-    }
+        // Z ~ N(0,1) by Box-Muller transformation
+        // Haug, chapter 8.3, for two values instead of one
+        const double T = tan( pi * u2 );
+        const double L = sqrt( -2.0 * log( u1 ) );
 
-    // wait for completion
-    for ( std::thread& t : threads )
-        if ( t.joinable() )
-            t.join();
+        const double Z0 = L * (1.0 - pow2( T )) / (1.0 + pow2( T ));
+        const double Z1 = L * 2.0 * T / (1.0 + pow2( T ));
 
-    // Simulated prices as discounted average of terminal prices
-    return ert_ * std::accumulate( payoff.begin(), payoff.end(), 0.0 ) / payoffSize;
+        // unroll loop for processing of Z0 and Z1
+
+        {
+            // Simulated terminal price S(T)
+            const double ST = S_ * exp( drift + vst_ * Z0 );
+
+            sum += std::fmax( 0.0, z * (ST - X) );
+
+            if ( 0.0 < z )
+            {
+                if ( X < ST )
+                    deltaSum += ST;
+            }
+            else if ( ST < X )
+                deltaSum += ST;
+
+            if ( std::fabs( ST - X ) < 2.0 )
+                gammaSum += 1.0;
+        }
+
+        if ( 0 == --n )
+            break;
+
+        {
+            // Simulated terminal price S(T)
+            const double ST = S_ * exp( drift + vst_ * Z1 );
+
+            sum += std::fmax( 0.0, z * (ST - X) );
+
+            if ( 0.0 < z )
+            {
+                if ( X < ST )
+                    deltaSum += ST;
+            }
+            else if ( ST < X )
+                deltaSum += ST;
+
+            if ( std::fabs( ST - X ) < 2.0 )
+                gammaSum += 1.0;
+        }
+
+    } while ( --n );
+
+    price_ = ert_ * sum / N_;
+
+    delta_ = (z * ert_ * deltaSum) / (N_ * S_);
+    gamma_ = (ert_ * pow2( X / S_ ) * gammaSum) / (4.0 * N_);
+    theta_ = (r_ * price_) - (b_ * S_ * delta_) - (0.5 * pow2( sigma_ ) * pow2( S_ ) * gamma_);
+    vega_ = gamma_ * sigma_ * pow2( S_ ) * T_;
+
+    return price_;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void MonteCarlo::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& veg, double& rh ) const
+{
+    delta = delta_;
+    gamma = gamma_;
+    theta = theta_;
+
+    // vega
+    veg = vega( type, X );
+
+    // rho
+    rh = rho( type, X );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double MonteCarlo::rho( OptionType type, double X ) const
+{
+    // rho
+    const double diff( 0.01 );
+
+    _Myt calc( S_, r_+diff, b_+diff, sigma_, T_, N_, rng_ );
+    return (calc.optionPrice( type, X ) - price_) / diff;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double MonteCarlo::vega( OptionType type, double X ) const
+{
+    Q_UNUSED( type )
+    Q_UNUSED( X )
+
+    // vega
+    return vega_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -84,6 +176,8 @@ void MonteCarlo::copy( const _Myt& other )
     _Mybase::copy( other );
 
     N_ = other.N_;
+
+    rng_ = other.rng_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -92,32 +186,8 @@ void MonteCarlo::move( const _Myt&& other )
     _Mybase::move( std::move( other ) );
 
     N_ = std::move( other.N_ );
-}
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void MonteCarlo::calcOptionPrice( OptionType type, double X, std::vector<double>::iterator begin, std::vector<double>::iterator end ) const
-{
-    std::random_device device;
-    std::mt19937 rng( device() );
-
-    std::uniform_real_distribution<double> dist( 0.0, 1.0 );
-
-    do
-    {
-        // Independent uniform random variables
-        // Floor u1 to avoid errors with log function
-        const double u1 = fmax( dist( rng ), 1.0e-10 );
-        const double u2 = dist( rng );
-
-        // Z ~ N(0,1) by Box-Muller transformation
-        const double Z = sqrt( -2.0 * log( u1 ) ) * sin( pi2 * u2 );
-
-        // Simulated terminal price S(T)
-        const double ST = S_ * exp( (b_ - pow2( sigma_ ) / 2.0) * T_ + vst_ * Z );
-
-        *begin = fmax( (OptionType::Call == type) ? (ST - X) : (X - ST), 0.0 );
-
-    } while ( ++begin != end );
+    rng_ = std::move( other.rng_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -31,6 +31,7 @@
 
 #include <cmath>
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -40,31 +41,32 @@ EqualProbBinomialTree::EqualProbBinomialTree( double S, double r, double b, doub
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+EqualProbBinomialTree::EqualProbBinomialTree( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) :
+    _Mybase( S, r, b, sigma, T, N, divTimes, divYields, european )
+{
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double EqualProbBinomialTree::optionPrice( OptionType type, double X ) const
 {
-    double r = r_;
-    double q = r_ - b_;
-
     // quantities for the tree
     const double dt = T_ / N_;
 
-    const double bv2dt = ((r - q) - 0.5 * pow2( sigma_ )) * dt;
+    const double bv2dt = (b_ - 0.5 * pow2( sigma_ )) * dt;
     const double vsdt = sigma_ * sqrt( dt );
 
     const double u = exp( bv2dt + vsdt );
     const double d = exp( bv2dt - vsdt );
 
-    const double Df = exp( -r * dt );
+    const double Df = exp( -r_ * dt );
 
     // calc!
     return calcOptionPrice( (OptionType::Call == type), S_, X, u, d, 0.5, 0.5, Df );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void EqualProbBinomialTree::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const
+void EqualProbBinomialTree::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& veg, double& rh ) const
 {
-    double diff;
-
     // calc partials
     const double dt = T_ / N_;
 
@@ -77,18 +79,10 @@ void EqualProbBinomialTree::partials( OptionType type, double X, double& delta, 
     calcPartials( u, d, delta, gamma, theta );
 
     // vega
-    diff = 0.02;
-
-    _Myt vegaCalc( S_, r_, b_, sigma_+diff, T_, N_, european_ );
-    vega = (vegaCalc.optionPrice( type, X ) - f_[0][0]) / diff;
+    veg = vega( type, X );
 
     // rho
-    const double q = r_ - b_;
-
-    diff = 0.05;
-
-    _Myt rhoCalc( S_, r_+diff, r_+diff-q, sigma_, T_, N_, european_ );
-    rho = (rhoCalc.optionPrice( type, X ) - f_[0][0]) / diff;
+    rh = rho( type, X );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

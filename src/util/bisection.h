@@ -48,12 +48,14 @@ public:
      * @param[in] X  strike price
      * @param[in] price  option price
      * @param[out] okay  @c true if calculation okay, @c false otherwise
-     * @return  implied volatility of @p pricing
+     * @return  implied volatility of @a pricing
      */
     template <class T>
     static double calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay = nullptr );
 
 private:
+
+    static const size_t MAX_LOOPS = 512;
 
     // not implemented
     Bisection() = delete;
@@ -76,8 +78,10 @@ template <class T>
 inline double Bisection::calcImplVol( T *pricing, OptionType type, double X, double price, bool *okay )
 {
     static const double VOLATILITY_MIN = 0.0000001;
-    static const double VOLATILITY_MAX = 100.99999;
+    static const double VOLATILITY_MAX = 100.0 - VOLATILITY_MIN;
     static const double EPSILON = 0.001;
+
+    size_t maxloops( MAX_LOOPS );
 
     T vLow( (*pricing) );
     vLow.setSigma( VOLATILITY_MIN );
@@ -85,11 +89,11 @@ inline double Bisection::calcImplVol( T *pricing, OptionType type, double X, dou
     T vHigh( (*pricing) );
     vHigh.setSigma( VOLATILITY_MAX );
 
+    double cLow( vLow.optionPrice( type, X ) );
+    double cHigh( vHigh.optionPrice( type, X ) );
+
     for ( ;; )
     {
-        const double cLow( vLow.optionPrice( type, X ) );
-        const double cHigh( vHigh.optionPrice( type, X ) );
-
         // If price < cLow, then it is impossible to compute a proper
         // implied volatility. This because that volatility would be
         // greater than VOLATILITY_MIN. Now what?
@@ -113,10 +117,26 @@ inline double Bisection::calcImplVol( T *pricing, OptionType type, double X, dou
 
         if ( std::fabs( price - val ) <= EPSILON )
             break;
-        else if ( val < price )
+
+        if ( val < price )
+        {
             vLow.setSigma( vi );
+            cLow = vLow.optionPrice( type, X );
+        }
         else
+        {
             vHigh.setSigma( vi );
+            cHigh = vHigh.optionPrice( type, X );
+        }
+
+        // too many loops, error out
+        if ( !maxloops-- )
+        {
+            if ( okay )
+                *okay = false;
+
+            return 0.0;
+        }
     }
 
     if ( okay )

@@ -1,3 +1,5 @@
+# DOXYGEN SUPPORT
+@DX_RULES@
 
 SUBDIRS = src
 
@@ -6,4 +8,6 @@ README: README.md
 	pandoc -f markdown -t plain --wrap=none $< -o $@
 
 CLEANFILES = README
+
+MOSTLYCLEANFILES = $(DX_CLEANFILES)
 

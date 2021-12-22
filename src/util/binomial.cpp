@@ -31,6 +31,7 @@
 
 #include <cmath>
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
 
 // uncomment to debug calculations
@@ -44,7 +45,27 @@ BinomialTree::BinomialTree( double S, double r, double b, double sigma, double T
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+BinomialTree::BinomialTree( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) :
+    _Mybase( S, r, b, sigma, T, european ),
+    N_( N ),
+    divTimes_( divTimes ),
+    div_( divYields )
+{
+    assert( divTimes.size() == divYields.size() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const
+{
+    // dividends exist
+    if ( divTimes_.size() )
+        return calcOptionPriceImpl( isCall, S, K, u, d, pu, pd, Df, divTimes_, div_ );
+
+    return calcOptionPriceImpl( isCall, S, K, u, d, pu, pd, Df );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double BinomialTree::calcOptionPriceImpl( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const
 {
     const double z( isCall ? 1 : -1 );
 
@@ -109,7 +130,7 @@ double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double BinomialTree::calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& divTimes, const std::vector<double>& div ) const
+double BinomialTree::calcOptionPriceImpl( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& divTimes, const std::vector<double>& div ) const
 {
     const double z( isCall ? 1 : -1 );
 
@@ -200,6 +221,9 @@ void BinomialTree::copy( const _Myt& other )
     _Mybase::copy( other );
 
     N_ = other.N_;
+
+    divTimes_ = other.divTimes_;
+    div_ = other.div_;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -208,6 +232,9 @@ void BinomialTree::move( const _Myt&& other )
     _Mybase::move( std::move( other ) );
 
     N_ = std::move( other.N_ );
+
+    divTimes_ = std::move( other.divTimes_ );
+    div_ = std::move( other.div_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -14,6 +14,10 @@ AC_CONFIG_HEADER([config.h])
 AC_CONFIG_MACRO_DIRS([m4])
 
 # setup doxygen
+DX_DOXYGEN_FEATURE(ON)
+DX_HTML_FEATURE(ON)
+DX_PDF_FEATURE(OFF)
+DX_PS_FEATURE(OFF)
 DX_INIT_DOXYGEN([$PACKAGE_NAME], [Doxyfile], [doc])
 
 # use the C++ compiler for the following checks

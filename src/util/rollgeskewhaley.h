@@ -111,8 +111,8 @@ public:
 
 protected:
 
-    double d_;
-    double DT_;
+    double d_;                                      ///< Dividend payout.
+    double DT_;                                     ///< Time to dividend payout (years).
 
     // ========================================================================
     // Methods
@@ -120,14 +120,14 @@ protected:
 
     /// Copy object.
     /**
-     * @param[in] rhs  object to copy
+     * @param[in] other  object to copy
      * @return  reference to this
      */
     void copy( const _Myt& other );
 
     /// Move object.
     /**
-     * @param[in] rhs  object to move
+     * @param[in] other  object to move
      * @return  reference to this
      */
     void move( const _Myt&& other );

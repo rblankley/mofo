@@ -1,5 +1,5 @@
 /**
- * @file phelimboyle.cpp
+ * @file alttrinomial.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -19,7 +19,7 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "phelimboyle.h"
+#include "alttrinomial.h"
 
 #include <algorithm>
 #include <cmath>
@@ -28,14 +28,14 @@
 #define pow2(n) ((n) * (n))
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-PhelimBoyle::PhelimBoyle( double S, double r, double b, double sigma, double T, size_t N, bool european  ) :
+AlternativeTrinomialTree::AlternativeTrinomialTree( double S, double r, double b, double sigma, double T, size_t N, bool european  ) :
     _Mybase( S, r, b, sigma, T, N, european )
 {
     init();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& veg, double& rh ) const
+void AlternativeTrinomialTree::partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& veg, double& rh ) const
 {
     // calc partials
     calcPartials( u_, d_, delta, gamma, theta );
@@ -48,7 +48,7 @@ void PhelimBoyle::partials( OptionType type, double X, double& delta, double& ga
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::setSigma( double value )
+void AlternativeTrinomialTree::setSigma( double value )
 {
     _Mybase::setSigma( value );
 
@@ -56,14 +56,14 @@ void PhelimBoyle::setSigma( double value )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double PhelimBoyle::optionPrice( OptionType type, double X ) const
+double AlternativeTrinomialTree::optionPrice( OptionType type, double X ) const
 {
     // calc!
     return calcOptionPrice( (OptionType::Call == type), S_, X, u_, d_, pu_, pd_, pm_, Df_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::copy( const _Myt& other )
+void AlternativeTrinomialTree::copy( const _Myt& other )
 {
     _Mybase::copy( other );
 
@@ -78,7 +78,7 @@ void PhelimBoyle::copy( const _Myt& other )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::move( const _Myt&& other )
+void AlternativeTrinomialTree::move( const _Myt&& other )
 {
     _Mybase::move( std::move( other ) );
 
@@ -93,21 +93,20 @@ void PhelimBoyle::move( const _Myt&& other )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void PhelimBoyle::init()
+void AlternativeTrinomialTree::init()
 {
     const double dt = T_ / N_;
 
-    const double epvsdt = exp( sigma_ * sqrt( 0.5 * dt ) );
-    const double envsdt = exp( -sigma_ * sqrt( 0.5 * dt ) );
-    const double ebdt = exp( 0.5 * b_ * dt );
+    const double mu( b_ - 0.5 * pow2( sigma_ ) );
+    const double musdts( mu * sqrt( dt / (12.0 * pow2( sigma_ )) ) );
 
     // quantities for the tree
-    u_ = exp( sigma_ * sqrt( 2.0 * dt ) );
-    d_ = exp( -sigma_ * sqrt( 2.0 * dt ) );
+    u_ = exp( sigma_ * sqrt( 3.0 * dt ) );
+    d_ = 1.0 / u_;
 
-    pu_ = pow( (ebdt - envsdt) / (epvsdt - envsdt), 2 );
-    pd_ = pow( (epvsdt - ebdt) / (epvsdt - envsdt), 2 );
-    pm_ = 1.0 - pu_ - pd_;
+    pu_ = (1.0 / 6.0) + musdts;
+    pd_ = (1.0 / 6.0) - musdts;
+    pm_ = (2.0 / 3.0);
 
     Df_ = exp( -r_ * dt );
 }
@@ -117,7 +116,7 @@ void PhelimBoyle::init()
 
 #define Q_ASSERT_DOUBLE( fn, v ) {const double result = fn; Q_ASSERT( v-0.0001 <= result && result <= v+0.0001 );}
 
-void PhelimBoyle::validate()
+void AlternativeTrinomialTree::validate()
 {
     {
         const double S = 30.0;
@@ -126,10 +125,9 @@ void PhelimBoyle::validate()
         const double sigma = 0.3;
         const double T = 0.4167;
 
-        BlackScholes bs( S, r, r, sigma, T );
         _Myt pb( S, r, r, sigma, T, 32 * 100, true );
 
-        const double cm0 = bs.optionPrice( OptionType::Put, X );
+        const double cm0 = 1.9940;
         const double cm1 = pb.optionPrice( OptionType::Put, X );
 
         Q_ASSERT_DOUBLE( cm0, cm1 );
@@ -145,25 +143,8 @@ void PhelimBoyle::validate()
 
         _Myt pb( S, r, b, sigma, T, 100 );
 
-        const double cm0 = 4.2918;
+        const double cm0 = 4.2936;
         const double cm1 = pb.optionPrice( OptionType::Call, X );
-
-        Q_ASSERT_DOUBLE( cm0, cm1 );
-    }
-
-    // Haug, Example from 7.3
-    {
-        const double S = 100.0;
-        const double X = 110.0;
-        const double r = 0.1;
-        const double b = 0.1;
-        const double sigma = 0.27;
-        const double T = 0.5;
-
-        _Myt pb( S, r, b, sigma, T, 30 );
-
-        const double cm0 = 11.6493;
-        const double cm1 = pb.optionPrice( OptionType::Put, X );
 
         Q_ASSERT_DOUBLE( cm0, cm1 );
     }

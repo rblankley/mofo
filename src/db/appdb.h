@@ -271,7 +271,7 @@ public:
     /// Retrieve risk free interest rate.
     /**
      * @warning
-     * Requested period @p term must be <= 30.0
+     * Requested period @a term must be <= 30.0
      * @param[in] term  term (years)
      * @return  interest rate
      */

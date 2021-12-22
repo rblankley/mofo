@@ -90,7 +90,7 @@ QStringList AppDatabase::accounts() const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
     }
     else
     {
@@ -201,7 +201,7 @@ QByteArray AppDatabase::filter( const QString& name ) const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
     }
     else
     {
@@ -240,7 +240,7 @@ QStringList AppDatabase::filters() const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
     }
     else
     {
@@ -298,7 +298,7 @@ bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -380,7 +380,7 @@ bool AppDatabase::marketHoursExist( const QDate& date, const QString& marketType
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -463,7 +463,7 @@ void AppDatabase::removeFilter( const QString& name )
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during delete " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during delete " << e.type() << " " << qPrintable( e.text() );
     }
 }
 
@@ -487,7 +487,7 @@ void AppDatabase::removeWatchlist( const QString& name )
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during delete " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during delete " << e.type() << " " << qPrintable( e.text() );
         }
     }
 }
@@ -518,7 +518,7 @@ void AppDatabase::removeWidgetState( WidgetType type, const QString& groupName, 
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during delete " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during delete " << e.type() << " " << qPrintable( e.text() );
         }
     }
 }
@@ -553,7 +553,7 @@ double AppDatabase::riskFreeRate( double term ) const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
     }
     else
     {
@@ -596,7 +596,7 @@ void AppDatabase::setConfigs( const QJsonObject& value )
         const QString v( i->toString() );
 
         if ( !writeSetting( i.key(), v ) )
-            LOG_WARN << "failed to write setting " << qPrintable( i.key() ) << " '" << qPrintable( v ) << "'";
+            LOG_ERROR << "failed to write setting " << qPrintable( i.key() ) << " '" << qPrintable( v ) << "'";
     }
 
     // refresh settings
@@ -626,7 +626,7 @@ void AppDatabase::setFilter( const QString& name, const QByteArray& value )
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
     }
 }
 
@@ -652,7 +652,7 @@ void AppDatabase::setWatchlist( const QString& name, const QStringList& symbols 
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
         }
     }
 }
@@ -685,7 +685,7 @@ void AppDatabase::setWidgetState( WidgetType type, const QString& groupName, con
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         }
     }
 }
@@ -735,7 +735,7 @@ QStringList AppDatabase::watchlist( const QString& name ) const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
     }
     else
     {
@@ -772,7 +772,7 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
     }
     else
     {
@@ -802,7 +802,7 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
         {
             const QSqlError e( indicesQuery.lastError() );
 
-            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         }
         else
         {
@@ -851,7 +851,7 @@ QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         }
         else
         {
@@ -900,7 +900,7 @@ QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, 
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         }
         else
         {
@@ -950,7 +950,7 @@ QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         }
         else
         {
@@ -1129,7 +1129,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
         // START DB TRANSACION
         if ( !conn.transaction() )
         {
-            LOG_WARN << "failed to start transaction";
+            LOG_ERROR << "failed to start transaction";
             result = false;
         }
         else
@@ -1207,10 +1207,10 @@ bool AppDatabase::processData( const QJsonObject& obj )
 
             // commit to database
             if (( result ) && ( !(result = conn.commit()) ))
-                LOG_WARN << "commit failed";
+                LOG_ERROR << "commit failed";
 
             if (( !result ) && ( !conn.rollback() ))
-                LOG_ERROR << "rollback failed";
+                LOG_FATAL << "rollback failed";
         }
     }
 
@@ -1302,7 +1302,7 @@ bool AppDatabase::addAccount( const QSqlDatabase& conn, const QDateTime& stamp, 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1342,7 +1342,7 @@ bool AppDatabase::addAccountBalances( const QSqlDatabase& conn, const QDateTime&
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1382,7 +1382,7 @@ bool AppDatabase::addMarketHours( const QSqlDatabase& conn, const QJsonObject& o
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1418,7 +1418,7 @@ bool AppDatabase::addProductType( const QSqlDatabase& conn, const QString& type,
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
             return false;
         }
     }
@@ -1454,7 +1454,7 @@ bool AppDatabase::addSessionHours( const QSqlDatabase& conn, const QDate& date, 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1492,7 +1492,7 @@ bool AppDatabase::addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1528,7 +1528,7 @@ bool AppDatabase::addTreasuryYieldCurveRate( const QSqlDatabase& conn, const QDa
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1630,7 +1630,7 @@ bool AppDatabase::checkSessionHours( const QDateTime& dt, const QString& marketT
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -1671,7 +1671,7 @@ bool AppDatabase::isExtendedHours( const QString& sessionHoursType ) const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 

@@ -41,7 +41,6 @@ public:
 
     /// Constructor.
     /**
-     * @note
      * @param[in] S  underlying price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
@@ -54,15 +53,31 @@ public:
 
     /// Constructor.
     /**
+     * @warning
+     * Passed in @c vector classes @a divTimes and @a divYields are assumed to have equal sizes.
+     * @param[in] S  underlying (spot) price
+     * @param[in] r  risk-free interest rate
+     * @param[in] b  cost-of-carry rate of holding underlying
+     * @param[in] sigma  volatility of underlying
+     * @param[in] T  time to expiration (years)
+     * @param[in] N  binomial tree depth
+     * @param[in] divTimes  dividend times
+     * @param[in] divYields  dividend yields
+     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
+     */
+    EqualProbBinomialTree( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european = false );
+
+    /// Constructor.
+    /**
      * @param[in] other  object to copy
      */
-    EqualProbBinomialTree( const _Myt& other ) : _Mybase() {copy( other );}
+    EqualProbBinomialTree( const _Myt& other ) : _Mybase() {_Mybase::copy( other );}
 
     /// Constructor.
     /**
      * @param[in] other  object to move
      */
-    EqualProbBinomialTree( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
+    EqualProbBinomialTree( const _Myt&& other ) : _Mybase() {_Mybase::move( std::move( other ) );}
 
     // ========================================================================
     // Operators
@@ -73,14 +88,14 @@ public:
      * @param[in] rhs  object to copy
      * @return  reference to this
      */
-    _Myt& operator = ( const _Myt& rhs ) {copy( rhs ); return *this;}
+    _Myt& operator = ( const _Myt& rhs ) {_Mybase::copy( rhs ); return *this;}
 
     /// Move operator.
     /**
      * @param[in] rhs  object to move
      * @return  reference to this
      */
-    _Myt& operator = ( const _Myt&& rhs ) {move( std::move( rhs ) ); return *this;}
+    _Myt& operator = ( const _Myt&& rhs ) {_Mybase::move( std::move( rhs ) ); return *this;}
 
     // ========================================================================
     // Properties
@@ -97,7 +112,7 @@ public:
     /// Compute partials.
     /**
      * @note
-     * Assumes you called @fn optionPrice() prior to calling this.
+     * Assumes you calculated the option price prior to calling this.
      * @param[in] type  option type
      * @param[in] X  strike price
      * @param[out] delta  partial with respect to underlying price
@@ -105,8 +120,31 @@ public:
      * @param[out] theta  partial with respect to time
      * @param[out] vega  partial with respect to sigma
      * @param[out] rho  partial with respect to rate
+     * @sa  optionPrice()
      */
     virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const override;
+
+    /// Compute rho greek.
+    /**
+     * @note
+     * Assumes you calculated the option price prior to calling this.
+     * @param[in] type  option type
+     * @param[in] X  strike price
+     * @return  partial with respect to interest rate
+     * @sa  optionPrice()
+     */
+    virtual double rho( OptionType type, double X ) const {return calcRho<_Myt>( type, X );}
+
+    /// Compute vega greek.
+    /**
+     * @note
+     * Assumes you calculated the option price prior to calling this.
+     * @param[in] type  option type
+     * @param[in] X  strike price
+     * @return  partial with respect to sigma
+     * @sa  optionPrice()
+     */
+    virtual double vega( OptionType type, double X ) const override {return calcVega<_Myt>( type, X );}
 
     // ========================================================================
     // Static Methods
@@ -116,26 +154,6 @@ public:
     /// Validate methods.
     static void validate();
 #endif
-
-protected:
-
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Copy object.
-    /**
-     * @param[in] rhs  object to copy
-     * @return  reference to this
-     */
-    void copy( const _Myt& other ) {_Mybase::copy( other );}
-
-    /// Move object.
-    /**
-     * @param[in] rhs  object to move
-     * @return  reference to this
-     */
-    void move( const _Myt&& other ) {_Mybase::move( std::move( other ) );}
 
 };
 

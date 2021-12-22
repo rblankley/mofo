@@ -167,7 +167,7 @@ protected:
 
     /// Update default field value.
     /**
-     * Set global default value when @p field is populated, otherwise take value from global default.
+     * Set global default value when @a field is populated, otherwise take value from global default.
      * @param[in,out] query to update
      * @param[in] obj  object to parse
      * @param[in] field  field to populate
@@ -176,7 +176,7 @@ protected:
 
     /// Update default field value.
     /**
-     * Set global default value when @p field is populated, otherwise take value from global default.
+     * Set global default value when @a field is populated, otherwise take value from global default.
      * @param[in,out] query to update
      * @param[in] obj  object to parse
      * @param[in] field  field to populate

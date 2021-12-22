@@ -165,6 +165,8 @@ void ConfigurationDialog::translate()
     optionCalcMethod_->setItemText( 2, tr( "Black Scholes" ) );
     optionCalcMethod_->setItemText( 3, tr( "Monte Carlo" ) );
     optionCalcMethod_->setItemText( 4, tr( "Trinomial Tree (Phelim Boyle)" ) );
+    optionCalcMethod_->setItemText( 5, tr( "Trinomial Tree (Alternative)" ) );
+    optionCalcMethod_->setItemText( 6, tr( "Trinomial Tree (Kamrad Ritchken)" ) );
     optionCalcMethod_->setToolTip( tr( "Which option pricing methodology to use for analysis." ) );
 
     optionAnalysisFilterLabel_->setText( tr( "Option Analysis Filtering Method" ) );
@@ -312,6 +314,8 @@ void ConfigurationDialog::initialize()
     optionCalcMethod_->addItem( QString(), "BLACKSCHOLES" );
     optionCalcMethod_->addItem( QString(), "MONTECARLO" );
     optionCalcMethod_->addItem( QString(), "TRINOM" );
+    optionCalcMethod_->addItem( QString(), "TRINOM_ALT" );
+    optionCalcMethod_->addItem( QString(), "TRINOM_KR" );
 
     optionAnalysisFilterLabel_ = new QLabel( this );
     optionAnalysisFilter_ = new QComboBox( this );

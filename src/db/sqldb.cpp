@@ -77,7 +77,7 @@ QSqlDatabase SqlDatabase::openDatabaseConnection() const
        db = QSqlDatabase::cloneDatabase( db_, cname );
 
        if ( !db.open() )
-           LOG_ERROR << "failed to open db connection";
+           LOG_FATAL << "failed to open db connection";
     }
 
     return db;
@@ -105,7 +105,7 @@ bool SqlDatabase::readSetting( const QString& key, QVariant& value, const QSqlDa
     {
         const QSqlError e( db_.lastError() );
 
-        LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
     else if ( !query.next() )
@@ -142,7 +142,7 @@ bool SqlDatabase::writeSetting( const QString& key, const QVariant& value, const
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -180,7 +180,7 @@ bool SqlDatabase::open()
     {
         const QSqlError e0( db_.lastError() );
 
-        LOG_WARN << "failed to open database " << qPrintable( name_ ) << " " << e0.type() << " " << qPrintable( e0.text() );
+        LOG_ERROR << "failed to open database " << qPrintable( name_ ) << " " << e0.type() << " " << qPrintable( e0.text() );
 
         if ( exists )
         {
@@ -199,7 +199,7 @@ bool SqlDatabase::open()
             {
                 const QSqlError e1( db_.lastError() );
 
-                LOG_WARN << "failed to open database (second try!) " << qPrintable( name_ ) << " " << e1.type() << " " << qPrintable( e1.text() );
+                LOG_FATAL << "failed to open database (second try!) " << qPrintable( name_ ) << " " << e1.type() << " " << qPrintable( e1.text() );
                 return false;
             }
         }
@@ -214,7 +214,7 @@ bool SqlDatabase::open()
             writeSetting( "created", now.toString( Qt::ISODateWithMs ) );
         else
         {
-            LOG_WARN << "failed to create database";
+            LOG_FATAL << "failed to create database";
             db_.close();
 
             return false;
@@ -230,7 +230,7 @@ bool SqlDatabase::open()
             writeSetting( "upgraded", now.toString( Qt::ISODateWithMs ) );
         else
         {
-            LOG_WARN << "database upgrade failed!";
+            LOG_FATAL << "database upgrade failed!";
             db_.close();
 
             return false;
@@ -320,7 +320,7 @@ bool SqlDatabase::execute( const QStringList& files )
                 {
                     const QSqlError e( query.lastError() );
 
-                    LOG_WARN << "error executing sql " << e.type() << " " << qPrintable( e.text() );
+                    LOG_ERROR << "error executing sql " << e.type() << " " << qPrintable( e.text() );
                     return false;
                 }
             }

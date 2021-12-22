@@ -64,9 +64,10 @@ public:
 
 protected:
 
-    mutable double f_[3][3];
+    size_t N_;                                      ///< Tree depth.
 
-    size_t N_;
+    std::vector<double> divTimes_;                  ///< List of dividend payout times.
+    std::vector<double> div_;                       ///< List of dividend yields.
 
     // ========================================================================
     // CTOR / DTOR
@@ -77,7 +78,6 @@ protected:
 
     /// Constructor.
     /**
-     * @note
      * @param[in] S  underlying price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
@@ -87,6 +87,22 @@ protected:
      * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
      */
     BinomialTree( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
+
+    /// Constructor.
+    /**
+     * @warning
+     * Passed in @c vector classes @a divTimes and @a divYields are assumed to have equal sizes.
+     * @param[in] S  underlying (spot) price
+     * @param[in] r  risk-free interest rate
+     * @param[in] b  cost-of-carry rate of holding underlying
+     * @param[in] sigma  volatility of underlying
+     * @param[in] T  time to expiration (years)
+     * @param[in] N  binomial tree depth
+     * @param[in] divTimes  dividend times
+     * @param[in] divYields  dividend yields
+     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
+     */
+    BinomialTree( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european = false );
 
     /// Constructor.
     /**
@@ -113,24 +129,10 @@ protected:
      * @param[in] d  downward amount
      * @param[in] pu  probability up
      * @param[in] pd  probability down
+     * @param[in] Df  discount factor
      * @return  option price
      */
     virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const;
-
-    /// Calculate option price using binomial pricing.
-    /**
-     * @param[in] isCall  @c true if option is call, @c false for put
-     * @param[in] S  underlying (spot) price
-     * @param[in] K  strike price
-     * @param[in] u  upward amount
-     * @param[in] d  downward amount
-     * @param[in] pu  probability up
-     * @param[in] pd  probability down
-     * @param[in] divTimes  dividend times
-     * @param[in] divYields  dividend yields
-     * @return  option price
-     */
-    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& divTimes, const std::vector<double>& divYields ) const;
 
     /// Calculate partials.
     /**
@@ -142,24 +144,73 @@ protected:
      */
     virtual void calcPartials( double u, double d, double& delta, double& gamma, double& theta ) const;
 
+    /// Calculate rho greek.
+    /**
+     * @note
+     * Assumes you calculated the option price prior to calling this.
+     * @tparam T  option pricing type
+     * @param[in] type  option type
+     * @param[in] X  strike price
+     * @return  partial with respect to interest rate
+     * @sa  calcOptionPrice()
+     */
+    template <class T>
+    double calcRho( OptionType type, double X ) const
+    {
+        // rho
+        const double diff( 0.01 );
+
+        T calc( S_, r_+diff, b_+diff, sigma_, T_, N_, divTimes_, div_, european_ );
+        return (calc.optionPrice( type, X ) - f_[0][0]) / diff;
+    }
+
+    /// Calculate vega greek.
+    /**
+     * @note
+     * Assumes you calculated the option price prior to calling this.
+     * @tparam T  option pricing type
+     * @param[in] type  option type
+     * @param[in] X  strike price
+     * @return  partial with respect to sigma
+     * @sa  calcOptionPrice()
+     */
+    template <class T>
+    double calcVega( OptionType type, double X ) const
+    {
+        // vega
+        const double diff( 0.02 );
+
+        T calc( S_, r_, b_, sigma_+diff, T_, N_, divTimes_, div_, european_ );
+        return (calc.optionPrice( type, X ) - f_[0][0]) / diff;
+    }
+
     // ========================================================================
     // Methods
     // ========================================================================
 
     /// Copy object.
     /**
-     * @param[in] rhs  object to copy
+     * @param[in] other  object to copy
      * @return  reference to this
      */
     void copy( const _Myt& other );
 
     /// Move object.
     /**
-     * @param[in] rhs  object to move
+     * @param[in] other  object to move
      * @return  reference to this
      */
     void move( const _Myt&& other );
 
+private:
+
+    mutable double f_[3][3];
+
+    /// Calculate option price.
+    double calcOptionPriceImpl( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df ) const;
+
+    /// Calculate option price.
+    double calcOptionPriceImpl( bool isCall, double S, double K, double u, double d, double pu, double pd, double Df, const std::vector<double>& divTimes, const std::vector<double>& divYields ) const;
 
 };
 

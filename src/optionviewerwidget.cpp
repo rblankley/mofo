@@ -257,7 +257,11 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
         return;
 
     // refresh model
-    model_->refreshTableData();
+    if ( !model_->refreshTableData() )
+    {
+        LOG_WARN << "error refreshing quote table data";
+        return;
+    }
 
     const bool empty( 0 == expiryDates_->count() );
 
@@ -282,7 +286,11 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
             if ( d == viewModel->expirationDate() )
             {
                 // refresh model
-                viewModel->refreshTableData();
+                if ( !viewModel->refreshTableData() )
+                {
+                    LOG_WARN << "error refreshing chain table data";
+                    return;
+                }
 
                 expiryDates_->setTabText( i, view->title() );
 
@@ -302,7 +310,11 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
             OptionChainView *view( new OptionChainView( viewModel, this ) );
 
             // refresh model
-            viewModel->refreshTableData();
+            if ( !viewModel->refreshTableData() )
+            {
+                LOG_WARN << "error refreshing chain table data";
+                return;
+            }
 
             expiryDates_->insertTab( index, view, view->title() );
         }

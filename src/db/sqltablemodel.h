@@ -114,6 +114,8 @@ protected:
 
 private:
 
+    static constexpr int SELECT_TIMEOUT = 25;       // 25ms
+
     // not implemented
     SqlTableModel( const _Myt& ) = delete;
 

@@ -27,8 +27,10 @@
 
 #include <cmath>
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
 
+/// Continuous normal distribution function.
 double cnd( double x );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

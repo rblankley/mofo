@@ -1,6 +1,6 @@
 /**
- * @file phelimboyle.h
- * Phelim-Boyle Trinomial Tree Option Pricing methods.
+ * @file trinomial.h
+ * Trinomial Tree Option Pricing methods.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,48 +20,20 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef PHELIMBOYLE_H
-#define PHELIMBOYLE_H
+#ifndef TRINOMIAL_H
+#define TRINOMIAL_H
 
-#include "trinomial.h"
+#include "dualmodeoptionpricing.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Phelim-Boyle Trinomial Tree Option Pricing methods.
-class PhelimBoyle : public TrinomialTree
+/// Trinomial Tree Option Pricing methods.
+class TrinomialTree : public DualModeOptionPricing
 {
-    using _Myt = PhelimBoyle;
-    using _Mybase = TrinomialTree;
+    using _Myt = TrinomialTree;
+    using _Mybase = DualModeOptionPricing;
 
 public:
-
-    // ========================================================================
-    // CTOR / DTOR
-    // ========================================================================
-
-    /// Constructor.
-    /**
-     * @param[in] S  underlying price
-     * @param[in] r  risk-free interest rate
-     * @param[in] b  cost-of-carry rate of holding underlying
-     * @param[in] sigma  volatility of underlying
-     * @param[in] T  time to expiration (years)
-     * @param[in] N  trinomial tree depth
-     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
-     */
-    PhelimBoyle( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
-
-    /// Constructor.
-    /**
-     * @param[in] other  object to copy
-     */
-    PhelimBoyle( const _Myt& other ) : _Mybase() {copy( other );}
-
-    /// Constructor.
-    /**
-     * @param[in] other  object to move
-     */
-    PhelimBoyle( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
 
     // ========================================================================
     // Operators
@@ -81,81 +53,109 @@ public:
      */
     _Myt& operator = ( const _Myt&& rhs ) {move( std::move( rhs ) ); return *this;}
 
+protected:
+
+    size_t N_;                                      ///< Tree depth.
+
+    // ========================================================================
+    // CTOR / DTOR
+    // ========================================================================
+
+    /// Constructor.
+    TrinomialTree() {}
+
+    /// Constructor.
+    /**
+     * @param[in] S  underlying price
+     * @param[in] r  risk-free interest rate
+     * @param[in] b  cost-of-carry rate of holding underlying
+     * @param[in] sigma  volatility of underlying
+     * @param[in] T  time to expiration (years)
+     * @param[in] N  trinomial tree depth
+     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
+     */
+    TrinomialTree( double S, double r, double b, double sigma, double T, size_t N, bool european = false );
+
+    /// Constructor.
+    /**
+     * @param[in] other  object to copy
+     */
+    TrinomialTree( const _Myt& other ) : _Mybase() {copy( other );}
+
+    /// Constructor.
+    /**
+     * @param[in] other  object to move
+     */
+    TrinomialTree( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
+
     // ========================================================================
     // Properties
     // ========================================================================
 
-    /// Compute option price.
+    /// Calculate option price using binomial pricing.
     /**
-     * Computed via trinomial tree.
-     * @param[in] type  option type
-     * @param[in] X  strike price
+     * @param[in] isCall  @c true if option is call, @c false for put
+     * @param[in] S  underlying (spot) price
+     * @param[in] K  strike price
+     * @param[in] u  upward amount
+     * @param[in] d  downward amount
+     * @param[in] pu  probability up
+     * @param[in] pd  probability down
+     * @param[in] pm  probability unchanged
+     * @param[in] Df  discount factor
      * @return  option price
      */
-    virtual double optionPrice( OptionType type, double X ) const override;
+    virtual double calcOptionPrice( bool isCall, double S, double K, double u, double d, double pu, double pd, double pm, double Df ) const;
 
-    /// Compute partials.
+    /// Calculate partials.
     /**
-     * @note
-     * Assumes you calculated the option price prior to calling this.
-     * @param[in] type  option type
-     * @param[in] X  strike price
+     * @param[in] u  upward amount
+     * @param[in] d  downward amount
      * @param[out] delta  partial with respect to underlying price
      * @param[out] gamma  second partial with respect to underlying price
      * @param[out] theta  partial with respect to time
-     * @param[out] vega  partial with respect to sigma
-     * @param[out] rho  partial with respect to rate
-     * @sa  optionPrice()
      */
-    virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const override;
+    virtual void calcPartials( double u, double d, double& delta, double& gamma, double& theta ) const;
 
-    /// Compute rho greek.
+    /// Calculate rho greek.
     /**
      * @note
      * Assumes you calculated the option price prior to calling this.
+     * @tparam T  option pricing type
      * @param[in] type  option type
      * @param[in] X  strike price
      * @return  partial with respect to interest rate
-     * @sa  optionPrice()
+     * @sa  calcOptionPrice()
      */
-    virtual double rho( OptionType type, double X ) const {return calcRho<_Myt>( type, X );}
+    template <class T>
+    double calcRho( OptionType type, double X ) const
+    {
+        // rho
+        const double diff( 0.01 );
 
-    /// Set new volatility.
-    /**
-     * @param[in] value  volatility of underlying
-     */
-    virtual void setSigma( double value ) override;
+        T calc( S_, r_+diff, b_+diff, sigma_, T_, N_, european_ );
+        return (calc.optionPrice( type, X ) - f_[0][0]) / diff;
+    }
 
-    /// Compute vega greek.
+    /// Calculate vega greek.
     /**
      * @note
      * Assumes you calculated the option price prior to calling this.
+     * @tparam T  option pricing type
      * @param[in] type  option type
      * @param[in] X  strike price
      * @return  partial with respect to sigma
-     * @sa  optionPrice()
+     * @sa  calcOptionPrice()
      */
-    virtual double vega( OptionType type, double X ) const override {return calcVega<_Myt>( type, X );}
+    template <class T>
+    double calcVega( OptionType type, double X ) const
+    {
+        // vega
+        const double diff( 0.02 );
 
-    // ========================================================================
-    // Static Methods
-    // ========================================================================
-
-#if defined( QT_DEBUG )
-    /// Validate methods.
-    static void validate();
-#endif
-
-protected:
-
-    double u_;                                      ///< Up movement amount.
-    double d_;                                      ///< Down movement amount.
-
-    double pu_;                                     ///< Probability of up movement.
-    double pd_;                                     ///< Probability of down movement.
-    double pm_;                                     ///< Probability of no movement.
-
-    double Df_;                                     ///< Discount factor.
+        T calc( S_, r_, b_, sigma_+diff, T_, N_, european_ );
+        return (calc.optionPrice( type, X ) - f_[0][0]) / diff;
+    }
 
     // ========================================================================
     // Methods
@@ -177,11 +177,10 @@ protected:
 
 private:
 
-    /// Initialize.
-    void init();
+    mutable double f_[2][3];
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // PHELIMBOYLE_H
+#endif // TRINOMIAL_H

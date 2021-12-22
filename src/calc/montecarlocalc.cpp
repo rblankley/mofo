@@ -22,12 +22,12 @@
 #include "common.h"
 #include "montecarlocalc.h"
 
-#include "util/montecarlo.h"
-#include "util/newtonraphson.h"
+#include "util/altbisection.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MonteCarloCalculator::MonteCarloCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
-    _Mybase( underlying, chains, results )
+    _Mybase( underlying, chains, results ),
+    rng_( std::random_device{}() )
 {
 }
 
@@ -39,7 +39,7 @@ MonteCarloCalculator::~MonteCarloCalculator()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double MonteCarloCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
 {
-    return NewtonRaphson::calcImplVol( pricing, type, X, price, okay );
+    return AlternativeBisection::calcImplVol( pricing, type, X, price, okay );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -47,18 +47,7 @@ AbstractOptionPricing *MonteCarloCalculator::createPricingMethod( double S, doub
 {
     Q_UNUSED( european )
 
-    return new MonteCarlo( S, r, b, sigma, T, NUM_SIMULATIONS );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-AbstractOptionPricing *MonteCarloCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
-{
-    Q_UNUSED( divTimes )
-    Q_UNUSED( divYields )
-
-    // TODO
-    // support dividends
-    return createPricingMethod( S, r, b, sigma, T, european );
+    return new MonteCarlo( S, r, b, sigma, T, NUM_SIMULATIONS, rng_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

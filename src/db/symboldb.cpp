@@ -140,7 +140,7 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
         {
             const QSqlError e( query.lastError() );
 
-            LOG_WARN << "error during select " << e.type() << " " << qPrintable( e.text() );
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         }
         else
         {
@@ -265,7 +265,7 @@ bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObjec
 
     if ( !conn.transaction() )
     {
-        LOG_WARN << "failed to start transaction";
+        LOG_ERROR << "failed to start transaction";
         return false;
     }
 
@@ -285,10 +285,10 @@ bool SymbolDatabase::processInstrument( const QDateTime& stamp, const QJsonObjec
 
     // commit to database
     if (( result ) && ( !(result = conn.commit()) ))
-        LOG_WARN << "commit failed";
+        LOG_ERROR << "commit failed";
 
     if (( !result ) && ( !conn.rollback() ))
-        LOG_ERROR << "rollback failed";
+        LOG_FATAL << "rollback failed";
 
     // save last fundamental
     if (( result ) && ( fundamentalProcessed ))
@@ -308,7 +308,7 @@ bool SymbolDatabase::processOptionChain( const QDateTime& stamp, const QJsonObje
 
     if ( !conn.transaction() )
     {
-        LOG_WARN << "failed to start transaction";
+        LOG_ERROR << "failed to start transaction";
         return false;
     }
 
@@ -331,10 +331,10 @@ bool SymbolDatabase::processOptionChain( const QDateTime& stamp, const QJsonObje
 
     // commit to database
     if (( result ) && ( !(result = conn.commit()) ))
-        LOG_WARN << "commit failed";
+        LOG_ERROR << "commit failed";
 
     if (( !result ) && ( !conn.rollback() ))
-        LOG_ERROR << "rollback failed";
+        LOG_FATAL << "rollback failed";
 
     return result;
 }
@@ -349,7 +349,7 @@ bool SymbolDatabase::processQuote( const QDateTime& stamp, const QJsonObject& ob
 
     if ( !conn.transaction() )
     {
-        LOG_WARN << "failed to start transaction";
+        LOG_ERROR << "failed to start transaction";
         return false;
     }
 
@@ -365,10 +365,10 @@ bool SymbolDatabase::processQuote( const QDateTime& stamp, const QJsonObject& ob
 
     // commit to database
     if (( result ) && ( !(result = conn.commit()) ))
-        LOG_WARN << "commit failed";
+        LOG_ERROR << "commit failed";
 
     if (( !result ) && ( !conn.rollback() ))
-        LOG_ERROR << "rollback failed";
+        LOG_FATAL << "rollback failed";
 
     return result;
 }
@@ -384,7 +384,7 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
 
     if ( !conn.transaction() )
     {
-        LOG_WARN << "failed to start transaction";
+        LOG_ERROR << "failed to start transaction";
         return false;
     }
 
@@ -407,10 +407,10 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
 
     // commit to database
     if (( result ) && ( !(result = conn.commit()) ))
-        LOG_WARN << "commit failed";
+        LOG_ERROR << "commit failed";
 
     if (( !result ) && ( !conn.rollback() ))
-        LOG_ERROR << "rollback failed";
+        LOG_FATAL << "rollback failed";
 
     // save last quote history
     if ( result )
@@ -498,7 +498,7 @@ bool SymbolDatabase::addFundamental( const QSqlDatabase& conn, const QDateTime& 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -556,7 +556,7 @@ bool SymbolDatabase::addOption( const QSqlDatabase& conn, const QJsonObject& obj
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -582,7 +582,7 @@ bool SymbolDatabase::addOptionChain( const QSqlDatabase& conn, const QDateTime& 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -657,7 +657,7 @@ bool SymbolDatabase::addOptionChainStrikePrice( const QSqlDatabase& conn, const 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -716,7 +716,7 @@ bool SymbolDatabase::addQuote( const QSqlDatabase& conn, const QJsonObject& obj 
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -748,7 +748,7 @@ bool SymbolDatabase::addQuoteHistory( const QSqlDatabase& conn, const QJsonObjec
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
 
@@ -896,7 +896,7 @@ void SymbolDatabase::calcHistoricalVolatility( const QSqlDatabase& conn )
     {
         const QSqlError e( quoteQuery.lastError() );
 
-        LOG_WARN << "error during update " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during update " << e.type() << " " << qPrintable( e.text() );
     }
 
     // ---- //
@@ -919,7 +919,7 @@ void SymbolDatabase::calcHistoricalVolatility( const QSqlDatabase& conn )
     {
         const QSqlError e( query.lastError() );
 
-        LOG_WARN << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
     }
 }
 

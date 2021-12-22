@@ -141,13 +141,13 @@ public:
 
 protected:
 
-    double st_;
-    double vst_;
+    double st_;                                     ///< sqrt( t )
+    double vst_;                                    ///< sigma*sqrt(t)
 
-    double ebrt_;
-    double sbrt_;
+    double ebrt_;                                   ///< e^((b-r)*t)
+    double sbrt_;                                   ///< S*e^((b-r)*t)
 
-    double ert_;
+    double ert_;                                    ///< e^(-r*t)
 
     // ========================================================================
     // CTOR / DTOR
@@ -162,14 +162,14 @@ protected:
 
     /// Copy object.
     /**
-     * @param[in] rhs  object to copy
+     * @param[in] other  object to copy
      * @return  reference to this
      */
     void copy( const _Myt& other );
 
     /// Move object.
     /**
-     * @param[in] rhs  object to move
+     * @param[in] other  object to move
      * @return  reference to this
      */
     void move( const _Myt&& other );

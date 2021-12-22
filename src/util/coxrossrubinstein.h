@@ -54,7 +54,7 @@ public:
     /// Constructor.
     /**
      * @warning
-     * Passed in @c vector classes @p divTimes and @p divYields are assumed to have equal sizes.
+     * Passed in @c vector classes @a divTimes and @a divYields are assumed to have equal sizes.
      * @param[in] S  underlying (spot) price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
@@ -112,7 +112,7 @@ public:
     /// Compute partials.
     /**
      * @note
-     * Assumes you called @fn optionPrice() prior to calling this.
+     * Assumes you calculated the option price prior to calling this.
      * @param[in] type  option type
      * @param[in] X  strike price
      * @param[out] delta  partial with respect to underlying price
@@ -120,18 +120,20 @@ public:
      * @param[out] theta  partial with respect to time
      * @param[out] vega  partial with respect to sigma
      * @param[out] rho  partial with respect to rate
+     * @sa  optionPrice()
      */
     virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const override;
 
     /// Compute rho greek.
     /**
      * @note
-     * Assumes you called @fn optionPrice() prior to calling this.
+     * Assumes you calculated the option price prior to calling this.
      * @param[in] type  option type
      * @param[in] X  strike price
-     * @return  partial with respect to sigma
+     * @return  partial with respect to interest rate
+     * @sa  optionPrice()
      */
-    virtual double rho( OptionType type, double X ) const;
+    virtual double rho( OptionType type, double X ) const {return calcRho<_Myt>( type, X );}
 
     /// Set new volatility.
     /**
@@ -142,12 +144,13 @@ public:
     /// Compute vega greek.
     /**
      * @note
-     * Assumes you called @fn optionPrice() prior to calling this.
+     * Assumes you calculated the option price prior to calling this.
      * @param[in] type  option type
      * @param[in] X  strike price
      * @return  partial with respect to sigma
+     * @sa  optionPrice()
      */
-    virtual double vega( OptionType type, double X ) const override;
+    virtual double vega( OptionType type, double X ) const override {return calcVega<_Myt>( type, X );}
 
     // ========================================================================
     // Static Methods
@@ -160,11 +163,8 @@ public:
 
 protected:
 
-    std::vector<double> divTimes_;
-    std::vector<double> div_;
-
-    double u_;
-    double d_;
+    double u_;                                      ///< Upward movement amount.
+    double d_;                                      ///< Downward movement amount.
 
     // ========================================================================
     // Methods
@@ -172,14 +172,14 @@ protected:
 
     /// Copy object.
     /**
-     * @param[in] rhs  object to copy
+     * @param[in] other  object to copy
      * @return  reference to this
      */
     void copy( const _Myt& other );
 
     /// Move object.
     /**
-     * @param[in] rhs  object to move
+     * @param[in] other  object to move
      * @return  reference to this
      */
     void move( const _Myt&& other );

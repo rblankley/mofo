@@ -1,5 +1,5 @@
 /**
- * @file epbinomialcalc.cpp
+ * @file krtrinomialcalc.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,45 +20,36 @@
  */
 
 #include "common.h"
-#include "epbinomialcalc.h"
+#include "krtrinomialcalc.h"
 
-#include "util/equalprobbinomial.h"
 #include "util/newtonraphson.h"
+#include "util/kamradritchken.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-EqualProbBinomialCalculator::EqualProbBinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
+KamradRitchkenTrinomialCalculator::KamradRitchkenTrinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     _Mybase( underlying, chains, results )
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-EqualProbBinomialCalculator::~EqualProbBinomialCalculator()
+KamradRitchkenTrinomialCalculator::~KamradRitchkenTrinomialCalculator()
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double EqualProbBinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
+double KamradRitchkenTrinomialCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
 {
     return NewtonRaphson::calcImplVol( pricing, type, X, price, okay );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-AbstractOptionPricing *EqualProbBinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
+AbstractOptionPricing *KamradRitchkenTrinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
 {
-    return new EqualProbBinomialTree( S, r, b, sigma, T, BINOM_DEPTH, european );
+    return new KamradRitchken( S, r, b, sigma, T, TRINOM_DEPTH, european );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-AbstractOptionPricing *EqualProbBinomialCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) const
-{
-    // for this mode we should have no dividend already passed in
-    assert( b == r );
-
-    return new EqualProbBinomialTree( S, r, b, sigma, T, BINOM_DEPTH, divTimes, divYields, european );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void EqualProbBinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
+void KamradRitchkenTrinomialCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
 {
     if ( doomed )
         delete doomed;

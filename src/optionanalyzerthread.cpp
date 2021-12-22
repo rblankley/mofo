@@ -45,7 +45,7 @@ OptionAnalyzerThread::~OptionAnalyzerThread()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void OptionAnalyzerThread::OptionAnalyzerThread::run()
+void OptionAnalyzerThread::run()
 {
     const QDateTime now( AppDatabase::instance()->currentDateTime() );
 
@@ -70,7 +70,12 @@ void OptionAnalyzerThread::OptionAnalyzerThread::run()
 
         // retrieve quote
         QuoteTableModel quote( symbol_ );
-        quote.refreshTableData();
+
+        if ( !quote.refreshTableData() )
+        {
+            LOG_WARN << "error refreshing quote table data";
+            return;
+        }
 
         LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
 
@@ -92,7 +97,12 @@ void OptionAnalyzerThread::OptionAnalyzerThread::run()
         {
             // retrieve chain data
             OptionChainTableModel chains( symbol_, expiryDate_ );
-            chains.refreshTableData();
+
+            if ( !chains.refreshTableData() )
+            {
+                LOG_WARN << "error refreshing chain table data";
+                return;
+            }
 
             // create a calculator
             OptionProfitCalculator *calc( OptionProfitCalculator::create( markPrice, &chains, analysis_ ) );

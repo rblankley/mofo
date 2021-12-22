@@ -5,6 +5,7 @@ lib_mofo_util_a_CXXFLAGS = -I../ $(CLIO_CFLAGS)
 
 lib_mofo_util_a_SOURCES = \
 	abstractoptionpricing.cpp \
+	alttrinomial.cpp \
 	baroneadesiwhaley.cpp \
 	binomial.cpp \
 	bjerksundstensland.cpp \
@@ -14,11 +15,13 @@ lib_mofo_util_a_SOURCES = \
 	coxrossrubinstein.cpp \
 	equalprobbinomial.cpp \
 	fitpoly.cpp \
+	kamradritchken.cpp \
 	montecarlo.cpp \
 	newtonraphson.cpp \
 	phelimboyle.cpp \
 	rollgeskewhaley.cpp \
 	stats.cpp \
-	tests.cpp
+	tests.cpp \
+	trinomial.cpp
 
 CLEANFILES = $(BUILT_SOURCES)

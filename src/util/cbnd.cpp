@@ -32,8 +32,10 @@
 
 static const double pi = 3.14159265358979323846;
 
+/// Power of two (square) function.
 #define pow2(n) ((n) * (n))
 
+/// Continuous normal distribution function.
 double cnd( double x );
 
 static const double y[] = {
@@ -88,6 +90,8 @@ static const double XX[5][5] = {
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+
+/// Returns sign of passed in value.
 double sign( double d )
 {
     if ( d < 0.0 )
@@ -98,7 +102,7 @@ double sign( double d )
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-// cumulative bivariate normal distribution function
+/// Cumulative bivariate normal distribution function.
 double cbnd( double a, double b, double Rho )
 {
     double result;

@@ -41,12 +41,8 @@ CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma, double T, size_t N, const std::vector<double>& divTimes, const std::vector<double>& divYields, bool european ) :
-    _Mybase( S, r, b, sigma, T, N, european ),
-    divTimes_( divTimes ),
-    div_( divYields )
+    _Mybase( S, r, b, sigma, T, N, divTimes, divYields, european )
 {
-    assert( divTimes.size() == divYields.size() );
-
     // init
     init();
 }
@@ -54,21 +50,15 @@ CoxRossRubinstein::CoxRossRubinstein( double S, double r, double b, double sigma
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 double CoxRossRubinstein::optionPrice( OptionType type, double X ) const
 {
-    const double r = r_;
-    const double q = r_ - b_;
-
     // quantities for the tree
     const double dt = T_ / N_;
 
-    const double pu = (exp( (r - q) * dt ) - d_) / (u_ - d_);
+    const double pu = (exp( b_ * dt ) - d_) / (u_ - d_);
     const double pd = 1.0 - pu;
 
-    const double Df = exp( -r * dt );
+    const double Df = exp( -r_ * dt );
 
     // calc!
-    if ( divTimes_.size() )
-        return calcOptionPrice( (OptionType::Call == type), S_, X, u_, d_, pu, pd, Df, divTimes_, div_ );
-
     return calcOptionPrice( (OptionType::Call == type), S_, X, u_, d_, pu, pd, Df );
 }
 
@@ -86,17 +76,6 @@ void CoxRossRubinstein::partials( OptionType type, double X, double& delta, doub
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double CoxRossRubinstein::rho( OptionType type, double X ) const
-{
-    // rho
-    const double diff = 0.01;
-    const double q = r_ - b_;
-
-    _Myt rhoCalc( S_, r_+diff, r_+diff-q, sigma_, T_, N_, divTimes_, div_, european_ );
-    return (rhoCalc.optionPrice( type, X ) - f_[0][0]) / diff;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 void CoxRossRubinstein::setSigma( double value )
 {
     _Mybase::setSigma( value );
@@ -105,22 +84,9 @@ void CoxRossRubinstein::setSigma( double value )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double CoxRossRubinstein::vega( OptionType type, double X ) const
-{
-    // vega
-    const double diff = 0.02;
-
-    _Myt vegaCalc( S_, r_, b_, sigma_+diff, T_, N_, divTimes_, div_, european_ );
-    return (vegaCalc.optionPrice( type, X ) - f_[0][0]) / diff;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 void CoxRossRubinstein::copy( const _Myt& other )
 {
     _Mybase::copy( other );
-
-    divTimes_ = other.divTimes_;
-    div_ = other.div_;
 
     u_ = other.u_;
     d_ = other.d_;
@@ -130,9 +96,6 @@ void CoxRossRubinstein::copy( const _Myt& other )
 void CoxRossRubinstein::move( const _Myt&& other )
 {
     _Mybase::move( std::move( other ) );
-
-    divTimes_ = std::move( other.divTimes_ );
-    div_ = std::move( other.div_ );
 
     u_ = std::move( other.u_ );
     d_ = std::move( other.d_ );
