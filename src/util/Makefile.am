@@ -8,7 +8,8 @@ lib_mofo_util_a_SOURCES = \
 	alttrinomial.cpp \
 	baroneadesiwhaley.cpp \
 	binomial.cpp \
-	bjerksundstensland.cpp \
+	bjerksundstensland02.cpp \
+	bjerksundstensland93.cpp \
 	blackscholes.cpp \
 	cbnd.cpp \
 	cnd.cpp \

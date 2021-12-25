@@ -1,6 +1,6 @@
 /**
- * @file montecarlo.h
- * Monte Carlo Simulation for Option Pricing.
+ * @file bjerksundstensland93.h
+ * Bjerksund & Stensland 1993 American Option Approximation methods.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,25 +20,20 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef MONTECARLO_H
-#define MONTECARLO_H
+#ifndef BJERKSUNDSTENSLAND93_H
+#define BJERKSUNDSTENSLAND93_H
 
 #include "blackscholes.h"
 
-#include <random>
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Monte Carlo Simulation for Option Pricing
-class MonteCarlo : public BlackScholes
+/// Bjerksund & Stensland 1993 American Option Approximation methods.
+class BjerksundStensland1993 : public BlackScholes
 {
-    using _Myt = MonteCarlo;
+    using _Myt = BjerksundStensland1993;
     using _Mybase = BlackScholes;
 
 public:
-
-    /// Random number generator engine type.
-    using rng_engine_type = std::mt19937_64;
 
     // ========================================================================
     // CTOR / DTOR
@@ -46,40 +41,25 @@ public:
 
     /// Constructor.
     /**
-     * @note
      * @param[in] S  underlying price
      * @param[in] r  risk-free interest rate
      * @param[in] b  cost-of-carry rate of holding underlying
      * @param[in] sigma  volatility of underlying
      * @param[in] T  time to expiration (years)
-     * @param[in] N  number of simulations
      */
-    MonteCarlo( double S, double r, double b, double sigma, double T, size_t N );
-
-    /// Constructor.
-    /**
-     * @note
-     * @param[in] S  underlying price
-     * @param[in] r  risk-free interest rate
-     * @param[in] b  cost-of-carry rate of holding underlying
-     * @param[in] sigma  volatility of underlying
-     * @param[in] T  time to expiration (years)
-     * @param[in] N  number of simulations
-     * @param[in] rnd  random number generator
-     */
-    MonteCarlo( double S, double r, double b, double sigma, double T, size_t N, const rng_engine_type& rng );
+    BjerksundStensland1993( double S, double r, double b, double sigma, double T );
 
     /// Constructor.
     /**
      * @param[in] other  object to copy
      */
-    MonteCarlo( const _Myt& other ) : _Mybase() {copy( other );}
+    BjerksundStensland1993( const _Myt& other ) : _Mybase() {copy( other );}
 
     /// Constructor.
     /**
      * @param[in] other  object to move
      */
-    MonteCarlo( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
+    BjerksundStensland1993( const _Myt&& other ) : _Mybase() {move( std::move( other ) );}
 
     // ========================================================================
     // Operators
@@ -103,6 +83,12 @@ public:
     // Properties
     // ========================================================================
 
+    /// Check for european style option.
+    /**
+     * @return  @c true if european, @c false otherwise
+     */
+    virtual bool isEuropean() const override {return false;}
+
     /// Compute option price.
     /**
      * @param[in] type  option type
@@ -110,43 +96,6 @@ public:
      * @return  option price
      */
     virtual double optionPrice( OptionType type, double X ) const override;
-
-    /// Compute partials.
-    /**
-     * @note
-     * Assumes you calculated the option price prior to calling this.
-     * @param[in] type  option type
-     * @param[in] X  strike price
-     * @param[out] delta  partial with respect to underlying price
-     * @param[out] gamma  second partial with respect to underlying price
-     * @param[out] theta  partial with respect to time
-     * @param[out] vega  partial with respect to sigma
-     * @param[out] rho  partial with respect to rate
-     * @sa  optionPrice()
-     */
-    virtual void partials( OptionType type, double X, double& delta, double& gamma, double& theta, double& vega, double& rho ) const override;
-
-    /// Compute rho greek.
-    /**
-     * @note
-     * Assumes you calculated the option price prior to calling this.
-     * @param[in] type  option type
-     * @param[in] X  strike price
-     * @return  partial with respect to interest rate
-     * @sa  optionPrice()
-     */
-    virtual double rho( OptionType type, double X ) const;
-
-    /// Compute vega greek.
-    /**
-     * @note
-     * Assumes you calculated the option price prior to calling this.
-     * @param[in] type  option type
-     * @param[in] X  strike price
-     * @return  partial with respect to sigma
-     * @sa  optionPrice()
-     */
-    virtual double vega( OptionType type, double X ) const override;
 
     // ========================================================================
     // Static Methods
@@ -159,7 +108,33 @@ public:
 
 protected:
 
-    size_t N_;                                      ///< Number of simulations.
+    // ========================================================================
+    // Properties
+    // ========================================================================
+
+    /// Compute option price for call option.
+    /**
+     * @param[in] X  strike price
+     * @return  option price
+     */
+    virtual double optionPriceCall( double X ) const;
+
+    /// Compute option price for put option.
+    /**
+     * @param[in] X  strike price
+     * @return  option price
+     */
+    virtual double optionPricePut( double X ) const;
+
+    /// Compute phi.
+    /**
+     * @param[in] S  underlying price
+     * @param[in] T  time to expiration (years)
+     * @param[in] gamma  gamma
+     * @param[in] H  h(T) value
+     * @param[in] I  trigger (boundary) price
+     */
+    virtual double phi( double S, double T, double gamma, double H, double I ) const;
 
     // ========================================================================
     // Methods
@@ -170,28 +145,17 @@ protected:
      * @param[in] other  object to copy
      * @return  reference to this
      */
-    void copy( const _Myt& other );
+    void copy( const _Myt& other ) {_Mybase::copy( other );}
 
     /// Move object.
     /**
      * @param[in] other  object to move
      * @return  reference to this
      */
-    void move( const _Myt&& other );
-
-private:
-
-    mutable double price_;
-
-    mutable double delta_;
-    mutable double gamma_;
-    mutable double theta_;
-    mutable double vega_;
-
-    rng_engine_type rng_;
+    void move( const _Myt&& other ) {_Mybase::move( std::move( other ) );}
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // MONTECARLO_H
+#endif // BJERKSUNDSTENSLAND93_H

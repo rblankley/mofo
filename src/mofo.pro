@@ -28,14 +28,8 @@ SOURCES += \
     apibase/serializedapi.cpp \
     apibase/serializedjsonapi.cpp \
     apibase/serializedxmlapi.cpp \
-    calc/alttrinomialcalc.cpp \
-    calc/binomialcalc.cpp \
-    calc/blackscholescalc.cpp \
-    calc/epbinomialcalc.cpp \
     calc/expectedvaluecalc.cpp \
-    calc/krtrinomialcalc.cpp \
     calc/montecarlocalc.cpp \
-    calc/trinomialcalc.cpp \
     configdialog.cpp \
     db/appdb.cpp \
     db/fundamentalstablemodel.cpp \
@@ -76,7 +70,8 @@ SOURCES += \
     util/alttrinomial.cpp \
     util/baroneadesiwhaley.cpp \
     util/binomial.cpp \
-    util/bjerksundstensland.cpp \
+    util/bjerksundstensland02.cpp \
+    util/bjerksundstensland93.cpp \
     util/blackscholes.cpp \
     util/cbnd.cpp \
     util/cnd.cpp \
@@ -102,12 +97,10 @@ HEADERS += \
     apibase/serializedapi.h \
     apibase/serializedjsonapi.h \
     apibase/serializedxmlapi.h \
-    calc/alttrinomialcalc.h \
+    calc/abstractevcalc.h \
+    calc/basiccalc.h \
     calc/binomialcalc.h \
-    calc/blackscholescalc.h \
-    calc/epbinomialcalc.h \
     calc/expectedvaluecalc.h \
-    calc/krtrinomialcalc.h \
     calc/montecarlocalc.h \
     calc/trinomialcalc.h \
     configdialog.h \
@@ -156,7 +149,8 @@ HEADERS += \
     util/baroneadesiwhaley.h \
     util/binomial.h \
     util/bisection.h \
-    util/bjerksundstensland.h \
+    util/bjerksundstensland02.h \
+    util/bjerksundstensland93.h \
     util/blackscholes.h \
     util/coxrossrubinstein.h \
     util/dualmodeoptionpricing.h \

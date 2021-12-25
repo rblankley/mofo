@@ -1,6 +1,6 @@
 /**
- * @file krtrinomialcalc.h
- * Kamrad-Ritchken Trinomial tree based option profit calculator.
+ * @file abstractevcalc.h
+ * Abstract expected value calculator (template class).
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,17 +20,24 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef KRTRINOMIALCALC_H
-#define KRTRINOMIALCALC_H
+#ifndef ABSTRACTEVCALC_H
+#define ABSTRACTEVCALC_H
 
 #include "expectedvaluecalc.h"
 
+#include "util/newtonraphson.h"
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Kamrad-Ritchken Trinomial tree based option profit calculator.
-class KamradRitchkenTrinomialCalculator : public ExpectedValueCalculator
+/// Abstract expected value calculator (template class).
+/**
+ * @tparam C  option pricing method
+ * @tparam VI  implied volatility calculation method
+ */
+template <class C, class VI = NewtonRaphson>
+class AbstractExpectedValueCalculator : public ExpectedValueCalculator
 {
-    using _Myt = KamradRitchkenTrinomialCalculator;
+    using _Myt = AbstractExpectedValueCalculator<C, VI>;
     using _Mybase = ExpectedValueCalculator;
 
 public:
@@ -45,12 +52,19 @@ public:
      * @param[in] chains  chains to evaluate
      * @param[in] results  results
      */
-    KamradRitchkenTrinomialCalculator( double underlying, const table_model_type *chains, item_model_type *results );
+    AbstractExpectedValueCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
+        _Mybase( underlying, chains, results ) {}
 
     /// Destructor.
-    ~KamradRitchkenTrinomialCalculator();
+    ~AbstractExpectedValueCalculator() {}
 
 protected:
+
+    /// Option pricing method type.
+    using pricing_method_type = C;
+
+    /// Implied volatility calculation method type.
+    using implied_volatility_method_type = VI;
 
     // ========================================================================
     // Methods
@@ -65,35 +79,28 @@ protected:
      * @param[out] okay  @c true if calculation okay, @c false otherwise
      * @return  implied volatility of @a pricing
      */
-    virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay = nullptr ) const override;
-
-    /// Factory method for creation of Option Pricing Methods.
-    /**
-     * @param[in] S  underlying (spot) price
-     * @param[in] r  risk-free interest rate
-     * @param[in] b  cost-of-carry rate of holding underlying
-     * @param[in] sigma  volatility of underlying
-     * @param[in] T  time to expiration (years)
-     * @param[in] european  @c true for european style option (exercise at expiry only), @c false for american style (exercise any time)
-     * @return  pointer to pricing method
-     */
-    virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, bool european = false ) const override;
+    virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay = nullptr ) const override
+    {
+        return implied_volatility_method_type::calcImplVol( dynamic_cast<pricing_method_type*>( pricing ), type, X, price, okay );
+    }
 
     /// Factory method for destruction of Option Pricing Methods.
     /**
      * @param[in] doomed  pricing method to destroy
      */
-    virtual void destroyPricingMethod( AbstractOptionPricing *doomed ) const override;
+    virtual void destroyPricingMethod( AbstractOptionPricing *doomed ) const override
+    {
+        if ( doomed )
+            delete dynamic_cast<pricing_method_type*>( doomed );
+    }
 
 private:
 
-    static constexpr int TRINOM_DEPTH = 128;
+    // not implemented
+    AbstractExpectedValueCalculator( const _Myt& ) = delete;
 
     // not implemented
-    KamradRitchkenTrinomialCalculator( const _Myt& ) = delete;
-
-    // not implemented
-    KamradRitchkenTrinomialCalculator( const _Myt&& ) = delete;
+    AbstractExpectedValueCalculator( const _Myt&& ) = delete;
 
     // not implemented
     _Myt &operator = ( const _Myt& ) = delete;
@@ -105,4 +112,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // KRTRINOMIALCALC_H
+#endif // ABSTRACTEVCALC_H

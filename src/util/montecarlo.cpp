@@ -44,7 +44,7 @@ MonteCarlo::MonteCarlo( double S, double r, double b, double sigma, double T, si
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-MonteCarlo::MonteCarlo( double S, double r, double b, double sigma, double T, size_t N, const rng_engine_t& rng ) :
+MonteCarlo::MonteCarlo( double S, double r, double b, double sigma, double T, size_t N, const rng_engine_type& rng ) :
     _Mybase( S, r, b, sigma, T ),
     N_( N ),
     rng_( rng )
@@ -58,7 +58,7 @@ double MonteCarlo::optionPrice( OptionType type, double X ) const
 
     const double drift( (b_ - pow2( sigma_ ) / 2.0) * T_ );
 
-    rng_engine_t rng( rng_ );
+    rng_engine_type rng( rng_ );
     std::uniform_real_distribution<double> dist( 0.0, 1.0 );
 
     size_t n( N_ );

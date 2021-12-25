@@ -160,13 +160,16 @@ void ConfigurationDialog::translate()
     optionTradeCost_->setToolTip( tr( "Cost to trade an option contract." ) );
 
     optionCalcMethodLabel_->setText( tr( "Option Pricing Calculation Method" ) );
-    optionCalcMethod_->setItemText( 0, tr( "Binomial Tree (Cox Ross Rubinstein)" ) );
-    optionCalcMethod_->setItemText( 1, tr( "Binomial Tree (Equal Probability)" ) );
-    optionCalcMethod_->setItemText( 2, tr( "Black Scholes" ) );
-    optionCalcMethod_->setItemText( 3, tr( "Monte Carlo" ) );
-    optionCalcMethod_->setItemText( 4, tr( "Trinomial Tree (Phelim Boyle)" ) );
-    optionCalcMethod_->setItemText( 5, tr( "Trinomial Tree (Alternative)" ) );
-    optionCalcMethod_->setItemText( 6, tr( "Trinomial Tree (Kamrad Ritchken)" ) );
+    optionCalcMethod_->setItemText( 0, tr( "Barone-Adesi and Whaley" ) );
+    optionCalcMethod_->setItemText( 1, tr( "Binomial Tree (Cox Ross Rubinstein)" ) );
+    optionCalcMethod_->setItemText( 2, tr( "Binomial Tree (Equal Probability)" ) );
+    optionCalcMethod_->setItemText( 3, tr( "Bjerksund and Stensland (1993)" ) );
+    optionCalcMethod_->setItemText( 4, tr( "Bjerksund and Stensland (2002)" ) );
+    optionCalcMethod_->setItemText( 5, tr( "Black Scholes" ) );
+    optionCalcMethod_->setItemText( 6, tr( "Monte Carlo" ) );
+    optionCalcMethod_->setItemText( 7, tr( "Trinomial Tree (Phelim Boyle)" ) );
+    optionCalcMethod_->setItemText( 8, tr( "Trinomial Tree (Alternative)" ) );
+    optionCalcMethod_->setItemText( 9, tr( "Trinomial Tree (Kamrad Ritchken)" ) );
     optionCalcMethod_->setToolTip( tr( "Which option pricing methodology to use for analysis." ) );
 
     optionAnalysisFilterLabel_->setText( tr( "Option Analysis Filtering Method" ) );
@@ -309,8 +312,11 @@ void ConfigurationDialog::initialize()
     optionCalcMethodLabel_ = new QLabel( this );
     optionCalcMethod_ = new QComboBox( this );
 
+    optionCalcMethod_->addItem( QString(), "BARONEADESIWHALEY" );
     optionCalcMethod_->addItem( QString(), "BINOM" );
     optionCalcMethod_->addItem( QString(), "BINOM_EQPROB" );
+    optionCalcMethod_->addItem( QString(), "BJERKSUNDSTENSLAND93" );
+    optionCalcMethod_->addItem( QString(), "BJERKSUNDSTENSLAND02" );
     optionCalcMethod_->addItem( QString(), "BLACKSCHOLES" );
     optionCalcMethod_->addItem( QString(), "MONTECARLO" );
     optionCalcMethod_->addItem( QString(), "TRINOM" );

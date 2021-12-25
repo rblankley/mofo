@@ -1,6 +1,6 @@
 /**
- * @file bjerksundstensland.h
- * Bjerksund & Stensland American Option Approximation methods.
+ * @file bjerksundstensland02.h
+ * Bjerksund & Stensland 2002 American Option Approximation methods.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,18 +20,18 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef BJERKSUNDSTENSLAND_H
-#define BJERKSUNDSTENSLAND_H
+#ifndef BJERKSUNDSTENSLAND02_H
+#define BJERKSUNDSTENSLAND02_H
 
-#include "blackscholes.h"
+#include "bjerksundstensland93.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Bjerksund & Stensland American Option Approximation methods.
-class BjerksundStensland : public BlackScholes
+class BjerksundStensland2002 : public BjerksundStensland1993
 {
-    using _Myt = BjerksundStensland;
-    using _Mybase = BlackScholes;
+    using _Myt = BjerksundStensland2002;
+    using _Mybase = BjerksundStensland1993;
 
 public:
 
@@ -47,19 +47,19 @@ public:
      * @param[in] sigma  volatility of underlying
      * @param[in] T  time to expiration (years)
      */
-    BjerksundStensland( double S, double r, double b, double sigma, double T );
+    BjerksundStensland2002( double S, double r, double b, double sigma, double T );
 
     /// Constructor.
     /**
      * @param[in] other  object to copy
      */
-    BjerksundStensland( const _Myt& other ) : _Mybase() {copy( other );}
+    BjerksundStensland2002( const _Myt& other ) : _Mybase( other ) {}
 
     /// Constructor.
     /**
      * @param[in] other  object to move
      */
-    BjerksundStensland( const _Myt&& other ) : _Mybase()  {move( std::move( other ) );}
+    BjerksundStensland2002( const _Myt&& other ) : _Mybase( other ) {}
 
     // ========================================================================
     // Operators
@@ -78,24 +78,6 @@ public:
      * @return  reference to this
      */
     _Myt& operator = ( const _Myt&& rhs ) {move( std::move( rhs ) ); return *this;}
-
-    // ========================================================================
-    // Properties
-    // ========================================================================
-
-    /// Check for european style option.
-    /**
-     * @return  @c true if european, @c false otherwise
-     */
-    virtual bool isEuropean() const override {return false;}
-
-    /// Compute option price.
-    /**
-     * @param[in] type  option type
-     * @param[in] X  strike price
-     * @return  option price
-     */
-    virtual double optionPrice( OptionType type, double X ) const override;
 
     // ========================================================================
     // Static Methods
@@ -117,33 +99,29 @@ protected:
      * @param[in] X  strike price
      * @return  option price
      */
-    virtual double optionPriceCall( double X ) const;
+    virtual double optionPriceCall( double X ) const override;
 
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Copy object.
+    /// Compute option price for put option.
     /**
-     * @param[in] other  object to copy
-     * @return  reference to this
+     * @param[in] X  strike price
+     * @return  option price
      */
-    void copy( const _Myt& other ) {_Mybase::copy( other );}
+    virtual double optionPricePut( double X ) const override;
 
-    /// Move object.
+    /// Compute ksi.
     /**
-     * @param[in] other  object to move
-     * @return  reference to this
+     * @param[in] S  underlying price
+     * @param[in] T2  time to expiration (years)
+     * @param[in] gamma  gamma
+     * @param[in] H  h(T) value
+     * @param[in] I2  trigger (boundary) price
+     * @param[in] I1  trigger (boundary) price
+     * @param[in] t1  time to expiration (years)
      */
-    void move( const _Myt&& other ) {_Mybase::move( std::move( other ) );}
-
-private:
-
-    /// Calculate phi.
-    static double phi( double S, double T, double gamma_val, double H, double I, double r, double b, double v );
+    virtual double ksi( double S, double T2, double gamma, double H, double I2, double I1, double t1 ) const;
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // BJERKSUNDSTENSLAND_H
+#endif // BJERKSUNDSTENSLAND02_H

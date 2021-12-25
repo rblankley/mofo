@@ -19,10 +19,7 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "common.h"
 #include "montecarlocalc.h"
-
-#include "util/altbisection.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MonteCarloCalculator::MonteCarloCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
@@ -37,22 +34,9 @@ MonteCarloCalculator::~MonteCarloCalculator()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double MonteCarloCalculator::calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay ) const
-{
-    return AlternativeBisection::calcImplVol( pricing, type, X, price, okay );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 AbstractOptionPricing *MonteCarloCalculator::createPricingMethod( double S, double r, double b, double sigma, double T, bool european ) const
 {
     Q_UNUSED( european )
 
-    return new MonteCarlo( S, r, b, sigma, T, NUM_SIMULATIONS, rng_ );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void MonteCarloCalculator::destroyPricingMethod( AbstractOptionPricing *doomed ) const
-{
-    if ( doomed )
-        delete doomed;
+    return new pricing_method_type( S, r, b, sigma, T, NUM_SIMULATIONS, rng_ );
 }

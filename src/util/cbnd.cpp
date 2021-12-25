@@ -110,13 +110,14 @@ double cbnd( double a, double b, double Rho )
     if ( std::isinf( b ) )
         b = 10;
 
-    const double t = sqrt(2.0 * (1.0 - pow2(Rho)));
-    const double a1 = a / t;
-    const double b1 = b / t;
-
     if (( a <= 0.0 ) && ( b <= 0.0 ) && ( Rho <= 0.0 ))
     {
         const double rho20 = Rho * 2.0;
+
+        // floor t to prevent division by zero
+        const double t = std::fmax( sqrt(2.0 * (1.0 - pow2(Rho))), 1.0e-10 );
+        const double a1 = a / t;
+        const double b1 = b / t;
 
         double sum = 0.0;
 

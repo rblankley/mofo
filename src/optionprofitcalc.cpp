@@ -22,11 +22,8 @@
 #include "common.h"
 #include "optionprofitcalc.h"
 
-#include "calc/alttrinomialcalc.h"
+#include "calc/basiccalc.h"
 #include "calc/binomialcalc.h"
-#include "calc/blackscholescalc.h"
-#include "calc/epbinomialcalc.h"
-#include "calc/krtrinomialcalc.h"
 #include "calc/montecarlocalc.h"
 #include "calc/trinomialcalc.h"
 
@@ -129,20 +126,26 @@ OptionProfitCalculator *OptionProfitCalculator::create( double underlying, const
 {
     const QString method( AppDatabase::instance()->optionCalcMethod() );
 
-    if ( "BINOM" == method )
-        return new BinomialCalculator( underlying, chains, results );
+    if ( "BARONEADESIWHALEY" == method )
+        return new BasicCalculator<BaroneAdesiWhaley>( underlying, chains, results );
+    else if ( "BINOM" == method )
+        return new BinomialCalculator<CoxRossRubinstein>( underlying, chains, results );
     else if ( "BINOM_EQPROB" == method )
-        return new EqualProbBinomialCalculator( underlying, chains, results );
+        return new BinomialCalculator<EqualProbBinomialTree>( underlying, chains, results );
+    else if ( "BJERKSUNDSTENSLAND93" == method )
+        return new BasicCalculator<BjerksundStensland1993>( underlying, chains, results );
+    else if ( "BJERKSUNDSTENSLAND02" == method )
+        return new BasicCalculator<BjerksundStensland2002>( underlying, chains, results );
     else if ( "BLACKSCHOLES" == method )
-        return new BlackScholesCalculator( underlying, chains, results );
+        return new BasicCalculator<BlackScholes>( underlying, chains, results );
     else if ( "MONTECARLO" == method )
         return new MonteCarloCalculator( underlying, chains, results );
     else if ( "TRINOM" == method )
-        return new TrinomialCalculator( underlying, chains, results );
+        return new TrinomialCalculator<PhelimBoyle>( underlying, chains, results );
     else if ( "TRINOM_ALT" == method )
-        return new AlternativeTrinomialCalculator( underlying, chains, results );
+        return new TrinomialCalculator<AlternativeTrinomialTree>( underlying, chains, results );
     else if ( "TRINOM_KR" == method )
-        return new KamradRitchkenTrinomialCalculator( underlying, chains, results );
+        return new TrinomialCalculator<KamradRitchken>( underlying, chains, results );
 
     LOG_WARN << "unhandled option calc method " << qPrintable( method );
 

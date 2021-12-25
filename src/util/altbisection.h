@@ -128,9 +128,9 @@ inline double AlternativeBisection::calcImplVol( T *pricing, OptionType type, do
     // Yuck... Exhaustive Search in boundry...
     bool init( false );
 
-    double vi0;
-    double ci0;
-    double m0;
+    double vi0( 0.0 );
+    double ci0( 0.0 );
+    double m0( 0.0 );
 
     // split curve into sections, test each one for valid VI
     static constexpr double VOLATILITY_START = VOLATILITY_MIN;

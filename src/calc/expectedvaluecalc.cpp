@@ -867,6 +867,16 @@ bool ExpectedValueCalculator::generateGreeks( int row, double strike, bool isCal
         result.bidvi = calcImplVol( o, type, strike, bid );
         result.askvi = calcImplVol( o, type, strike, ask );
         result.markvi = calcImplVol( o, type, strike, mark );
+
+        // check for unrealistic volatility
+        if ( 0.0 < result.askvi )
+        {
+            if (( 0.0 < result.bidvi ) && ( result.askvi < result.bidvi ))
+                result.bidvi = 0.0;
+
+            if (( 0.0 < result.markvi ) && ( result.askvi < result.markvi ))
+                result.markvi = 0.0;
+        }
 /*
         // determine theo option value and VI
         double theoOptionValue( chains_->tableData( row, isCall ? table_model_type::CALL_THEO_OPTION_VALUE : table_model_type::PUT_THEO_OPTION_VALUE ).toDouble() );
@@ -968,11 +978,21 @@ bool ExpectedValueCalculator::calcProbCurvePrices( OptionProbCurve& curve, const
 
         c.price = o->optionPrice( type, strike );
 
+        // validate price
+        if (( std::isnan( c.price ) || ( std::isinf( c.price ) ) || ( c.price < 0.0 )))
+        {
+            destroyPricingMethod( o );
+
+            LOG_ERROR << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " failed to calc option price";
+            return false;
+        }
+
         if ( !init )
             init = true;
         else if ( prev.price < c.price )
             c.price = prev.price;
 
+        // calculate greeks
         if ( !calcGreeks( o, c.price, strike, isCall, g ) )
         {
             destroyPricingMethod( o );

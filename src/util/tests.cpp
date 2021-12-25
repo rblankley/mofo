@@ -23,7 +23,8 @@
 #include "alttrinomial.h"
 #include "baroneadesiwhaley.h"
 #include "bisection.h"
-#include "bjerksundstensland.h"
+#include "bjerksundstensland02.h"
+#include "bjerksundstensland93.h"
 #include "blackscholes.h"
 #include "coxrossrubinstein.h"
 #include "equalprobbinomial.h"
@@ -50,7 +51,8 @@ void validateOptionPricing()
 
     AlternativeTrinomialTree::validate();
     BaroneAdesiWhaley::validate();
-    BjerksundStensland::validate();
+    BjerksundStensland1993::validate();
+    BjerksundStensland2002::validate();
     BinomialTree::validate();
     BlackScholes::validate();
     CoxRossRubinstein::validate();
@@ -81,7 +83,8 @@ void validateOptionPricing()
     {
         AlternativeTrinomialTree at( S, r, r-q, v_call, T, 528 );
         BaroneAdesiWhaley baw( S, r, r-q, v_call, T );
-        BjerksundStensland bjs( S, r, r-q, v_call, T );
+        BjerksundStensland1993 bjs93( S, r, r-q, v_call, T );
+        BjerksundStensland2002 bjs02( S, r, r-q, v_call, T );
         BlackScholes bs( S, r, r-q, v_call, T );
         CoxRossRubinstein crr( S, r, r-q, v_call, T, 1024 );
         EqualProbBinomialTree eqpb( S, r, r-q, v_call, T, 1024 );
@@ -121,14 +124,24 @@ void validateOptionPricing()
             .arg( baw.optionPrice( OptionType::Call, K0+6.0 ), 12 );
 
         results << format8
-            .arg( "BJS", 10 )
-            .arg( bjs.optionPrice( OptionType::Call, K0-6.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Call, K0-4.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Call, K0-2.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Call, K0     ), 12 )
-            .arg( bjs.optionPrice( OptionType::Call, K0+2.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Call, K0+4.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Call, K0+6.0 ), 12 );
+            .arg( "BJS 1993", 10 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0-6.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0-4.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0-2.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0     ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0+2.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0+4.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Call, K0+6.0 ), 12 );
+
+        results << format8
+            .arg( "BJS 2002", 10 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0-6.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0-4.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0-2.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0     ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0+2.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0+4.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Call, K0+6.0 ), 12 );
 
         results << format8
             .arg( "BS", 10 )
@@ -206,7 +219,8 @@ void validateOptionPricing()
     {
         AlternativeTrinomialTree at( S, r, r-q, v_put, T, 528 );
         BaroneAdesiWhaley baw( S, r, r-q, v_put, T );
-        BjerksundStensland bjs( S, r, r-q, v_put, T );
+        BjerksundStensland1993 bjs93( S, r, r-q, v_put, T );
+        BjerksundStensland2002 bjs02( S, r, r-q, v_put, T );
         BlackScholes bs( S, r, r-q, v_put, T );
         CoxRossRubinstein crr( S, r, r-q, v_put, T, 1024 );
         EqualProbBinomialTree eqpb( S, r, r-q, v_put, T, 1024 );
@@ -246,14 +260,24 @@ void validateOptionPricing()
             .arg( baw.optionPrice( OptionType::Put, K0+6.0 ), 12 );
 
         results << format8
-            .arg( "BJS", 10 )
-            .arg( bjs.optionPrice( OptionType::Put, K0-6.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Put, K0-4.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Put, K0-2.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Put, K0     ), 12 )
-            .arg( bjs.optionPrice( OptionType::Put, K0+2.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Put, K0+4.0 ), 12 )
-            .arg( bjs.optionPrice( OptionType::Put, K0+6.0 ), 12 );
+            .arg( "BJS 1993", 10 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0-6.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0-4.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0-2.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0     ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0+2.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0+4.0 ), 12 )
+            .arg( bjs93.optionPrice( OptionType::Put, K0+6.0 ), 12 );
+
+        results << format8
+            .arg( "BJS 2002", 10 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0-6.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0-4.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0-2.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0     ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0+2.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0+4.0 ), 12 )
+            .arg( bjs02.optionPrice( OptionType::Put, K0+6.0 ), 12 );
 
         results << format8
             .arg( "BS", 10 )
@@ -331,7 +355,8 @@ void validateOptionPricing()
     {
         AlternativeTrinomialTree at( S, r, r-q, 0.0, T, 528 );
         BaroneAdesiWhaley baw( S, r, r-q, 0.0, T );
-        BjerksundStensland bjs( S, r, r-q, 0.0, T );
+        BjerksundStensland1993 bjs93( S, r, r-q, 0.0, T );
+        BjerksundStensland2002 bjs02( S, r, r-q, 0.0, T );
         BlackScholes bs( S, r, r-q, 0.0, T );
         CoxRossRubinstein crr( S, r, r-q, 0.0, T, 1024 );
         EqualProbBinomialTree eqpb( S, r, r-q, 0.0, T, 1024 );
@@ -368,13 +393,22 @@ void validateOptionPricing()
             .arg( NewtonRaphson::calcImplVol( &baw, OptionType::Put, K0, op_put ), 14 );
 
         results << format7
-            .arg( "BJS", 10 )
-            .arg( Bisection::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
-            .arg( AlternativeBisection::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
-            .arg( NewtonRaphson::calcImplVol( &bjs, OptionType::Call, K0, op_call ), 14 )
-            .arg( Bisection::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 )
-            .arg( AlternativeBisection::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 )
-            .arg( NewtonRaphson::calcImplVol( &bjs, OptionType::Put, K0, op_put ), 14 );
+            .arg( "BJS 1993", 10 )
+            .arg( Bisection::calcImplVol( &bjs93, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bjs93, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bjs93, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &bjs93, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bjs93, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bjs93, OptionType::Put, K0, op_put ), 14 );
+
+        results << format7
+            .arg( "BJS 2002", 10 )
+            .arg( Bisection::calcImplVol( &bjs02, OptionType::Call, K0, op_call ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bjs02, OptionType::Call, K0, op_call ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bjs02, OptionType::Call, K0, op_call ), 14 )
+            .arg( Bisection::calcImplVol( &bjs02, OptionType::Put, K0, op_put ), 14 )
+            .arg( AlternativeBisection::calcImplVol( &bjs02, OptionType::Put, K0, op_put ), 14 )
+            .arg( NewtonRaphson::calcImplVol( &bjs02, OptionType::Put, K0, op_put ), 14 );
 
         results << format7
             .arg( "BS", 10 )

@@ -23,17 +23,18 @@
 #ifndef MONTECARLOCALC_H
 #define MONTECARLOCALC_H
 
-#include "expectedvaluecalc.h"
+#include "abstractevcalc.h"
 
+#include "util/altbisection.h"
 #include "util/montecarlo.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// Monte Carlo simulaions based option profit calculator.
-class MonteCarloCalculator : public ExpectedValueCalculator
+class MonteCarloCalculator : public AbstractExpectedValueCalculator<MonteCarlo, AlternativeBisection>
 {
     using _Myt = MonteCarloCalculator;
-    using _Mybase = ExpectedValueCalculator;
+    using _Mybase = AbstractExpectedValueCalculator<MonteCarlo, AlternativeBisection>;
 
 public:
 
@@ -58,17 +59,6 @@ protected:
     // Methods
     // ========================================================================
 
-    /// Calculate implied volatility.
-    /**
-     * @param[in,out] pricing  option pricing
-     * @param[in] type  option type
-     * @param[in] X  strike price
-     * @param[in] price  option price
-     * @param[out] okay  @c true if calculation okay, @c false otherwise
-     * @return  implied volatility of @a pricing
-     */
-    virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay = nullptr ) const override;
-
     /// Factory method for creation of Option Pricing Methods.
     /**
      * @param[in] S  underlying (spot) price
@@ -81,17 +71,11 @@ protected:
      */
     virtual AbstractOptionPricing *createPricingMethod( double S, double r, double b, double sigma, double T, bool european = false ) const override;
 
-    /// Factory method for destruction of Option Pricing Methods.
-    /**
-     * @param[in] doomed  pricing method to destroy
-     */
-    virtual void destroyPricingMethod( AbstractOptionPricing *doomed ) const override;
-
 private:
 
     static constexpr int NUM_SIMULATIONS = 4*1024;
 
-    MonteCarlo::rng_engine_t rng_;
+    pricing_method_type::rng_engine_type rng_;
 
     // not implemented
     MonteCarloCalculator( const _Myt& ) = delete;
