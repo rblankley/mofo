@@ -47,6 +47,8 @@ BUILT_SOURCES = \
 	moc_optiontradingview.cpp \
 	moc_optionviewertabwidget.cpp \
 	moc_optionviewerwidget.cpp \
+	moc_symboldetailsdialog.cpp \
+	moc_symbolpricehistorywidget.cpp \
 	moc_tddaemon.cpp \
 	moc_watchlistdialog.cpp \
 	moc_watchlistselectiondialog.cpp \
@@ -76,6 +78,8 @@ mofo_SOURCES = \
 	optiontradingview.cpp \
 	optionviewertabwidget.cpp \
 	optionviewerwidget.cpp \
+	symboldetailsdialog.cpp \
+	symbolpricehistorywidget.cpp \
 	tableheaderitem.cpp \
 	tddaemon.cpp \
 	watchlistdialog.cpp \

@@ -43,6 +43,7 @@ class QToolButton;
 class OptionViewerWidget : public QWidget
 {
     Q_OBJECT
+    Q_PROPERTY( QString symbol READ symbol )
 
     using _Myt = OptionViewerWidget;
     using _Mybase = QWidget;
@@ -104,10 +105,12 @@ private:
     static const QString STATE_GROUP_NAME;
     static const QString STATE_NAME;
 
-    QString symbol_;
-
     QuoteTableModel *model_;
     OptionTradingItemModel *tradingModel_;
+
+    QString symbol_;
+
+    int chartTab_;
 
     // ---- //
 

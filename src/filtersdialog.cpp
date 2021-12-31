@@ -35,8 +35,8 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FiltersDialog::FiltersDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f ),
-    cancelVisible_( false ),
-    db_( AppDatabase::instance() )
+    db_( AppDatabase::instance() ),
+    cancelVisible_( false )
 {
     // remove the question mark button
     setWindowFlags( windowFlags() & ~Qt::WindowContextHelpButtonHint );

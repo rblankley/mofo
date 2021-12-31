@@ -23,6 +23,7 @@
 #ifndef APPDB_H
 #define APPDB_H
 
+#include "candledata.h"
 #include "sqldb.h"
 
 #include <QColor>
@@ -62,6 +63,19 @@ signals:
 
     /// Signal for when accounts changed.
     void accountsChanged();
+
+    /// Signal for when candle data changed.
+    /**
+     * @param[in] symbol  symbol
+     * @param[in] start  graph start date/time
+     * @param[in] stop  graph stop date/time
+     * @param[in] period  history period
+     * @param[in] periodType  period type (day, month, year, or ytd)
+     * @param[in] freq  frequency
+     * @param[in] freqType  frequency type (minute, daily, weekly, or monthly)
+     * @param[in] candles  list of candle data
+     */
+    void candleDataChanged( const QString& symbol, const QDateTime& start, const QDateTime& stop, int period, const QString& periodType, int freq, const QString& freqType, const QList<CandleData>& candles );
 
     /// Signal for when configuration changed.
     void configurationChanged();
@@ -104,6 +118,7 @@ public:
     {
         HeaderView,                                 ///< Header View Widget.
         Splitter,                                   ///< Splitter Widget.
+        PriceHistory,                               ///< Price History Widget.
     };
 
     // ========================================================================
@@ -566,6 +581,8 @@ private:
     _Myt& operator = ( const _Myt&& ) = delete;
 
 };
+
+Q_DECLARE_METATYPE( QList<CandleData> );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -72,7 +72,16 @@ public:
     /// Translate strings.
     virtual void translate();
 
-protected:
+private slots:
+
+    /// Slot for button clicked.
+    void onButtonClicked();
+
+private:
+
+    QJsonObject configs_;
+
+    // ---- //
 
     QLabel *equityRefreshRateLabel_;
     QLineEdit *equityRefreshRate_;
@@ -128,15 +137,6 @@ protected:
 
     QPushButton *okay_;
     QPushButton *cancel_;
-
-private slots:
-
-    /// Slot for button clicked.
-    void onButtonClicked();
-
-private:
-
-    QJsonObject configs_;
 
     /// Initialize.
     void initialize();

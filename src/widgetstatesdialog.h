@@ -76,21 +76,6 @@ public:
     /// Translate strings.
     virtual void translate();
 
-protected:
-
-    QLabel *groupNameLabel_;
-    QComboBox *groupName_;
-
-    QLabel *statesLabel_;
-    QListWidget *states_;
-
-    QPushButton *copyState_;
-    QPushButton *renameState_;
-    QPushButton *deleteState_;
-
-    QPushButton *okay_;
-    QPushButton *cancel_;
-
 private slots:
 
     /// Slot for button clicked.
@@ -107,6 +92,21 @@ private:
     AppDatabase *db_;
 
     QString currentGroupName_;
+
+    // ---- //
+
+    QLabel *groupNameLabel_;
+    QComboBox *groupName_;
+
+    QLabel *statesLabel_;
+    QListWidget *states_;
+
+    QPushButton *copyState_;
+    QPushButton *renameState_;
+    QPushButton *deleteState_;
+
+    QPushButton *okay_;
+    QPushButton *cancel_;
 
     /// Initialize.
     void initialize();

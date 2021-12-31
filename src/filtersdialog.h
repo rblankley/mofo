@@ -99,22 +99,6 @@ public:
     /// Translate strings.
     virtual void translate();
 
-protected:
-
-    bool cancelVisible_;
-
-    QLabel *filtersLabel_;
-    QListWidget *filters_;
-
-    QPushButton *createFilter_;
-    QPushButton *editFilter_;
-    QPushButton *copyFilter_;
-    QPushButton *renameFilter_;
-    QPushButton *deleteFilter_;
-
-    QPushButton *okay_;
-    QPushButton *cancel_;
-
 private slots:
 
     /// Close any open peristent editor.
@@ -139,6 +123,22 @@ private:
     QString currentFilterName_;
 
     QTimer *closeEditorTimer_;
+
+    bool cancelVisible_;
+
+    // ---- //
+
+    QLabel *filtersLabel_;
+    QListWidget *filters_;
+
+    QPushButton *createFilter_;
+    QPushButton *editFilter_;
+    QPushButton *copyFilter_;
+    QPushButton *renameFilter_;
+    QPushButton *deleteFilter_;
+
+    QPushButton *okay_;
+    QPushButton *cancel_;
 
     /// Initialize.
     void initialize();

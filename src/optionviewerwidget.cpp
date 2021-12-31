@@ -26,6 +26,7 @@
 #include "optionprofitcalc.h"
 #include "optiontradingview.h"
 #include "optionviewerwidget.h"
+#include "symbolpricehistorywidget.h"
 
 #include "db/appdb.h"
 #include "db/optionchaintablemodel.h"
@@ -48,7 +49,8 @@ const QString OptionViewerWidget::STATE_NAME( "[[default]]" );
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionViewerWidget::OptionViewerWidget( const QString& symbol, QWidget *parent ) :
     _Mybase( parent ),
-    symbol_( symbol )
+    symbol_( symbol ),
+    chartTab_( -1 )
 {
     // setup model
     model_ = new QuoteTableModel( symbol, QDateTime(), this );
@@ -94,6 +96,8 @@ void OptionViewerWidget::translate()
     analysisOne_->setText( tr( "Analyze\nOne Expiry" ) );
     analysisAll_->setText( tr( "Analyze\nAll Expirys" ) );
     refresh_->setText( tr( "Refresh" ) );
+
+    expiryDates_->setTabText( chartTab_, tr( "Chart" ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -101,7 +105,19 @@ void OptionViewerWidget::onButtonPressed()
 {
     // refresh
     if ( refresh_ == sender() )
+    {
+        // refresh underlying and option chains chains
         AbstractDaemon::instance()->getOptionChain( symbol_ );
+
+        // refresh chart
+        SymbolPriceHistoryWidget *priceHistory( nullptr );
+
+        if (( 0 < chartTab_ ) && ( chartTab_ < expiryDates_->count() ))
+            priceHistory = qobject_cast<SymbolPriceHistoryWidget*>( expiryDates_->widget( chartTab_ ) );
+
+        if ( priceHistory )
+            priceHistory->refreshData();
+    }
 
     // clear
     else if ( clear_ == sender() )
@@ -199,6 +215,17 @@ void OptionViewerWidget::refreshData()
         QString( "%0\n%1" )
             .arg( model_->tableData( QuoteTableModel::CHANGE ).toString() )
             .arg( model_->tableData( QuoteTableModel::PERCENT_CHANGE ).toString() + "%" ) );
+
+    // update color of last change
+    QPalette p( palette() );
+
+    if ( model_->tableData( QuoteTableModel::CHANGE ).toDouble() < 0.0 )
+        p.setColor( lastChange_->foregroundRole(), Qt::red );
+    else if ( 0.0 < model_->tableData( QuoteTableModel::CHANGE ).toDouble() )
+        p.setColor( lastChange_->foregroundRole(), Qt::darkGreen );
+
+    last_->setPalette( p );
+    lastChange_->setPalette( p );
 
     bid_->setText( model_->tableData( QuoteTableModel::BID_PRICE ).toString() );
     ask_->setText( model_->tableData( QuoteTableModel::ASK_PRICE ).toString() );
@@ -453,6 +480,9 @@ void OptionViewerWidget::initialize()
     expiryDates_ = new QTabWidget( splitter_ );
     expiryDates_->setTabShape( QTabWidget::Triangular );
     expiryDates_->setTabPosition( QTabWidget::North );
+
+    // add chart to tabs
+    chartTab_ = expiryDates_->addTab( new SymbolPriceHistoryWidget( symbol() ), QString() );
 
     tradeAnalysis_ = new OptionTradingView( tradingModel_, splitter_ );
     tradeAnalysis_->setVisible( false );

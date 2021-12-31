@@ -65,7 +65,7 @@ public:
      * @param[in] sigma  volatility of underlying
      * @param[in] T  time to expiration (years)
      * @param[in] N  number of simulations
-     * @param[in] rnd  random number generator
+     * @param[in] rng  random number generator
      */
     MonteCarlo( double S, double r, double b, double sigma, double T, size_t N, const rng_engine_type& rng );
 

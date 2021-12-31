@@ -35,7 +35,9 @@
 #include <QThread>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "7" );
+static const QString DB_VERSION( "8" );
+
+static const QString DAILY( "daily" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -44,6 +46,9 @@ AppDatabase *AppDatabase::instance_( nullptr );
 AppDatabase::AppDatabase() :
     _Mybase( DB_NAME, DB_VERSION )
 {
+    // register meta types
+    qRegisterMetaType<QList<CandleData>>();
+
     // open database
     if ( open() )
         readSettings();
@@ -504,6 +509,8 @@ void AppDatabase::removeWidgetState( WidgetType type, const QString& groupName, 
         table = "headerStates";
     else if ( Splitter == type )
         table = "splitterStates";
+    else if ( PriceHistory == type )
+        table = "priceHistoryStates";
 
     if ( table.length() )
     {
@@ -670,6 +677,8 @@ void AppDatabase::setWidgetState( WidgetType type, const QString& groupName, con
         table = "headerStates";
     else if ( Splitter == type )
         table = "splitterStates";
+    else if ( PriceHistory == type )
+        table = "priceHistoryStates";
 
     if ( table.length() )
     {
@@ -840,6 +849,8 @@ QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
         table = "headerStates";
     else if ( Splitter == type )
         table = "splitterStates";
+    else if ( PriceHistory == type )
+        table = "priceHistoryStates";
 
     if ( table.length() )
     {
@@ -887,6 +898,8 @@ QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, 
         table = "headerStates";
     else if ( Splitter == type )
         table = "splitterStates";
+    else if ( PriceHistory == type )
+        table = "priceHistoryStates";
 
     if ( table.length() )
     {
@@ -938,6 +951,8 @@ QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName
         table = "headerStates";
     else if ( Splitter == type )
         table = "splitterStates";
+    else if ( PriceHistory == type )
+        table = "priceHistoryStates";
 
     if ( table.length() )
     {
@@ -1047,18 +1062,58 @@ bool AppDatabase::processData( const QJsonObject& obj )
 
         const QString symbol( quoteHistory[DB_SYMBOL].toString() );
 
-        SymbolDatabase *child( findSymbol( symbol ) );
+        const QJsonObject::const_iterator history( quoteHistory.constFind( DB_HISTORY ) );
 
-        if ( child )
+        if (( symbol.length() ) && ( history->isArray() ))
         {
-            result &= child->processQuoteHistory( quoteHistory );
+            const QDateTime start( QDateTime::fromString( quoteHistory[DB_START_DATE].toString(), Qt::ISODateWithMs ) );
+            const QDateTime stop( QDateTime::fromString( quoteHistory[DB_END_DATE].toString(), Qt::ISODateWithMs ) );
 
-            // track connections
-            cnames.append( openDatabaseConnection( symbol ).connectionName() );
+            const int period( quoteHistory[DB_PERIOD].toInt() );
+            const QString periodType( quoteHistory[DB_PERIOD_TYPE].toString() );
+            const int freq( quoteHistory[DB_FREQUENCY].toInt() );
+            const QString freqType( quoteHistory[DB_FREQUENCY_TYPE].toString() );
+
+            // parse out candles
+            QList<CandleData> candles;
+
+            foreach ( const QJsonValue& candleVal, history->toArray() )
+               if ( candleVal.isObject() )
+               {
+                   const QJsonObject candle( candleVal.toObject() );
+
+                   CandleData data;
+                   data.stamp = QDateTime::fromString( candle[DB_DATETIME].toString(), Qt::ISODateWithMs );
+                   data.openPrice = candle[DB_OPEN_PRICE].toDouble();
+                   data.highPrice = candle[DB_HIGH_PRICE].toDouble();
+                   data.lowPrice = candle[DB_LOW_PRICE].toDouble();
+                   data.closePrice = candle[DB_CLOSE_PRICE].toDouble();
+                   data.totalVolume = candle[DB_TOTAL_VOLUME].toVariant().toULongLong();
+
+                   // append candle
+                   candles.append( data );
+               }
+
+            // emit signal
+            emit candleDataChanged( symbol, start, stop, period, periodType, freq, freqType, candles );
+
+            // for daily, process as quote history
+            if ( DAILY == freqType )
+            {
+                SymbolDatabase *child( findSymbol( symbol ) );
+
+                if ( child )
+                {
+                    result &= child->processQuoteHistory( quoteHistory );
+
+                    // track connections
+                    cnames.append( openDatabaseConnection( symbol ).connectionName() );
+                }
+
+                quoteHistoryProcessed = result;
+                quoteHistorySymbol = symbol;
+            }
         }
-
-        quoteHistoryProcessed = result;
-        quoteHistorySymbol = symbol;
     }
 
     // process quotes

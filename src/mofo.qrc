@@ -8,6 +8,7 @@
         <file>db/version5_app.sql</file>
         <file>db/version6_app.sql</file>
         <file>db/version7_app.sql</file>
+        <file>db/version8_app.sql</file>
         <file>db/createdb_symbol.sql</file>
         <file>db/default_symbol.sql</file>
         <file>db/version2_symbol.sql</file>

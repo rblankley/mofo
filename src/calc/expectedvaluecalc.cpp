@@ -1,5 +1,5 @@
 /**
- * @file binomialcalc.cpp
+ * @file expectedvaluecalc.cpp
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *

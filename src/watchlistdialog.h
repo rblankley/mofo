@@ -75,22 +75,6 @@ public:
     /// Translate strings.
     virtual void translate();
 
-protected:
-
-    QLabel *watchlistLabel_;
-    QListWidget *watchlist_;
-
-    QPushButton *createList_;
-    QPushButton *copyList_;
-    QPushButton *renameList_;
-    QPushButton *deleteList_;
-
-    QLabel *symbolsLabel_;
-    QPlainTextEdit *symbols_;
-
-    QPushButton *okay_;
-    QPushButton *cancel_;
-
 private slots:
 
     /// Slot for button clicked.
@@ -105,6 +89,22 @@ private slots:
 private:
 
     AppDatabase *db_;
+
+    // ---- //
+
+    QLabel *watchlistLabel_;
+    QListWidget *watchlist_;
+
+    QPushButton *createList_;
+    QPushButton *copyList_;
+    QPushButton *renameList_;
+    QPushButton *deleteList_;
+
+    QLabel *symbolsLabel_;
+    QPlainTextEdit *symbols_;
+
+    QPushButton *okay_;
+    QPushButton *cancel_;
 
     /// Initialize.
     void initialize();

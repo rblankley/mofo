@@ -23,6 +23,7 @@
 #include "optiontradingview.h"
 #include "gridtableheaderview.h"
 #include "hoveritemdelegate.h"
+#include "symboldetailsdialog.h"
 
 #include "db/appdb.h"
 #include "db/optiontradingitemmodel.h"
@@ -391,6 +392,9 @@ void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button
     QMenu contextMenu;
     QAction *a;
 
+    // show details
+    const QAction *details( contextMenu.addAction( QIcon( ":/res/bar-chart.png" ), tr( "Show " ) + " \"" + symbol + "\" &Details" ) );
+
     // remove symbol from table
     const QAction *removeSymbol( contextMenu.addAction( QIcon( ":/res/hide.png" ), tr( "&Remove" ) + " \"" + symbol + "\" from Results" ) );
 
@@ -415,8 +419,16 @@ void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button
     // process menu response
     // ---------------------
 
+    // details
+    if ( details == a )
+    {
+        // show dialog
+        SymbolDetailsDialog d( symbol, this );
+        d.exec();
+    }
+
     // remove symbol from table
-    if ( removeSymbol == a )
+    else if ( removeSymbol == a )
     {
         // remove some rows
         model_->removeRowsIf( model_type::UNDERLYING, symbol, model_type::RemovalRule::Equal );

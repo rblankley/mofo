@@ -1,6 +1,6 @@
 /**
- * @file watchlistselectiondialog.h
- * Dialog for selecting watchlists.
+ * @file symboldetailsdialog.h
+ * Dialog for showing symbol details.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -20,25 +20,22 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef WATCHLISTSELECTIONDIALOG_H
-#define WATCHLISTSELECTIONDIALOG_H
+#ifndef SYMBOLDETAILSDIALOG_H
+#define SYMBOLDETAILSDIALOG_H
 
 #include <QDialog>
-#include <QMap>
 
-class QCheckBox;
-class QLabel;
-class QPushButton;
-class QVBoxLayout;
+class SymbolPriceHistoryWidget;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for selecting watchlists.
-class WatchlistSelectionDialog : public QDialog
+/// Dialog for showing symbol details.
+class SymbolDetailsDialog : public QDialog
 {
     Q_OBJECT
+    Q_PROPERTY( QString symbol READ symbol )
 
-    using _Myt = WatchlistSelectionDialog;
+    using _Myt = SymbolDetailsDialog;
     using _Mybase = QDialog;
 
 public:
@@ -49,38 +46,27 @@ public:
 
     /// Constructor.
     /**
+     * @param[in,out] symbol  symbol
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    WatchlistSelectionDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    SymbolDetailsDialog( const QString symbol, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
     // ========================================================================
     // Properties
     // ========================================================================
-
-    /// Retrieve if watchlists exist.
-    /**
-     * @return  @c true if watchlists exist, @c false otherwise
-     */
-    virtual bool watchlistsExist() const;
-
-    /// Retrieve selected watchlists.
-    /**
-     * @return  watchlists
-     */
-    virtual QString selected() const;
-
-    /// Set selected watchlists
-    /**
-     * @param[in] value  watchlists
-     */
-    virtual void setSelected( const QString& value );
 
     /// Retrieve size hint.
     /**
      * @return  size hint
      */
     virtual QSize sizeHint() const;
+
+    /// Retrieve symbol.
+    /**
+     * @return  symbol
+     */
+    virtual QString symbol() const {return symbol_;}
 
     // ========================================================================
     // Methods
@@ -89,27 +75,11 @@ public:
     /// Translate strings.
     virtual void translate();
 
-private slots:
-
-    /// Slot for button clicked.
-    void onButtonClicked();
-
 private:
 
-    using WatchlistCheckBoxMap = QMap<QString, QCheckBox*>;
+    QString symbol_;
 
-    WatchlistCheckBoxMap boxes_;
-
-    QVBoxLayout *boxesLayout_;
-
-    // ---- //
-
-    QLabel *watchListsLabel_;
-
-    QPushButton *editWatchLists_;
-
-    QPushButton *okay_;
-    QPushButton *cancel_;
+    SymbolPriceHistoryWidget *priceHistory_;
 
     /// Initialize.
     void initialize();
@@ -117,14 +87,11 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Generate watchlist check boxes.
-    void generateBoxes();
+    // not implemented
+    SymbolDetailsDialog( const _Myt& ) = delete;
 
     // not implemented
-    WatchlistSelectionDialog( const _Myt& ) = delete;
-
-    // not implemented
-    WatchlistSelectionDialog( const _Myt&& ) = delete;
+    SymbolDetailsDialog( const _Myt&& ) = delete;
 
     // not implemented
     _Myt& operator = ( const _Myt& ) = delete;
@@ -136,4 +103,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // WATCHLISTSELECTIONDIALOG_H
+#endif // SYMBOLDETAILSDIALOG_H

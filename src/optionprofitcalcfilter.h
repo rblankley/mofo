@@ -643,11 +643,11 @@ protected:
     int minBidSize_;                                            ///< Minimum bid size.
     int minAskSize_;                                            ///< Minimum ask size.
 
-    double minProbITM_;
-    double maxProbITM_;
+    double minProbITM_;                                         ///< Minimum probability for ending in the money.
+    double maxProbITM_;                                         ///< Maximum probability for ending in the money.
 
-    double minProbOTM_;
-    double maxProbOTM_;
+    double minProbOTM_;                                         ///< Minimum probability for ending out of money.
+    double maxProbOTM_;                                         ///< Maximum probability for ending out of money.
 
     double minProbProfit_;                                      ///< Minimum probability of profit.
     double maxProbProfit_;                                      ///< Maximum probability of profit.
@@ -655,11 +655,11 @@ protected:
     int minDaysToExpiry_;                                       ///< Minimum days to expiration.
     int maxDaysToExpiry_;                                       ///< Maximum days to expiration.
 
-    double minDividendAmount_;
-    double maxDividendAmount_;
+    double minDividendAmount_;                                  ///< Minimum expected dividend amount.
+    double maxDividendAmount_;                                  ///< Maximum expected dividend amount.
 
-    double minDividendYield_;
-    double maxDividendYield_;
+    double minDividendYield_;                                   ///< Minimum expected dividend yield.
+    double maxDividendYield_;                                   ///< Maximum expected dividend yield.
 
     double minReturnOnRisk_;                                    ///< Minimum return on risk.
     double maxReturnOnRisk_;                                    ///< Maximum return on risk.
@@ -673,14 +673,14 @@ protected:
     double minReturnOnInvestmentTime_;                          ///< Minimum return on investment over time.
     double maxReturnOnInvestmentTime_;                          ///< Maximum return on investment over time.
 
-    double minExpectedValue_;
-    double maxExpectedValue_;
+    double minExpectedValue_;                                   ///< Minimum expected value amount.
+    double maxExpectedValue_;                                   ///< Maximum expected value amount.
 
-    double minExpectedValueReturnOnInvestment_;
-    double maxExpectedValueReturnOnInvestment_;
+    double minExpectedValueReturnOnInvestment_;                 ///< Minimum expected value as return on investment.
+    double maxExpectedValueReturnOnInvestment_;                 ///< Maximum expected value as return on investment.
 
-    double minExpectedValueReturnOnInvestmentTime_;
-    double maxExpectedValueReturnOnInvestmentTime_;
+    double minExpectedValueReturnOnInvestmentTime_;             ///< Minimum expected value as return on investment over time.
+    double maxExpectedValueReturnOnInvestmentTime_;             ///< Maximum expected value as return on investment over time.
 
     double maxSpreadPercent_;                                   ///< Maximum spread bid/ask amount.
 
@@ -690,7 +690,7 @@ protected:
     OptionTypeFilter optionTypes_;                              ///< Option type filter.
     OptionTradingStrategyFilter optionTradingStrats_;           ///< Option trading strategies.
 
-    PriceFilter price_;
+    PriceFilter price_;                                         ///< Price filter.
 
     VolatilityFilter volatility_;                               ///< Volatility filter.
 

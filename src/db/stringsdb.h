@@ -254,6 +254,7 @@ inline static const QString DB_START_DATE                           = "startDate
 inline static const QString DB_END_DATE                             = "endDate";
 
 inline static const QString DB_HISTORY                              = "history";
+inline static const QString DB_DATETIME                             = "datetime";
 
 inline static const QString DB_DEPTH                                = "depth";
 

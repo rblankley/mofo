@@ -49,14 +49,11 @@ static const QString PUT( "PUT" );
 
 static const QString NULL_STR( "NULL" );
 
-static const QString DAILY( "daily" );
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     _Mybase( parent )
 {
     // date columns
-    dateColumns_.append( JSON_DATETIME );
     dateColumns_.append( JSON_DIV_DATE );
     dateColumns_.append( JSON_DIVIDEND_DATE );
     dateColumns_.append( JSON_DIVIDEND_PAY_DATE );
@@ -198,7 +195,7 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     priceHistoryFields_[JSON_SYMBOL] = DB_SYMBOL;
 
     priceHistoryFields_[JSON_CLOSE] = DB_CLOSE_PRICE;
-    priceHistoryFields_[JSON_DATETIME] = DB_DATE;
+    priceHistoryFields_[JSON_DATETIME] = DB_DATETIME;
     priceHistoryFields_[JSON_HIGH] = DB_HIGH_PRICE;
     priceHistoryFields_[JSON_LOW] = DB_LOW_PRICE;
     priceHistoryFields_[JSON_OPEN] = DB_OPEN_PRICE;
@@ -596,10 +593,6 @@ bool TDAmeritradeDatabaseAdapter::transformPriceHistory( const QJsonObject& tdob
 
     // nothing to parse
     if ( empty->toBool() )
-        return true;
-
-    // only interested in daily
-    else if ( DAILY != freqType->toString() )
         return true;
 
     // ---- //

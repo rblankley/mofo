@@ -112,9 +112,16 @@ public:
     /// Translate strings.
     virtual void translate();
 
-protected:
+private slots:
+
+    /// Slot for button clicked.
+    void onButtonClicked();
+
+private:
 
     bool watchListsVisible_;
+
+    // ---- //
 
     QLabel *watchListsLabel_;
     QLineEdit *watchLists_;
@@ -126,13 +133,6 @@ protected:
 
     QPushButton *okay_;
     QPushButton *cancel_;
-
-private slots:
-
-    /// Slot for button clicked.
-    void onButtonClicked();
-
-private:
 
     /// Initialize.
     void initialize();

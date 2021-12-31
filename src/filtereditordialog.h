@@ -95,7 +95,23 @@ protected:
      */
     virtual void resizeEvent( QResizeEvent *event ) override;
 
-protected:
+private slots:
+
+    /// Slot for button clicked.
+    void onButtonClicked();
+
+    /// Slot for double spin box value changed.
+    void onDoubleSpinBoxValueChanged( double value );
+
+private:
+
+    QString name_;
+
+    OptionProfitCalculatorFilter f_;
+
+    bool sized_;
+
+    // ---- //
 
     QLabel *minColumnLabel_;
     QLabel *maxColumnLabel_;
@@ -227,22 +243,6 @@ protected:
 
     QPushButton *okay_;
     QPushButton *cancel_;
-
-private slots:
-
-    /// Slot for button clicked.
-    void onButtonClicked();
-
-    /// Slot for double spin box value changed.
-    void onDoubleSpinBoxValueChanged( double value );
-
-private:
-
-    QString name_;
-
-    OptionProfitCalculatorFilter f_;
-
-    bool sized_;
 
     /// Initialize.
     void initialize();

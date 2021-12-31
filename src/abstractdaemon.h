@@ -116,6 +116,44 @@ public:
     /// Retrieve accounts.
     virtual void getAccounts();
 
+    /// Retrieve symbol candle data.
+    /**
+     * Example: For a 2 day / 1 min chart, the values would be:
+     *
+     * period: 2
+     * periodType: day
+     * frequency: 1
+     * frequencyType: min
+     *
+     * Valid periods by periodType (defaults marked with an asterisk):
+     *
+     * day: 1, 2, 3, 4, 5, 10*
+     * month: 1*, 2, 3, 6
+     * year: 1*, 2, 3, 5, 10, 15, 20
+     * ytd: 1*
+     *
+     * Valid frequencies by frequencyType (defaults marked with an asterisk):
+     *
+     * minute: 1*, 5, 10, 15, 30
+     * daily: 1*
+     * weekly: 1*
+     * monthly: 1*
+     *
+     * Valid frequencyTypes by periodType (defaults marked with an asterisk):
+     *
+     * day: minute*
+     * month: daily, weekly*
+     * year: daily, weekly, monthly*
+     * ytd: daily, weekly*
+     *
+     * @param[in] symbol  symbol
+     * @param[in] period  history period
+     * @param[in] periodType  period type (day, month, year, or ytd)
+     * @param[in] freq  frequency
+     * @param[in] freqType  frequency type (minute, daily, weekly, or monthly)
+     */
+    virtual void getCandles( const QString& symbol, int period, const QString& periodType, int freq, const QString& freqType );
+
     /// Retrieve option chain.
     /**
      * @param[in] symbol  symbol

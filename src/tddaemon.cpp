@@ -104,6 +104,13 @@ void TDAmeritradeDaemon::getAccounts()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritradeDaemon::getCandles( const QString& symbol, int period, const QString& periodType, int freq, const QString& freqType )
+{
+    // fetch price history
+    api_->getPriceHistory( symbol, period, periodType, freq, freqType, QDateTime(), db_->currentDateTime() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDaemon::getOptionChain( const QString& symbol )
 {
     const QString MESSAGE( tr( "Fetching option chain information for %1..." ) );

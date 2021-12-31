@@ -25,6 +25,7 @@
 
 #include "expectedvaluecalc.h"
 
+#include "util/altbisection.h"
 #include "util/newtonraphson.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -79,9 +80,21 @@ protected:
      * @param[out] okay  @c true if calculation okay, @c false otherwise
      * @return  implied volatility of @a pricing
      */
-    virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *okay = nullptr ) const override
+    virtual double calcImplVol( AbstractOptionPricing *pricing, OptionType type, double X, double price, bool *pokay = nullptr ) const override
     {
-        return implied_volatility_method_type::calcImplVol( dynamic_cast<pricing_method_type*>( pricing ), type, X, price, okay );
+        bool okay;
+
+        // primary method
+        double vi = implied_volatility_method_type::calcImplVol( dynamic_cast<pricing_method_type*>( pricing ), type, X, price, &okay );
+
+        // alt method for VI calculation (if applicable)
+        if (( !okay ) && ( !std::is_same<AlternativeBisection, implied_volatility_method_type>::value ))
+            vi = AlternativeBisection::calcImplVol( dynamic_cast<pricing_method_type*>( pricing ), type, X, price, &okay );
+
+        if ( pokay )
+            *pokay = okay;
+
+        return vi;
     }
 
     /// Factory method for destruction of Option Pricing Methods.

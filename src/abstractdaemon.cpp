@@ -120,6 +120,16 @@ void AbstractDaemon::getAccounts()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AbstractDaemon::getCandles( const QString& symbol, int period, const QString& periodType, int freq, const QString& freqType )
+{
+    Q_UNUSED( symbol )
+    Q_UNUSED( period )
+    Q_UNUSED( periodType )
+    Q_UNUSED( freq )
+    Q_UNUSED( freqType )
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void AbstractDaemon::getOptionChain( const QString& symbol )
 {
     Q_UNUSED( symbol )

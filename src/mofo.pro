@@ -56,6 +56,8 @@ SOURCES += \
     optiontradingview.cpp \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
+    symboldetailsdialog.cpp \
+    symbolpricehistorywidget.cpp \
     tableheaderitem.cpp \
     tda/dbadaptertd.cpp \
     tda/tdapi.cpp \
@@ -105,6 +107,7 @@ HEADERS += \
     calc/trinomialcalc.h \
     configdialog.h \
     db/appdb.h \
+    db/candledata.h \
     db/fundamentalstablemodel.h \
     db/itemmodel.h \
     db/optionchaintablemodel.h \
@@ -130,6 +133,8 @@ HEADERS += \
     optiontradingview.h \
     optionviewertabwidget.h \
     optionviewerwidget.h \
+    symboldetailsdialog.h \
+    symbolpricehistorywidget.h \
     tableheaderitem.h \
     tda/dbadaptertd.h \
     tda/stringsjson.h \

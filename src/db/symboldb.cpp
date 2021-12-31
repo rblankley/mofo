@@ -737,8 +737,11 @@ bool SymbolDatabase::addQuoteHistory( const QSqlDatabase& conn, const QJsonObjec
                 "closePrice=:closePrice, "
                 "totalVolume=:totalVolume " );
 
+    const QDateTime dt( QDateTime::fromString( obj[DB_DATETIME].toString(), Qt::ISODateWithMs ) );
+
     QSqlQuery query( conn );
     query.prepare( sql );
+    query.bindValue( ":" + DB_DATE, dt.date().toString( Qt::ISODate ) );
     query.bindValue( ":" + DB_SYMBOL, symbol() );
 
     bindQueryValues( query, obj );
