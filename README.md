@@ -74,9 +74,11 @@ The really important ones are:
 
 After setting up a few basic filters you can scan single option chains by using TDA API > View Option Chain. The first time you lookup an equity it will take a little bit longer as it needs to fetch market history and fundamental data. Furthermore, you will also see a slight performance hit the first time you use it each day (though not nearly as bad as the first time you lookup an equity) as well because it will update this information.
 
+![Price History](./doc/chart.png?raw=true)
+
 ![Option Chains](./doc/optionchains.png?raw=true)
 
-Select an expiration date you are interested in and then press the Analysis button. If you setup filters you will be asked to choose one.
+The first tab contains a price history graph for the underlying. The remaining tabs contain option chains. Select an expiration date you are interested in and then press the Analysis button. If you setup filters you will be asked to choose one. You can analyze just the one expiration or all expirations by which button you press.
 
 After analysis the results will show up down in the bottom.
 
