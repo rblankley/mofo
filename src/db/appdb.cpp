@@ -35,7 +35,7 @@
 #include <QThread>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "8" );
+static const QString DB_VERSION( "9" );
 
 static const QString DAILY( "daily" );
 
@@ -390,6 +390,72 @@ bool AppDatabase::marketHoursExist( const QDate& date, const QString& marketType
     }
 
     return query.first();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QMap<QString, MarketProductHours> AppDatabase::marketHours( const QDate& date, const QString& marketType, const QString& product )
+{
+    static const QString sql( "SELECT * FROM sessionHours WHERE DATE(date)=DATE(:date) AND marketType=:marketType" );
+
+    QMap<QString, MarketProductHours> result;
+
+    QSqlQuery query( db_ );
+    query.prepare( sql );
+    query.bindValue( ":date", date.toString( Qt::ISODate ) );
+    query.bindValue( ":marketType", marketType );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        model.setQuery( std::move( query ) );
+#else
+        model.setQuery( query );
+#endif
+
+        for ( int i( 0 ); i < model.rowCount(); ++i )
+        {
+            const QSqlRecord rec( model.record( i ) );
+            const QString p( rec.value( "product" ).toString() );
+
+            if (( product.isEmpty() ) || ( product == p ))
+            {
+                const QString t( rec.value( "sessionHoursType" ).toString() );
+                const QDateTime start( QDateTime::fromString( rec.value( "start" ).toString(), Qt::ISODateWithMs ) );
+                const QDateTime end( QDateTime::fromString( rec.value( "end" ).toString(), Qt::ISODateWithMs ) );
+
+                // add product to results if not there already
+                if ( !result.contains( p ) )
+                    result[p] = MarketProductHours();
+
+                // handle session type
+                if ( DB_PRE_MARKET == t )
+                {
+                    result[p].preMarketStart = start;
+                    result[p].preMarketEnd = end;
+                }
+                else if ( DB_REGULAR_MARKET == t )
+                {
+                    result[p].regularMarketStart = start;
+                    result[p].regularMarketEnd = end;
+                }
+                else if ( DB_POST_MARKET == t )
+                {
+                    result[p].postMarketStart = start;
+                    result[p].postMarketEnd = end;
+                }
+
+            } // product
+        } // for each row
+    }
+
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

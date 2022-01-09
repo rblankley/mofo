@@ -19,16 +19,23 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "collapsiblesplitter.h"
 #include "common.h"
+#include "fundamentalsviewerwidget.h"
 #include "symboldetailsdialog.h"
 #include "symbolpricehistorywidget.h"
 
-#include <QVBoxLayout>
+#include "db/appdb.h"
+
+#include <QHBoxLayout>
+
+const QString SymbolDetailsDialog::STATE_GROUP_NAME( "symbolDetails" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SymbolDetailsDialog::SymbolDetailsDialog( const QString symbol, QWidget *parent, Qt::WindowFlags f ) :
+SymbolDetailsDialog::SymbolDetailsDialog( const QString symbol, double price, QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f ),
-    symbol_( symbol )
+    symbol_( symbol ),
+    price_( price )
 {
     // remove the question mark button
     setWindowFlags( windowFlags() & ~Qt::WindowContextHelpButtonHint );
@@ -37,6 +44,16 @@ SymbolDetailsDialog::SymbolDetailsDialog( const QString symbol, QWidget *parent,
     initialize();
     createLayout();
     translate();
+
+    // restore
+    restoreState( splitter_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+SymbolDetailsDialog::~SymbolDetailsDialog()
+{
+    // save
+    saveState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -54,12 +71,37 @@ void SymbolDetailsDialog::translate()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDetailsDialog::initialize()
 {
-    priceHistory_ = new SymbolPriceHistoryWidget( symbol(), this );
+    splitter_ = new CollapsibleSplitter( Qt::Horizontal, this );
+    splitter_->setButtonLocation( Qt::TopEdge );
+    splitter_->setHandleWidth( SPLITTER_WIDTH );
+    splitter_->setObjectName( "underlying" );
+
+    splitter_->addWidget( priceHistory_ = new SymbolPriceHistoryWidget( symbol(), splitter_ ) );
+    splitter_->addWidget( fundamentals_ = new FundamentalsViewerWidget( symbol(), price_, splitter_ ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDetailsDialog::createLayout()
 {
-    QVBoxLayout *form( new QVBoxLayout( this ) );
-    form->addWidget( priceHistory_ );
+    QHBoxLayout *form( new QHBoxLayout( this ) );
+    form->setContentsMargins( QMargins() );
+    form->addWidget( splitter_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDetailsDialog::saveState( QSplitter *w ) const
+{
+    if ( !w )
+        return;
+
+    AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName(), w->saveState() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDetailsDialog::restoreState( QSplitter *w ) const
+{
+    if ( !w )
+        return;
+
+    splitter_->restoreState( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName() ) );
 }

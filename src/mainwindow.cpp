@@ -46,9 +46,13 @@
 #include <QMessageBox>
 #include <QStatusBar>
 #include <QStyle>
+#include <QTimer>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.13" );
+static const QString applicationVersion( "0.0.14" );
+
+static const QString EQUITY_OPTION_PRODUCT( "EQO" );
+static const QString INDEX_OPTION_PRODUCT( "IND" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -64,10 +68,19 @@ MainWindow::MainWindow( QWidget *parent ) :
     translate();
 
     // update states
+    updateMarketHours();
     updateMenuState();
     updateTransmitState( false );
 
     onConnectedStateChanged( daemon_->connectedState() );
+
+    // create timer for updating market hours
+    marketHoursTimer_ = new QTimer( this );
+    marketHoursTimer_->setInterval( 15 * 1000 );
+    marketHoursTimer_->setSingleShot( false );
+    marketHoursTimer_->start();
+
+    connect( marketHoursTimer_, &QTimer::timeout, this, &_Myt::updateMarketHours );
 
     // connect signals/slots
     connect( daemon_, &AbstractDaemon::activeChanged, this, &_Myt::updateMenuState );
@@ -135,6 +148,183 @@ void MainWindow::translate()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void MainWindow::updateMarketHours()
+{
+    const QStringList marketTypes( db_->marketTypes() );
+    const QDateTime now( db_->currentDateTime() );
+
+    bool haveMarketHours( true );
+
+    // update each market
+    foreach ( const QString& market, marketTypes )
+    {
+        QLabel *m( marketHours_[market] );
+
+        if ( !m )
+            continue;
+
+        // update font
+        QFont f( m->font() );
+        f.setBold( true );
+
+        m->setFont( f );
+
+        // update palette
+        QPalette p( m->palette() );
+
+        if ( !db_->marketHoursExist( now.date(), market ) )
+        {
+            // hours don't exist, yet...
+            p.setColor( m->foregroundRole(), Qt::white );
+            p.setColor( m->backgroundRole(), Qt::red );
+
+            haveMarketHours = false;
+        }
+        else
+        {
+            bool open;
+            bool ext;
+
+            // check open
+            if ( !(open = db_->isMarketOpen( now, market, QString(), &ext )) )
+            {
+                p.setColor( m->foregroundRole(), Qt::darkGray );
+                p.setColor( m->backgroundRole(), Qt::transparent );
+            }
+            else
+            {
+                p.setColor( m->foregroundRole(), ext ? Qt::black :Qt::white );
+                p.setColor( m->backgroundRole(), ext ? Qt::yellow : Qt::darkGreen );
+            }
+        }
+
+        m->setPalette( p );
+
+    } // for each market
+
+    // check update tool tips
+    if ( !haveMarketHours )
+        return;
+    else if (( marketHoursStamp_.isValid() ) && ( marketHoursStamp_.date() == now.date() ))
+        return;
+
+    // update each tool tip
+    foreach ( const QString& market, marketTypes )
+    {
+        QLabel *m( marketHours_[market] );
+
+        if ( !m )
+            continue;
+
+        const bool open( db_->isMarketOpen( now, market ) );
+
+        // fetch market hours
+        QMap<QString, MarketProductHours> hours;
+        QDate d( now.date() );
+
+        if ( open )
+            hours = db_->marketHours( now.date(), market );
+        else
+        {
+            // find next open date
+            for ( int i( 1 ); i <= 10; ++i )
+            {
+                hours = db_->marketHours( (d = now.date().addDays( i )), market );
+
+                if ( hours.size() )
+                    break;
+            }
+        }
+
+        // update tool tip
+        QString toolTip;
+
+        if ( !open )
+        {
+            toolTip += tr( "MARKET CLOSED" ) + "\n";
+            toolTip += "\n";
+        }
+
+        if ( hours.size() )
+        {
+            toolTip += tr( "Hours for" ) + " " + d.toString() + "\n";
+            toolTip += "\n";
+
+            // combine like hours
+            using CombinedMarketProductHours = QPair<MarketProductHours, QString>;
+
+            QList<CombinedMarketProductHours> hoursCombined;
+
+            for ( QMap<QString, MarketProductHours>::const_iterator j( hours.constBegin() ); j != hours.constEnd(); ++j )
+                if (( j->regularMarketStart.isValid() ) && ( j->regularMarketEnd.isValid() ))
+                {
+                    bool found( false );
+
+                    for ( QList<CombinedMarketProductHours>::iterator i( hoursCombined.begin() ); i != hoursCombined.end(); ++i )
+                        if ( i->first == j.value() )
+                        {
+                            i->second += ", " + j.key();
+
+                            found = true;
+                            break;
+                        }
+
+                    if ( !found )
+                        hoursCombined.append( CombinedMarketProductHours( j.value(), j.key() ) );
+                }
+
+            // update tooltip
+            for ( QList<CombinedMarketProductHours>::const_iterator i( hoursCombined.constBegin() ); i != hoursCombined.constEnd(); ++i )
+            {
+                const QString marketName( i->second );
+                const MarketProductHours marketHours( i->first );
+
+                const bool preMarketValid(( marketHours.preMarketStart.isValid() ) && ( marketHours.preMarketEnd.isValid() ));
+                const bool postMarketValid(( marketHours.postMarketStart.isValid() ) && ( marketHours.postMarketEnd.isValid() ));
+
+                QString indent;
+
+                if ( 1 < hoursCombined.size() )
+                {
+                    indent = "    ";
+
+                    if ( EQUITY_OPTION_PRODUCT == marketName )
+                        toolTip += tr( "Equity Options" ) + "\n";
+                    else if ( INDEX_OPTION_PRODUCT == marketName )
+                        toolTip += tr( "Index Options" ) + "\n";
+                    else
+                        toolTip += marketName + "\n";
+                }
+
+                // pre or post market hours exist
+                if (( preMarketValid ) || ( postMarketValid ))
+                {
+                    if ( preMarketValid )
+                        toolTip += indent + tr( "Pre:" ) + " " + marketHours.preMarketStart.time().toString() + " - " + marketHours.preMarketEnd.time().toString() + "\n";
+
+                    toolTip += indent + tr( "Regular:" ) + " " + marketHours.regularMarketStart.time().toString() + " - " + marketHours.regularMarketEnd.time().toString() + "\n";
+
+                    if ( postMarketValid )
+                        toolTip += indent + tr( "Post:" ) + " " + marketHours.postMarketStart.time().toString() + " - " + marketHours.postMarketEnd.time().toString() + "\n";
+                }
+                else
+                {
+                    toolTip += indent + marketHours.regularMarketStart.time().toString() + " - " + marketHours.regularMarketEnd.time().toString();
+                }
+
+                toolTip += "\n";
+            }
+
+        } // hours exist
+
+        m->setToolTip( toolTip );
+
+    } // for each market
+
+    marketHoursStamp_ = now;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void MainWindow::updateMenuState()
 {
     const bool online( AbstractDaemon::Online == daemon_->connectedState() );
@@ -153,6 +343,7 @@ void MainWindow::updateMenuState()
     stopDaemon_->setEnabled( online && active );
     pauseDaemon_->setEnabled( online && active );
 
+    accountsLabel_->setEnabled( accountsExist );
     accounts_->setEnabled( accountsExist );
 
     customScan_->setEnabled( online && active && !analysis_->isActive() );
@@ -437,7 +628,7 @@ void MainWindow::onConnectedStateChanged( AbstractDaemon::ConnectedState newStat
 
     if ( online )
     {
-        p.setColor( connectionState_->backgroundRole(), Qt::green );
+        p.setColor( connectionState_->backgroundRole(), Qt::darkGreen );
         connectionState_->setText( tr( "ONLINE" ) );
 
         // refresh accounts
@@ -610,6 +801,9 @@ void MainWindow::initialize()
     // status bar
     // ----------
 
+    const QStringList marketTypes( db_->marketTypes() );
+
+    // connection and transmit indicators
     QWidget *w0( new QWidget( this ) );
 
     connectionState_ = new QLabel( w0 );
@@ -623,9 +817,11 @@ void MainWindow::initialize()
     w0_layout->addWidget( connectionState_ );
     w0_layout->addWidget( xmit_ );
 
+    // account
     QWidget *w1( new QWidget( this ) );
 
     accountsLabel_ = new QLabel( w1 );
+    accountsLabel_->setEnabled( false );
 
     accounts_ = new QComboBox( w1 );
     accounts_->setEnabled( false );
@@ -636,8 +832,29 @@ void MainWindow::initialize()
     w1_layout->addWidget( accountsLabel_ );
     w1_layout->addWidget( accounts_ );
 
+    // markets
+    // skip futures market as it takes forever to determine if any sub-market is open
+    QWidget *w2( new QWidget( this ) );
+
+    foreach ( const QString& market, marketTypes )
+    {
+        QLabel *m = new QLabel( market.toUpper(), w2 );
+        m->setAutoFillBackground( true );
+
+        marketHours_[market] = m;
+    }
+
+    QHBoxLayout *w2_layout( new QHBoxLayout( w2 ) );
+    w2_layout->setContentsMargins( QMargins() );
+
+    foreach ( const QString& market, marketTypes )
+        if ( marketHours_.contains( market ) )
+            w2_layout->addWidget( marketHours_[market] );
+
+    // status bar
     statusBar_ = new QStatusBar( this );
     statusBar_->setSizeGripEnabled( false );
+    statusBar_->addPermanentWidget( w2 );
     statusBar_->addPermanentWidget( w1 );
     statusBar_->addPermanentWidget( w0 );
 
@@ -661,7 +878,7 @@ void MainWindow::updateTransmitState( int pending )
     // update palette
     QPalette p( xmit_->palette() );
     p.setColor( xmit_->foregroundRole(), pending ? Qt::white : Qt::darkGray );
-    p.setColor( xmit_->backgroundRole(), pending ? Qt::green : Qt::transparent );
+    p.setColor( xmit_->backgroundRole(), pending ? Qt::darkGreen : Qt::transparent );
 
     xmit_->setPalette( p );
 

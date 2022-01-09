@@ -371,6 +371,7 @@ void OptionProfitCalculator::populateResultModelSingle( int row, bool isCall, it
 {
     result[item_model_type::STAMP] = AppDatabase::instance()->currentDateTime();
     result[item_model_type::UNDERLYING] = chains_->symbol();
+    result[item_model_type::UNDERLYING_PRICE] = underlying_;
 
     if ( isCall )
     {

@@ -423,7 +423,7 @@ void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button
     if ( details == a )
     {
         // show dialog
-        SymbolDetailsDialog d( symbol, this );
+        SymbolDetailsDialog d( symbol, model_->data( row, model_type::UNDERLYING_PRICE ).toDouble(), this );
         d.exec();
     }
 
@@ -504,6 +504,8 @@ QString OptionTradingView::columnHeaderText( int column ) const
         return tr( "Stamp" );
     case model_type::UNDERLYING:
         return tr( "Underlying" );
+    case model_type::UNDERLYING_PRICE:
+        return tr( "Under. Price" );
     case model_type::TYPE:
         return tr( "P/C" );
 

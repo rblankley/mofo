@@ -128,7 +128,7 @@ void ConfigurationDialog::translate()
     history_->setToolTip( tr( "How much API historical information to keep. Zero to keep everything." ) );
 
     marketTypesLabel_->setText( tr( "Market Types (comma separated)" ) );
-    marketTypes_->setToolTip( tr( "Market types to fetch information for (i.e. hours of operation)." ) );
+    marketTypes_->setToolTip( tr( "Market types to fetch information for (i.e. hours of operation). Valid values are BOND, EQUITY, FOREX, FUTURE, and OPTION. Be careful with the FUTURE market, it can be a bit slow." ) );
 
     numDaysLabel_->setText( tr( "Number of Days in a Year (days)" ) );
     numDays_->setToolTip( tr( "How many days are in a year. Used for annualization and partials calculation." ) );

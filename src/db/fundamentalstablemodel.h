@@ -72,7 +72,6 @@ public:
         EPS_CHANGE_PERCENT_TTM,
         EPS_CHANGE_YEAR,
         EPS_CHANGE,
-        REV_CHANGE_PERCENT_TTM,
         REV_CHANGE_YEAR,
         REV_CHANGE_TTM,
         REV_CHANGE_IN,

@@ -36,6 +36,7 @@ class QComboBox;
 class QLabel;
 class QMenu;
 class QStatusBar;
+class QTimer;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -85,6 +86,9 @@ public slots:
     // Methods
     // ========================================================================
 
+    /// Update market hours.
+    virtual void updateMarketHours();
+
     /// Update menu state.
     virtual void updateMenuState();
 
@@ -106,6 +110,9 @@ private slots:
     void onRequestsPendingChanged( int pending );
 
 private:
+
+    QTimer *marketHoursTimer_;
+    QDateTime marketHoursStamp_;
 
     AbstractDaemon *daemon_;
     AppDatabase *db_;
@@ -147,6 +154,8 @@ private:
     QLabel *xmit_;
     QLabel *accountsLabel_;
     QComboBox *accounts_;
+
+    QMap<QString, QLabel*> marketHours_;
 
     /// Initialize.
     void initialize();

@@ -47,6 +47,7 @@ public:
     {
         STAMP,                                      ///< Stamp.
         UNDERLYING,                                 ///< Underlying symbol.
+        UNDERLYING_PRICE,                           ///< Underlying share price (mark).
         TYPE,                                       ///< Option type CALL or PUT.
 
         STRATEGY,                                   ///< Trading strategy.

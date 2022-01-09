@@ -25,7 +25,11 @@
 
 #include <QDialog>
 
+class CollapsibleSplitter;
+class FundamentalsViewerWidget;
 class SymbolPriceHistoryWidget;
+
+class QSplitter;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -46,11 +50,15 @@ public:
 
     /// Constructor.
     /**
-     * @param[in,out] symbol  symbol
+     * @param[in] symbol  symbol
+     * @param[in] price  market price per share
      * @param[in,out] parent  parent widget
      * @param[in] f  window flags
      */
-    SymbolDetailsDialog( const QString symbol, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    SymbolDetailsDialog( const QString symbol, double price, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+
+    /// Destructor.
+    virtual ~SymbolDetailsDialog();
 
     // ========================================================================
     // Properties
@@ -77,15 +85,29 @@ public:
 
 private:
 
+    static constexpr int SPLITTER_WIDTH = 8;
+
+    static const QString STATE_GROUP_NAME;
+
     QString symbol_;
+    double price_;
+
+    CollapsibleSplitter *splitter_;
 
     SymbolPriceHistoryWidget *priceHistory_;
+    FundamentalsViewerWidget *fundamentals_;
 
     /// Initialize.
     void initialize();
 
     /// Create layout.
     void createLayout();
+
+    /// Save splitter state.
+    void saveState( QSplitter *w ) const;
+
+    /// Restore splitter state.
+    void restoreState( QSplitter *w ) const;
 
     // not implemented
     SymbolDetailsDialog( const _Myt& ) = delete;

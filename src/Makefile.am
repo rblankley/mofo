@@ -31,10 +31,12 @@ mofo_LDADD = \
 BUILT_SOURCES = \
 	moc_abstractdaemon.cpp \
 	moc_analysiswidget.cpp \
+	moc_collapsiblesplitter.cpp \
 	moc_configdialog.cpp \
 	moc_filtereditordialog.cpp \
 	moc_filtersdialog.cpp \
 	moc_filterselectiondialog.cpp \
+	moc_fundamentalsviewerwidget.cpp \
 	moc_gridtableheadermodel.cpp \
 	moc_gridtableheaderview.cpp \
 	moc_gridtableview.cpp \
@@ -59,10 +61,12 @@ mofo_SOURCES = \
 	$(BUILT_SOURCES) \
 	abstractdaemon.cpp \
 	analysiswidget.cpp \
+	collapsiblesplitter.cpp \
 	configdialog.cpp \
 	filtereditordialog.cpp \
 	filtersdialog.cpp \
 	filterselectiondialog.cpp \
+	fundamentalsviewerwidget.cpp \
 	gridtableheadermodel.cpp \
 	gridtableheaderview.cpp \
 	gridtableview.cpp \

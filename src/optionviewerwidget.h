@@ -97,8 +97,8 @@ private slots:
     /// Slot for quotes updated.
     void onQuotesUpdated( const QStringList& symbols, bool background );
 
-    /// Slot for splitter moved.
-    void onSplitterMoved( int pos, int index );
+    /// Slot for tab changed.
+    void onTabCurrentChanged( int index );
 
 private:
 
@@ -176,6 +176,12 @@ private:
 
     /// Create layout.
     void createLayout();
+
+    /// Save splitter state.
+    void saveState( QSplitter *w ) const;
+
+    /// Restore splitter state.
+    void restoreState( QSplitter *w ) const;
 
     // not implemented
     OptionViewerWidget( const _Myt& other ) = delete;

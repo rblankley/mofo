@@ -30,6 +30,7 @@ SOURCES += \
     apibase/serializedxmlapi.cpp \
     calc/expectedvaluecalc.cpp \
     calc/montecarlocalc.cpp \
+    collapsiblesplitter.cpp \
     configdialog.cpp \
     db/appdb.cpp \
     db/fundamentalstablemodel.cpp \
@@ -43,6 +44,7 @@ SOURCES += \
     filtereditordialog.cpp \
     filtersdialog.cpp \
     filterselectiondialog.cpp \
+    fundamentalsviewerwidget.cpp \
     gridtableheadermodel.cpp \
     gridtableheaderview.cpp \
     gridtableview.cpp \
@@ -105,11 +107,13 @@ HEADERS += \
     calc/expectedvaluecalc.h \
     calc/montecarlocalc.h \
     calc/trinomialcalc.h \
+    collapsiblesplitter.h \
     configdialog.h \
     db/appdb.h \
     db/candledata.h \
     db/fundamentalstablemodel.h \
     db/itemmodel.h \
+    db/marketproducthours.h \
     db/optionchaintablemodel.h \
     db/optiontradingitemmodel.h \
     db/quotetablemodel.h \
@@ -120,6 +124,7 @@ HEADERS += \
     filtereditordialog.h \
     filtersdialog.h \
     filterselectiondialog.h \
+    fundamentalsviewerwidget.h \
     gridtableheadermodel.h \
     gridtableheaderview.h \
     gridtableview.h \

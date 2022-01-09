@@ -67,11 +67,16 @@ OptionViewerWidget::OptionViewerWidget( const QString& symbol, QWidget *parent )
 
     connect( AbstractDaemon::instance(), &AbstractDaemon::optionChainUpdated, this, &_Myt::onOptionChainUpdated );
     connect( AbstractDaemon::instance(), &AbstractDaemon::quotesUpdated, this, &_Myt::onQuotesUpdated );
+
+    // restore
+    restoreState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionViewerWidget::~OptionViewerWidget()
 {
+    // save
+    saveState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -366,12 +371,9 @@ void OptionViewerWidget::onQuotesUpdated( const QStringList& symbols, bool backg
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void OptionViewerWidget::onSplitterMoved( int pos, int index )
+void OptionViewerWidget::onTabCurrentChanged( int index )
 {
-    Q_UNUSED( pos );
-    Q_UNUSED( index );
-
-    AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME, splitter_->saveState() );
+    analysisOne_->setEnabled( chartTab_ != index );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -451,6 +453,7 @@ void OptionViewerWidget::initialize()
     analysisOne_->setIcon( QIcon( ":/res/analysis.png" ) );
     analysisOne_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
     analysisOne_->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
+    analysisOne_->setEnabled( false );
 
     connect( analysisOne_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
 
@@ -475,8 +478,6 @@ void OptionViewerWidget::initialize()
     splitter_ = new QSplitter( this );
     splitter_->setOrientation( Qt::Vertical );
 
-    connect( splitter_, &QSplitter::splitterMoved, this, &_Myt::onSplitterMoved );
-
     expiryDates_ = new QTabWidget( splitter_ );
     expiryDates_->setTabShape( QTabWidget::Triangular );
     expiryDates_->setTabPosition( QTabWidget::North );
@@ -484,18 +485,13 @@ void OptionViewerWidget::initialize()
     // add chart to tabs
     chartTab_ = expiryDates_->addTab( new SymbolPriceHistoryWidget( symbol() ), QString() );
 
+    connect( expiryDates_, &QTabWidget::currentChanged, this, &_Myt::onTabCurrentChanged );
+
     tradeAnalysis_ = new OptionTradingView( tradingModel_, splitter_ );
     tradeAnalysis_->setVisible( false );
 
     splitter_->addWidget( expiryDates_ );
     splitter_->addWidget( tradeAnalysis_ );
-
-    // ---- //
-
-    const QByteArray a( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME ) );
-
-    if ( !a.isNull() )
-        splitter_->restoreState( a );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -592,13 +588,6 @@ void OptionViewerWidget::createLayout()
     divDate->addWidget( divDateLabel_ );
     divDate->addWidget( divDate_ );
 
-    QHBoxLayout *buttons( new QHBoxLayout() );
-    buttons->setContentsMargins( QMargins() );
-    buttons->addWidget( clear_ );
-    buttons->addWidget( analysisOne_ );
-    buttons->addWidget( analysisAll_ );
-    buttons->addWidget( refresh_ );
-
     QHBoxLayout *underlying( new QHBoxLayout() );
     underlying->addLayout( last, 1 );
     underlying->addLayout( lastChange, 1 );
@@ -614,11 +603,43 @@ void OptionViewerWidget::createLayout()
     underlying->addLayout( yearRange, 1 );
     underlying->addLayout( div, 1 );
     underlying->addLayout( divDate, 1 );
-    underlying->addLayout( buttons );
+
+    QVBoxLayout *underlyingInfo( new QVBoxLayout() );
+    underlyingInfo->addLayout( desc );
+    underlyingInfo->addLayout( underlying, 1 );
+
+    QHBoxLayout *buttons( new QHBoxLayout() );
+    buttons->setContentsMargins( QMargins() );
+    buttons->addWidget( clear_ );
+    buttons->addWidget( analysisOne_ );
+    buttons->addWidget( analysisAll_ );
+    buttons->addWidget( refresh_ );
+
+    QHBoxLayout *header( new QHBoxLayout() );
+    header->setContentsMargins( QMargins() );
+    header->addLayout( underlyingInfo, 1 );
+    header->addLayout( buttons );
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
     form->setContentsMargins( QMargins() );
-    form->addLayout( desc );
-    form->addLayout( underlying );
-    form->addWidget( splitter_ );
+    form->addLayout( header );
+    form->addWidget( splitter_, 1 );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionViewerWidget::saveState( QSplitter *w ) const
+{
+    if ( !w )
+        return;
+
+    AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME, w->saveState() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionViewerWidget::restoreState( QSplitter *w ) const
+{
+    if ( !w )
+        return;
+
+    splitter_->restoreState( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME ) );
 }

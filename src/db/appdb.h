@@ -24,6 +24,7 @@
 #define APPDB_H
 
 #include "candledata.h"
+#include "marketproducthours.h"
 #include "sqldb.h"
 
 #include <QColor>
@@ -31,6 +32,7 @@
 #include <QDateTime>
 #include <QJsonObject>
 #include <QList>
+#include <QMap>
 #include <QMutex>
 #include <QStringList>
 
@@ -219,6 +221,15 @@ public:
      * @return  @c true if market hours exist, @c false otherwise
      */
     virtual bool marketHoursExist( const QDate& date, const QString& marketType = QString() ) const;
+
+    /// Retrieve market hours.
+    /**
+     * @param[in] date  date
+     * @param[in] marketType  market type
+     * @param[in] product  product, or empty string for all products
+     * @return  map of market hours by product
+     */
+    virtual QMap<QString, MarketProductHours> marketHours( const QDate& date, const QString& marketType, const QString& product = QString() );
 
     /// Retrieve market types.
     /**

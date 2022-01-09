@@ -51,6 +51,8 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     columnIsText_[DELIVERABLE_NOTE] = true;
 
     // number of decimal places
+    numDecimalPlaces_[UNDERLYING_PRICE] = 2;
+
     numDecimalPlaces_[BID_PRICE] = 2;
     numDecimalPlaces_[ASK_PRICE] = 2;
     numDecimalPlaces_[LAST_PRICE] = 2;
