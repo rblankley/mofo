@@ -31,6 +31,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -177,19 +178,19 @@ void FilterSelectionDialog::initialize()
     watchLists_ = new QLineEdit( this );
     watchLists_->setVisible( watchListsVisible_ );
 
-    watchListsDialog_ = new QPushButton( this );
+    watchListsDialog_ = new QToolButton( this );
     watchListsDialog_->setVisible( watchListsVisible_ );
 
-    connect( watchListsDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( watchListsDialog_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     // filters
     filtersLabel_ = new QLabel( this );
 
     filters_ = new QComboBox( this );
 
-    filtersDialog_ = new QPushButton( this );
+    filtersDialog_ = new QToolButton( this );
 
-    connect( filtersDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( filtersDialog_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     // okay
     okay_ = new QPushButton( this );

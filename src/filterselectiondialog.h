@@ -29,6 +29,7 @@ class QComboBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QToolButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -125,11 +126,11 @@ private:
 
     QLabel *watchListsLabel_;
     QLineEdit *watchLists_;
-    QPushButton *watchListsDialog_;
+    QToolButton *watchListsDialog_;
 
     QLabel *filtersLabel_;
     QComboBox *filters_;
-    QPushButton *filtersDialog_;
+    QToolButton *filtersDialog_;
 
     QPushButton *okay_;
     QPushButton *cancel_;

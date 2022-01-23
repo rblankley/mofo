@@ -27,6 +27,8 @@
 
 #include <QDialog>
 
+class AdvancedFilterListWidget;
+
 class QCheckBox;
 class QDoubleSpinBox;
 class QGroupBox;
@@ -159,14 +161,6 @@ private:
     QDoubleSpinBox *minImplVolatility_;
     QDoubleSpinBox *maxImplVolatility_;
 
-    QLabel *divAmountLabel_;
-    QDoubleSpinBox *minDivAmount_;
-    QDoubleSpinBox *maxDivAmount_;
-
-    QLabel *divYieldLabel_;
-    QDoubleSpinBox *minDivYield_;
-    QDoubleSpinBox *maxDivYield_;
-
     // ---- //
 
     QWidget *tab1_;
@@ -213,6 +207,14 @@ private:
     QLabel *expectedValueReturnOnInvestmentTimeLabel_;
     QDoubleSpinBox *minExpectedValueReturnOnInvestmentTime_;
     QDoubleSpinBox *maxExpectedValueReturnOnInvestmentTime_;
+
+    // ---- //
+
+    QWidget *tab2_;
+
+    AdvancedFilterListWidget *advancedFilters_;
+
+    QPushButton *addFilter_;
 
     // ---- //
 

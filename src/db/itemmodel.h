@@ -148,6 +148,34 @@ public:
     // Properties
     // ========================================================================
 
+    /// Check if column is numeric (non-string).
+    /**
+     * @param[in] col  column
+     * @return  @c true if numeric, @c false otherwise
+     */
+    virtual bool columnIsNumeric( int col ) const {return !columnIsText( col );}
+
+    /// Check if column is string.
+    /**
+     * @param[in] col  column
+     * @return  @c true if string, @c false otherwise
+     */
+    virtual bool columnIsText( int col ) const {return columnIsText_[col];}
+
+    /// Retrieve column description.
+    /**
+     * @param[in] col  column
+     * @return  description
+     */
+    virtual QString columnDescription( int col ) const = 0;
+
+    /// Retrieve number of decimal places for a column.
+    /**
+     * @param[in] col  column
+     * @return  number decimal places
+     */
+    virtual int columnNumDecimalPlaces( int col ) const {return numDecimalPlaces_[col];}
+
     /// Retrieve number of columns.
     /**
      * @param[in] parent  parent index

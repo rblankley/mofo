@@ -178,6 +178,13 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve column description.
+    /**
+     * @param[in] col  column
+     * @return  description
+     */
+    virtual QString columnDescription( int col ) const override;
+
     /// Retrieve flags.
     /**
      * @param[in] index  index

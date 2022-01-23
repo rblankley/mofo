@@ -30,6 +30,8 @@ mofo_LDADD = \
 
 BUILT_SOURCES = \
 	moc_abstractdaemon.cpp \
+	moc_advancedfilterlistwidget.cpp \
+	moc_advancedfilterwidget.cpp \
 	moc_analysiswidget.cpp \
 	moc_collapsiblesplitter.cpp \
 	moc_configdialog.cpp \
@@ -60,6 +62,8 @@ BUILT_SOURCES = \
 mofo_SOURCES = \
 	$(BUILT_SOURCES) \
 	abstractdaemon.cpp \
+	advancedfilterlistwidget.cpp \
+	advancedfilterwidget.cpp \
 	analysiswidget.cpp \
 	collapsiblesplitter.cpp \
 	configdialog.cpp \

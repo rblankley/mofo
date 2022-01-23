@@ -38,6 +38,13 @@ public:
     // Static Methods
     // ========================================================================
 
+    /// Calculate mean.
+    /**
+     * @param[in] data  data to evaluate
+     * @return  mean
+     */
+    static double calcMean( const QVector<double>& data );
+
     /// Calculate standard deviation.
     /**
      * @param[in] data  data to evaluate

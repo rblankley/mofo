@@ -909,6 +909,13 @@ QJsonObject TDAmeritradeDatabaseAdapter::parseQuote( const QJsonObject& quote, c
     if (( quote.contains( JSON_BID_SIZE ) ) && ( quote.contains( JSON_ASK_SIZE )))
         result[DB_BID_ASK_SIZE] = QString::number( quote[JSON_BID_SIZE].toInt() ) + " x " + QString::number( quote[JSON_ASK_SIZE].toInt() );
 
+    result[DB_PERCENT_BELOW_FIFTY_TWO_WEEK_HIGH] = 100.0 * (1.0 - (result[DB_MARK].toDouble() / result[DB_FIFTY_TWO_WEEK_HIGH].toDouble()));
+    result[DB_PERCENT_ABOVE_FIFTY_TWO_WEEK_LOW] = 100.0 * ((result[DB_MARK].toDouble() / result[DB_FIFTY_TWO_WEEK_LOW].toDouble()) - 1.0);
+
+    result[DB_FIFTY_TWO_WEEK_PRICE_RANGE] = 100.0 *
+            ((result[DB_MARK].toDouble() - result[DB_FIFTY_TWO_WEEK_LOW].toDouble()) /
+             (result[DB_FIFTY_TWO_WEEK_HIGH].toDouble() - result[DB_FIFTY_TWO_WEEK_LOW].toDouble()));
+
     // set option fields
     if ( quote.contains( JSON_UNDERLYING ) )
     {

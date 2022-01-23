@@ -23,7 +23,13 @@
 #ifndef OPTIONPROFITCALCFILTER_H
 #define OPTIONPROFITCALCFILTER_H
 
+#include <db/optiontradingitemmodel.h>
+
 #include <QByteArray>
+
+class FundamentalsTableModel;
+class OptionChainTableModel;
+class QuoteTableModel;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -509,12 +515,6 @@ public:
      */
     virtual double maxExpectedValueReturnOnInvestmentTime() const {return maxExpectedValueReturnOnInvestmentTime_;}
 
-    /// Retrieve minimum spread amount required to apply filter.
-    /**
-     * @return  amount
-     */
-    virtual double minSpreadAmountFiltered() const {return minSpreadAmountFilter_;}
-
     /// Set maximum bid/ask spread percent.
     /**
      * @param[in] value  percent
@@ -599,6 +599,18 @@ public:
      */
     virtual VolatilityFilter volatilityFilter() const {return volatility_;}
 
+    /// Set advanced filters.
+    /**
+     * @param[in] value  advanced filter list
+     */
+    virtual void setAdvancedFilters( const QStringList& value ) {advancedFilters_ = value;}
+
+    /// Retrieve advanced filters.
+    /**
+     * @return  advanced filter list
+     */
+    virtual QStringList advancedFilters() const {return advancedFilters_;}
+
     /// Set vertical depth (for vertical analysis).
     /**
      * @param[in] value  depth
@@ -615,6 +627,30 @@ public:
     // Methods
     // ========================================================================
 
+    /// Check data against filter.
+    /**
+     * @param[in] quote  quote
+     * @param[in] fundamentals  fundamentals data
+     * @return  @c true if passes filter, @c false otherwise
+     */
+    virtual bool check( const QuoteTableModel *quote, const FundamentalsTableModel *fundamentals ) const;
+
+    /// Check data against filter.
+    /**
+     * @param[in] chain  chain information
+     * @param[in] row  row to check
+     * @param[in] isCall  @c true to check call, @c false to check put
+     * @return  @c true if passes filter, @c false otherwise
+     */
+    virtual bool check( const OptionChainTableModel *chain, int row, bool isCall ) const;
+
+    /// Check data against filter.
+    /**
+     * @param[in] trade  trade information
+     * @return  @c true if passes filter, @c false otherwise
+     */
+    virtual bool check( const OptionTradingItemModel::ColumnValueMap& trade ) const;
+
     /// Save filter state.
     /**
      * @return  filter state
@@ -629,7 +665,7 @@ public:
 
 protected:
 
-    static constexpr double minSpreadAmountFilter_ = 0.05;      ///< Minimum spread amount required to apply filter.
+    static constexpr double MIN_SPREAD_AMOUNT = 0.05;           ///< Minimum spread amount required to apply filter.
 
     double minInvestAmount_;                                    ///< Minimum investment amount.
     double maxInvestAmount_;                                    ///< Maximum investment amount.
@@ -687,6 +723,8 @@ protected:
     double minVolatility_;                                      ///< Minimum volatility.
     double maxVolatility_;                                      ///< Maximum volatility.
 
+    QStringList advancedFilters_;                               ///< Advanced filters.
+
     OptionTypeFilter optionTypes_;                              ///< Option type filter.
     OptionTradingStrategyFilter optionTradingStrats_;           ///< Option trading strategies.
 
@@ -699,6 +737,20 @@ protected:
 private:
 
     static constexpr int DEFAULT_VERT_DEPTH = 3;
+
+    mutable const QuoteTableModel *q_;
+    mutable const FundamentalsTableModel *f_;
+
+    mutable const OptionChainTableModel *oc_;
+    mutable int ocr_;
+
+    mutable const OptionTradingItemModel::ColumnValueMap *t_;
+
+    /// Check advanced filters.
+    bool checkAdvancedFilters() const;
+
+    /// Retrieve table data value.
+    QVariant tableData( const QString& t, int col ) const;
 
 };
 

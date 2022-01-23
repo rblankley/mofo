@@ -267,10 +267,16 @@ protected:
 
 private:
 
-    static const int HIST_VOL_FORCED = 5;
+    static const int FORCED_UPDATE = 5;
 
     /// Calculate historical volatility (standard deviation).
     void calcHistoricalVolatility( const QSqlDatabase& conn );
+
+    /// Calculate moving averages.
+    void calcMovingAverage( const QSqlDatabase& conn );
+
+    /// Calculate relative strength index.
+    void calcRelativeStrengthIndex( const QSqlDatabase& conn );
 
     /// Calculate dividend frequency.
     void calcDividendFrequencyFromDate( const QSqlDatabase& conn, const QJsonValue& date );

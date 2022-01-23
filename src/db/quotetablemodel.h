@@ -72,6 +72,9 @@ public:
         MARK_PERCENT_CHANGE,
         FIFTY_TWO_WEEK_HIGH,
         FIFTY_TWO_WEEK_LOW,
+        PERCENT_BELOW_FIFTY_TWO_WEEK_HIGH,
+        PERCENT_ABOVE_FIFTY_TWO_WEEK_LOW,
+        FIFTY_TWO_WEEK_PRICE_RANGE,
         EXCHANGE,
         EXCHANGE_NAME,
         IS_MARGINABLE,
@@ -121,6 +124,13 @@ public:
     // ========================================================================
     // Properties
     // ========================================================================
+
+    /// Retrieve column description.
+    /**
+     * @param[in] col  column
+     * @return  description
+     */
+    virtual QString columnDescription( int col ) const override;
 
     /// Retrieve mark.
     /**

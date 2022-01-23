@@ -167,6 +167,9 @@ inline static const QString DB_MARK_PERCENT_CHANGE                  = "markPerce
 
 inline static const QString DB_FIFTY_TWO_WEEK_HIGH                  = "fiftyTwoWeekHigh";
 inline static const QString DB_FIFTY_TWO_WEEK_LOW                   = "fiftyTwoWeekLow";
+inline static const QString DB_PERCENT_BELOW_FIFTY_TWO_WEEK_HIGH    = "percentBelowFiftyTwoWeekHigh";
+inline static const QString DB_PERCENT_ABOVE_FIFTY_TWO_WEEK_LOW     = "percentAboveFiftyTwoWeekLow";
+inline static const QString DB_FIFTY_TWO_WEEK_PRICE_RANGE           = "fiftyTwoWeekPriceRange";
 
 inline static const QString DB_EXCHANGE                             = "exchange";
 inline static const QString DB_EXCHANGE_NAME                        = "exchangeName";
@@ -256,7 +259,13 @@ inline static const QString DB_END_DATE                             = "endDate";
 inline static const QString DB_HISTORY                              = "history";
 inline static const QString DB_DATETIME                             = "datetime";
 
+inline static const QString DB_MA_DEPTH                             = "maDepth";
+inline static const QString DB_HV_DEPTH                             = "hvDepth";
+inline static const QString DB_RSI_DEPTH                            = "rsiDepth";
+
+inline static const QString DB_AVERAGE                              = "average";
 inline static const QString DB_DEPTH                                = "depth";
+inline static const QString DB_VALUE                                = "value";
 
 // Instrument (Fundamental Data)
 inline static const QString DB_DESCRIPTION                          = "description";

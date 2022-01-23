@@ -45,7 +45,17 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     columnIsText_[SYMBOL] = true;
     columnIsText_[DESC] = true;
 
+    columnIsText_[BID_ASK_SIZE] = true;
+
+    columnIsText_[QUOTE_TIME] = true;
+    columnIsText_[TRADE_TIME] = true;
+
     columnIsText_[EXCHANGE_NAME] = true;
+
+    columnIsText_[EXPIRY_DATE] = true;
+    columnIsText_[EXPIRY_TYPE] = true;
+
+    columnIsText_[LAST_TRADING_DAY] = true;
 
     columnIsText_[SETTLEMENT_TYPE] = true;
     columnIsText_[DELIVERABLE_NOTE] = true;
@@ -66,11 +76,11 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     numDecimalPlaces_[CLOSE_PRICE] = 2;
 
     numDecimalPlaces_[CHANGE] = 2;
-    numDecimalPlaces_[PERCENT_CHANGE] = 1;
+    numDecimalPlaces_[PERCENT_CHANGE] = 2;
 
     numDecimalPlaces_[MARK] = 2;
     numDecimalPlaces_[MARK_CHANGE] = 2;
-    numDecimalPlaces_[MARK_PERCENT_CHANGE] = 1;
+    numDecimalPlaces_[MARK_PERCENT_CHANGE] = 2;
 
     numDecimalPlaces_[VOLATILITY] = 4;
     numDecimalPlaces_[DELTA] = 4;
@@ -83,12 +93,14 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     numDecimalPlaces_[THEO_OPTION_VALUE] = 2;
     numDecimalPlaces_[THEO_VOLATILITY] = 4;
 
+    numDecimalPlaces_[STRIKE_PRICE] = 2;
+
     numDecimalPlaces_[HIST_VOLATILITY] = 4;
     numDecimalPlaces_[TIME_TO_EXPIRY] = 4;
     numDecimalPlaces_[RISK_FREE_INTEREST_RATE] = 4;
 
     numDecimalPlaces_[DIV_AMOUNT] = 2;
-    numDecimalPlaces_[DIV_YIELD] = 1;
+    numDecimalPlaces_[DIV_YIELD] = 2;
 
     numDecimalPlaces_[CALC_BID_PRICE_VI] = 4;
     numDecimalPlaces_[CALC_ASK_PRICE_VI] = 4;
@@ -103,11 +115,11 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     numDecimalPlaces_[CALC_RHO] = 4;
 
     numDecimalPlaces_[BID_ASK_SPREAD] = 2;
-    numDecimalPlaces_[BID_ASK_SPREAD_PERCENT] = 1;
+    numDecimalPlaces_[BID_ASK_SPREAD_PERCENT] = 2;
 
-    numDecimalPlaces_[PROBABILITY_ITM] = 1;
-    numDecimalPlaces_[PROBABILITY_OTM] = 1;
-    numDecimalPlaces_[PROBABILITY_PROFIT] = 1;
+    numDecimalPlaces_[PROBABILITY_ITM] = 2;
+    numDecimalPlaces_[PROBABILITY_OTM] = 2;
+    numDecimalPlaces_[PROBABILITY_PROFIT] = 2;
 
     numDecimalPlaces_[INVESTMENT_OPTION_PRICE] = 2;
     numDecimalPlaces_[INVESTMENT_OPTION_PRICE_VS_THEO] = 2;
@@ -142,6 +154,208 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionTradingItemModel::~OptionTradingItemModel()
 {
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString OptionTradingItemModel::columnDescription( int col ) const
+{
+    switch ( (ColumnIndex) col )
+    {
+    case STAMP:
+        return tr( "Stamp" );
+    case UNDERLYING:
+        return tr( "Underlying Symbol" );
+    case UNDERLYING_PRICE:
+        return tr( "Underlying Price" );
+    case TYPE:
+        return tr( "Option Type" );
+
+    case STRATEGY:
+        return tr( "Trading Strategy" );
+    case STRATEGY_DESC:
+        return tr( "Trading Strategy Description" );
+
+    case SYMBOL:
+        return tr( "Symbol" );
+    case DESC:
+        return tr( "Description" );
+    case BID_ASK_SIZE:
+        return tr( "Bid/Ask Size" );
+    case BID_PRICE:
+        return tr( "Bid Price" );
+    case BID_SIZE:
+        return tr( "Bid Size" );
+    case ASK_PRICE:
+        return tr( "Ask Price" );
+    case ASK_SIZE:
+        return tr( "Ask Size" );
+    case LAST_PRICE:
+        return tr( "Last Price" );
+    case LAST_SIZE:
+        return tr( "Last Size" );
+    case BREAK_EVEN_PRICE:
+        return tr( "Break Even Price" );
+    case INTRINSIC_VALUE:
+        return tr( "Intrinsic Value" );
+    case OPEN_PRICE:
+        return tr( "Open Price" );
+    case HIGH_PRICE:
+        return tr( "High Price" );
+    case LOW_PRICE:
+        return tr( "Low Price" );
+    case CLOSE_PRICE:
+        return tr( "Close Price" );
+    case CHANGE:
+        return tr( "Change" );
+    case PERCENT_CHANGE:
+        return tr( "Percent Change" );
+    case TOTAL_VOLUME:
+        return tr( "Volume" );
+    case QUOTE_TIME:
+        return tr( "Quote Time" );
+    case TRADE_TIME:
+        return tr( "Trade Time" );
+    case MARK:
+        return tr( "Mark" );
+    case MARK_CHANGE:
+        return tr( "Mark Change" );
+    case MARK_PERCENT_CHANGE:
+        return tr( "Mark Percent Change" );
+    case EXCHANGE_NAME:
+        return tr( "Exchange" );
+    case VOLATILITY:
+        return tr( "Volatility" );
+    case DELTA:
+        return tr( "Delta" );
+    case GAMMA:
+        return tr( "Gamma" );
+    case THETA:
+        return tr( "Theta" );
+    case VEGA:
+        return tr( "Vega" );
+    case RHO:
+        return tr( "Rho" );
+    case TIME_VALUE:
+        return tr( "Time Value" );
+    case OPEN_INTEREST:
+        return tr( "Open Interest" );
+    case IS_IN_THE_MONEY:
+        return tr( "In The Money" );
+    case IS_OUT_OF_THE_MONEY:
+        return tr( "Out of The Money" );
+    case THEO_OPTION_VALUE:
+        return tr( "Theoretical Option Value" );
+    case THEO_VOLATILITY:
+        return tr( "Theoretical Volatility" );
+    case IS_MINI:
+        return tr( "Is Mini" );
+    case IS_NON_STANDARD:
+        return tr( "Is Non-Standard" );
+    case IS_INDEX:
+        return tr( "Is Index" );
+    case IS_WEEKLY:
+        return tr( "Is Weekly" );
+    case IS_QUARTERLY:
+        return tr( "Is Quarterly" );
+    case EXPIRY_DATE:
+        return tr( "Expiration Date" );
+    case EXPIRY_TYPE:
+        return tr( "Expiration Type" );
+    case DAYS_TO_EXPIRY:
+        return tr( "Days to Expiration" );
+    case LAST_TRADING_DAY:
+        return tr( "Last Trading Day" );
+    case MULTIPLIER:
+        return tr( "Multiplier" );
+    case SETTLEMENT_TYPE:
+        return tr( "Settlement Type" );
+    case DELIVERABLE_NOTE:
+        return tr( "Deliverable Note" );
+    case STRIKE_PRICE:
+        return tr( "Strike Price" );
+
+    case HIST_VOLATILITY:
+        return tr( "Historical Volatility" );
+
+    case TIME_TO_EXPIRY:
+        return tr( "Time to Expiration (Years)" );
+    case RISK_FREE_INTEREST_RATE:
+        return tr( "Risk Free Interest Rate Percent" );
+
+    case DIV_AMOUNT:
+        return tr( "Dividend Amount - Expected" );
+    case DIV_YIELD:
+        return tr( "Dividend Yield - Expected" );
+
+    case CALC_BID_PRICE_VI:
+        return tr( "Bid Price Volatility - Calculated" );
+    case CALC_ASK_PRICE_VI:
+        return tr( "Ask Price Volatility - Calculated" );
+    case CALC_MARK_VI:
+        return tr( "Mark Volatility - Calculated" );
+
+    case CALC_THEO_OPTION_VALUE:
+        return tr( "Theoretical Option Value - Calculated" );
+    case CALC_THEO_VOLATILITY:
+        return tr( "Theoretical Volatility - Calculated" );
+    case CALC_DELTA:
+        return tr( "Delta - Calculated" );
+    case CALC_GAMMA:
+        return tr( "Gamma - Calculated" );
+    case CALC_THETA:
+        return tr( "Theta - Calculated" );
+    case CALC_VEGA:
+        return tr( "Vega - Calculated" );
+    case CALC_RHO:
+        return tr( "Rho - Calculated" );
+
+    case BID_ASK_SPREAD:
+        return tr( "Bid/Ask Spread Amount" );
+    case BID_ASK_SPREAD_PERCENT:
+        return tr( "Bid/Ask Spread Percent" );
+
+    case PROBABILITY_ITM:
+        return tr( "Probability In The Money" );
+    case PROBABILITY_OTM:
+        return tr( "Probability Out of The Money" );
+    case PROBABILITY_PROFIT:
+        return tr( "Probability of Profit" );
+
+    case INVESTMENT_OPTION_PRICE:
+        return tr( "Market Option Value" );
+    case INVESTMENT_OPTION_PRICE_VS_THEO:
+        return tr( "Market Option Value versus Theoretical Option Value" );
+
+    case INVESTMENT_AMOUNT:
+        return tr( "Investment Amount" );
+    case PREMIUM_AMOUNT:
+        return tr( "Premium Amount" );
+    case MAX_GAIN:
+        return tr( "Maximum Gain" );
+    case MAX_LOSS:
+        return tr( "Maximum Loss" );
+
+    case ROR:
+        return tr( "Return on Risk" );
+    case ROR_TIME:
+        return tr( "Return on Risk / Time" );
+
+    case ROI:
+        return tr( "Return on Investment" );
+    case ROI_TIME:
+        return tr( "Return on Investment / Time" );
+
+    case EXPECTED_VALUE:
+        return tr( "Expected Value" );
+    case EXPECTED_VALUE_ROI:
+        return tr( "Expected Value Return on Investment" );
+    case EXPECTED_VALUE_ROI_TIME:
+        return tr( "Expected Value Return on Investment / Time" );
+    default:
+        break;
+    }
+
+    return QString();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

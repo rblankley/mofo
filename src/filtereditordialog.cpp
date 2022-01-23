@@ -19,6 +19,7 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "advancedfilterlistwidget.h"
 #include "common.h"
 #include "filtereditordialog.h"
 
@@ -71,12 +72,6 @@ FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& v
     minImplVolatility_->setValue( f_.minVolatility() );
     maxImplVolatility_->setValue( f_.maxVolatility() );
 
-    minDivAmount_->setValue( f_.minDividendAmount() );
-    maxDivAmount_->setValue( f_.maxDividendAmount() );
-
-    minDivYield_->setValue( f_.minDividendYield() );
-    maxDivYield_->setValue( f_.maxDividendYield() );
-
     minProbITM_->setValue( f_.minProbITM() );
     maxProbITM_->setValue( f_.maxProbITM() );
 
@@ -106,6 +101,8 @@ FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& v
 
     minExpectedValueReturnOnInvestmentTime_->setValue( f_.minExpectedValueReturnOnInvestmentTime() );
     maxExpectedValueReturnOnInvestmentTime_->setValue( f_.maxExpectedValueReturnOnInvestmentTime() );
+
+    advancedFilters_->setFilters( f_.advancedFilters() );
 
     verticalDepth_->setValue( f_.verticalDepth() );
 
@@ -140,7 +137,7 @@ QByteArray FilterEditorDialog::filterValue() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QSize FilterEditorDialog::sizeHint() const
 {
-    return QSize( 800, 800 );
+    return QSize( 1000, 800 );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -190,14 +187,6 @@ void FilterEditorDialog::translate()
     minImplVolatility_->setToolTip( tr( "Trades with VI below this value will be filtered out." ) );
     maxImplVolatility_->setToolTip( tr( "Trades with VI above this value will be filtered out." ) );
 
-    divAmountLabel_->setText( tr( "Est. Dividend Amount ($)" ) );
-    minDivAmount_->setToolTip( tr( "Options with expected dividend amounts (dividends paid before expiration) below this amount will be filtered out. Dividends are estimated from prior payout history." ) );
-    maxDivAmount_->setToolTip( tr( "Options with expected dividend amounts (dividends paid before expiration) above this amount will be filtered out. Dividends are estimated from prior payout history." ) );
-
-    divYieldLabel_->setText( tr( "Est. Dividend Yield (%)" ) );
-    minDivYield_->setToolTip( tr( "Options with expected dividend yields (dividends paid before expiration) below this value will be filtered out. Dividends are estimated from prior payout history." ) );
-    maxDivYield_->setToolTip( tr( "Options with expected dividend yields (dividends paid before expiration) above this value will be filtered out. Dividends are estimated from prior payout history." ) );
-
     tabs_->setTabText( 1, tr( "Calculations" ) );
 
     minColumnLabel1_->setText( tr( "Minimum" ) );
@@ -242,6 +231,10 @@ void FilterEditorDialog::translate()
     expectedValueReturnOnInvestmentTimeLabel_->setText( tr( "Expected Value ROI / Time (%)" ) );
     minExpectedValueReturnOnInvestmentTime_->setToolTip( tr( "Option expected return on investment over time below this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
     maxExpectedValueReturnOnInvestmentTime_->setToolTip( tr( "Option expected return on investment over time above this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
+
+    tabs_->setTabText( 2, tr( "Advanced" ) );
+
+    addFilter_->setText( tr( "Add" ) );
 
     optionTypes_->setTitle( tr( "Option Type" ) );
 
@@ -337,12 +330,6 @@ void FilterEditorDialog::onButtonClicked()
         f_.setMinVolatility( minImplVolatility_->value() );
         f_.setMaxVolatility( maxImplVolatility_->value() );
 
-        f_.setMinDividendAmount( minDivAmount_->value() );
-        f_.setMaxDividendAmount( maxDivAmount_->value() );
-
-        f_.setMinDividendYield( minDivYield_->value() );
-        f_.setMaxDividendYield( maxDivYield_->value() );
-
         f_.setMinProbITM( minProbITM_->value() );
         f_.setMaxProbITM( maxProbITM_->value() );
 
@@ -372,6 +359,8 @@ void FilterEditorDialog::onButtonClicked()
 
         f_.setMinExpectedValueReturnOnInvestmentTime( minExpectedValueReturnOnInvestmentTime_->value() );
         f_.setMaxExpectedValueReturnOnInvestmentTime( maxExpectedValueReturnOnInvestmentTime_->value() );
+
+        f_.setAdvancedFilters( advancedFilters_->filters() );
 
         f_.setVerticalDepth( verticalDepth_->value() );
 
@@ -486,30 +475,6 @@ void FilterEditorDialog::initialize()
     maxImplVolatility_->setDecimals( 2 );
     maxImplVolatility_->setMinimum( 0.0 );
     maxImplVolatility_->setMaximum( 99999.99 );
-
-    divAmountLabel_ = new QLabel( tab0_ );
-
-    minDivAmount_ = new QDoubleSpinBox( tab0_ );
-    minDivAmount_->setDecimals( 2 );
-    minDivAmount_->setMinimum( 0.0 );
-    minDivAmount_->setMaximum( 99999.99 );
-
-    maxDivAmount_ = new QDoubleSpinBox( tab0_ );
-    maxDivAmount_->setDecimals( 2 );
-    maxDivAmount_->setMinimum( 0.0 );
-    maxDivAmount_->setMaximum( 99999.99 );
-
-    divYieldLabel_ = new QLabel( tab0_ );
-
-    minDivYield_ = new QDoubleSpinBox( tab0_ );
-    minDivYield_->setDecimals( 2 );
-    minDivYield_->setMinimum( 0.0 );
-    minDivYield_->setMaximum( 99999.99 );
-
-    maxDivYield_ = new QDoubleSpinBox( tab0_ );
-    maxDivYield_->setDecimals( 2 );
-    maxDivYield_->setMinimum( 0.0 );
-    maxDivYield_->setMaximum( 99999.99 );
 
     // ---- //
 
@@ -669,9 +634,19 @@ void FilterEditorDialog::initialize()
 
     // ---- //
 
-    minColumnLabel_ = new QLabel( tab0_ );
+    tab2_ = new QWidget( this );
 
-    maxColumnLabel_ = new QLabel( tab0_ );
+    advancedFilters_ = new AdvancedFilterListWidget( tab2_ );
+
+    addFilter_ = new QPushButton( tab2_ );
+
+    connect( addFilter_, &QPushButton::pressed, advancedFilters_, &AdvancedFilterListWidget::addFilterItem );
+
+    // ---- //
+
+    minColumnLabel_ = new QLabel( this );
+
+    maxColumnLabel_ = new QLabel( this );
 
     underlyingPriceLabel_ = new QLabel( this );
 
@@ -693,6 +668,7 @@ void FilterEditorDialog::initialize()
     tabs_ = new QTabWidget( this );
     tabs_->addTab( tab0_, QString() );
     tabs_->addTab( tab1_, QString() );
+    tabs_->addTab( tab2_, QString() );
 
     optionTypes_ = new QGroupBox( this );
 
@@ -767,14 +743,6 @@ void FilterEditorDialog::createLayout()
     implVolatility->addWidget( minImplVolatility_ );
     implVolatility->addWidget( maxImplVolatility_ );
 
-    QHBoxLayout *divAmount( new QHBoxLayout() );
-    divAmount->addWidget( minDivAmount_ );
-    divAmount->addWidget( maxDivAmount_ );
-
-    QHBoxLayout *divYield( new QHBoxLayout() );
-    divYield->addWidget( minDivYield_ );
-    divYield->addWidget( maxDivYield_ );
-
     QFormLayout *filters0( new QFormLayout( tab0_ ) );
     filters0->addRow( new QLabel(), header0 );
     filters0->addRow( investAmountLabel_, investAmount );
@@ -787,9 +755,6 @@ void FilterEditorDialog::createLayout()
     filters0->addItem( new QSpacerItem( 16, 16 ) );
     filters0->addRow( daysToExpiryLabel_, daysToExpiry );
     filters0->addRow( implVolatilityLabel_, implVolatility );
-    filters0->addItem( new QSpacerItem( 16, 16 ) );
-    filters0->addRow( divAmountLabel_, divAmount );
-    filters0->addRow( divYieldLabel_, divYield );
 
     // ---- //
 
@@ -883,6 +848,12 @@ void FilterEditorDialog::createLayout()
     volatility->addWidget( histLessThanImpl_ );
     volatility->addWidget( histGreaterThanImpl_ );
     volatility->addStretch();
+
+    // ---- //
+
+    QVBoxLayout *filters2( new QVBoxLayout( tab2_ ) );
+    filters2->addWidget( advancedFilters_, 1 );
+    filters2->addWidget( addFilter_ );
 
     // ---- //
 

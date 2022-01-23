@@ -33,6 +33,7 @@
 #include <QLabel>
 #include <QLineEdit>
 #include <QPushButton>
+#include <QToolButton>
 #include <QVBoxLayout>
 
 static const QString EQUITY_REFRESH_RATE( "equityRefreshRate" );
@@ -265,9 +266,9 @@ void ConfigurationDialog::initialize()
 
     equityWatchListsLabel_ = new QLabel( this );
     equityWatchLists_ = new QLineEdit( this );
-    equityWatchListsDialog_ = new QPushButton( this );
+    equityWatchListsDialog_ = new QToolButton( this );
 
-    connect( equityWatchListsDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( equityWatchListsDialog_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     historyLabel_ = new QLabel( this );
     history_ = new QLineEdit( this );
@@ -290,9 +291,9 @@ void ConfigurationDialog::initialize()
 
     paletteHighlightLabel_ = new QLabel( this );
     paletteHighlight_ = new QLineEdit( this );
-    paletteHighlightDialog_ = new QPushButton( this );
+    paletteHighlightDialog_ = new QToolButton( this );
 
-    connect( paletteHighlightDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( paletteHighlightDialog_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     optionChainRefreshRateLabel_ = new QLabel( this );
     optionChainRefreshRate_ = new QLineEdit( this );
@@ -302,9 +303,9 @@ void ConfigurationDialog::initialize()
 
     optionChainWatchListsLabel_ = new QLabel( this );
     optionChainWatchLists_ = new QLineEdit( this );
-    optionChainWatchListsDialog_ = new QPushButton( this );
+    optionChainWatchListsDialog_ = new QToolButton( this );
 
-    connect( optionChainWatchListsDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( optionChainWatchListsDialog_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     optionTradeCostLabel_ = new QLabel( this );
     optionTradeCost_ = new QLineEdit( this );
@@ -331,9 +332,9 @@ void ConfigurationDialog::initialize()
     foreach ( const QString& f, AppDatabase::instance()->filters() )
         optionAnalysisFilter_->addItem( f, f );
 
-    optionAnalysisFilterDialog_ = new QPushButton( this );
+    optionAnalysisFilterDialog_ = new QToolButton( this );
 
-    connect( optionAnalysisFilterDialog_, &QPushButton::clicked, this, &_Myt::onButtonClicked );
+    connect( optionAnalysisFilterDialog_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     // okay
     okay_ = new QPushButton( this );

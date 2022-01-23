@@ -29,6 +29,7 @@
 #include "symbolpricehistorywidget.h"
 
 #include "db/appdb.h"
+#include "db/fundamentalstablemodel.h"
 #include "db/optionchaintablemodel.h"
 #include "db/optiontradingitemmodel.h"
 #include "db/quotetablemodel.h"
@@ -155,6 +156,20 @@ void OptionViewerWidget::onButtonPressed()
             // load selected filter
             if ( f.length() )
                 calcFilter.restoreState( AppDatabase::instance()->filter( f ) );
+        }
+
+        // retrieve fundamentals
+        FundamentalsTableModel fundamentals( symbol() );
+
+        if ( !fundamentals.refreshTableData() )
+        {
+            LOG_WARN << "error refreshing fundamentals table data";
+            return;
+        }
+        else if ( !calcFilter.check( model_, &fundamentals ) )
+        {
+            LOG_DEBUG << "filtered out from underlying";
+            return;
         }
 
         // show analysis results

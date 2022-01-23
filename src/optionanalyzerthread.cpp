@@ -25,6 +25,7 @@
 #include "optionprofitcalcfilter.h"
 
 #include "db/appdb.h"
+#include "db/fundamentalstablemodel.h"
 #include "db/optionchaintablemodel.h"
 #include "db/optiontradingitemmodel.h"
 #include "db/quotetablemodel.h"
@@ -68,73 +69,49 @@ void OptionAnalyzerThread::run()
         QSqlDatabase connSymbol( AppDatabase::instance()->openDatabaseConnection( symbol_ ) );
         cnames.append( connSymbol.connectionName() );
 
-        // retrieve quote
+        // retrieve quote and fundamentals
         QuoteTableModel quote( symbol_ );
+        FundamentalsTableModel fundamentals( symbol_ );
 
         if ( !quote.refreshTableData() )
-        {
             LOG_WARN << "error refreshing quote table data";
-            return;
-        }
+        else if ( !fundamentals.refreshTableData() )
+            LOG_WARN << "error refreshing fundamentals table data";
 
-        LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
-
-        const double markPrice( quote.mark() );
-
-        // check filter for underlying (spot price)
-        if (( 0.0 < calcFilter.minUnderlyingPrice() ) && ( markPrice < calcFilter.minUnderlyingPrice() ))
-            LOG_TRACE << "spot price below filter threshold";
-        else if (( 0.0 < calcFilter.maxUnderlyingPrice() ) && ( calcFilter.maxUnderlyingPrice() < markPrice ))
-            LOG_TRACE << "spot price below filter threshold";
-
-        // check filter for days to expiry
-        else if (( calcFilter.minDaysToExpiry() ) && ( now.date().daysTo( expiryDate_ ) < calcFilter.minDaysToExpiry() ))
-            LOG_TRACE << "DTE below filter threshold";
-        else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < now.date().daysTo( expiryDate_ ) ))
-            LOG_TRACE << "DTE above filter threshold";
+        // check filter
+        else if ( !calcFilter.check( &quote, &fundamentals ) )
+            LOG_TRACE << "filtered out from underlying";
 
         else
         {
+            LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
+
             // retrieve chain data
             OptionChainTableModel chains( symbol_, expiryDate_ );
 
             if ( !chains.refreshTableData() )
-            {
                 LOG_WARN << "error refreshing chain table data";
-                return;
-            }
-
-            // create a calculator
-            OptionProfitCalculator *calc( OptionProfitCalculator::create( markPrice, &chains, analysis_ ) );
-
-            // no calculator
-            if ( !calc )
-                LOG_WARN << "no calculator";
-
-            // check filter for dividend amount
-            else if (( 0.0 < calcFilter.minDividendAmount() ) && ( calc->dividendAmount() < calcFilter.minDividendAmount() ))
-                LOG_TRACE << "dividend amount below filter threshold";
-            else if (( 0.0 < calcFilter.maxDividendAmount() ) && ( calcFilter.maxDividendAmount() < calc->dividendAmount() ))
-                LOG_TRACE << "dividend amount above filter threshold";
-
-            // check filter for dividend yield
-            else if (( 0.0 < calcFilter.minDividendYield() ) && ( calc->dividendYield() < calcFilter.minDividendYield() ))
-                LOG_TRACE << "dividend yield below filter threshold";
-            else if (( 0.0 < calcFilter.maxDividendYield() ) && ( calcFilter.maxDividendYield() < calc->dividendYield() ))
-                LOG_TRACE << "dividend yield above filter threshold";
-
             else
             {
-                // setup calculator
-                calc->setFilter( calcFilter );
-                calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+                // create a calculator
+                OptionProfitCalculator *calc( OptionProfitCalculator::create( quote.tableData( QuoteTableModel::MARK ).toDouble(), &chains, analysis_ ) );
 
-                // analyze
-                calc->analyze( OptionTradingItemModel::SINGLE );
-                calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
-                calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+                // no calculator
+                if ( !calc )
+                    LOG_WARN << "no calculator";
+                else
+                {
+                    // setup calculator
+                    calc->setFilter( calcFilter );
+                    calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
 
-                OptionProfitCalculator::destroy( calc );
+                    // analyze
+                    calc->analyze( OptionTradingItemModel::SINGLE );
+                    calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
+                    calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+
+                    OptionProfitCalculator::destroy( calc );
+                }
             }
         }
     }

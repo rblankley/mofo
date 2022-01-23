@@ -24,15 +24,22 @@
 #include <cmath>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-double Stats::calcStdDeviation( const QVector<double>& data )
+double Stats::calcMean( const QVector<double>& data )
 {
     double sum( 0.0 );
-    double variance( 0.0 );
 
     foreach ( double v, data )
         sum += v;
 
-    const double mean( sum / data.size() );
+    return sum / data.size();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double Stats::calcStdDeviation( const QVector<double>& data )
+{
+    const double mean( calcMean( data ) );
+
+    double variance( 0.0 );
 
     foreach ( double v, data )
         variance += pow( v - mean, 2 );

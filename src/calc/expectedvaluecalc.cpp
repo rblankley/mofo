@@ -392,11 +392,7 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
         populateResultModelGreeks( greeksCall_[strike], result );
 
     // ---- //
-/*
-    // check for active trading
-    if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
-        return;
-*/
+
     // ensure we have probabilities
     if ( !probCurve_.contains( strike ) )
         return;
@@ -430,11 +426,7 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
     const double investmentValue( (multiplier * equitySharePrice) - premium );                          // how much money is locked up
     const double maxGain( premium + (multiplier * (strike - equitySharePrice)) - equityTradeCost_ );    // maximum amount of money you can possibly make
     const double maxLoss( investmentValue );                                                            // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
-/*
-    // nothing to gain
-    if ( maxGain <= 0.0 )
-        return;
-*/
+
     result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
@@ -502,11 +494,7 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
         populateResultModelGreeks( greeksPut_[strike], result );
 
     // ---- //
-/*
-    // check for active trading
-    if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
-        return;
-*/
+
     // ensure we have probabilities
     if ( !probCurve_.contains( strike ) )
         return;
@@ -536,11 +524,7 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
     const double investmentValue( (multiplier * strike) - premium );                                    // how much money is locked up
     const double maxGain( premium );                                                                    // maximum amount of money you can possibly make
     const double maxLoss( investmentValue + equityTradeCost_ );                                         // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
-/*
-    // nothing to gain
-    if ( maxGain <= 0.0 )
-        return;
-*/
+
     result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
@@ -610,11 +594,7 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
         populateResultModelGreeksSpread( greeksCall_[strikeLong], greeksCall_[strikeShort], result );
 
     // ---- //
-/*
-    // check for active trading
-    if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
-        return;
-*/
+
     // ensure we have probabilities
     if (( !probCurve_.contains( strikeLong ) ) || ( !probCurve_.contains( strikeShort )))
         return;
@@ -647,11 +627,7 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
     const double investmentValue( (multiplier * spread) - premium );                                // how much money is locked up
     const double maxGain( premium );                                                                // maximum amount of money you can possibly make
     const double maxLoss( investmentValue + (2.0 * equityTradeCost_) );                             // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
-/*
-    // nothing to gain
-    if ( maxGain <= 0.0 )
-        return;
-*/
+
     result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
@@ -732,11 +708,7 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
         populateResultModelGreeksSpread( greeksPut_[strikeLong], greeksPut_[strikeShort], result );
 
     // ---- //
-/*
-    // check for active trading
-    if (( !result[item_model_type::BID_SIZE].toInt() ) || ( !result[item_model_type::ASK_SIZE].toInt() ))
-        return;
-*/
+
     // ensure we have probabilities
     if (( !probCurve_.contains( strikeLong ) ) || ( !probCurve_.contains( strikeShort )))
         return;
@@ -769,11 +741,7 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
     const double investmentValue( (multiplier * spread) - premium );                                // how much money is locked up
     const double maxGain( premium );                                                                // maximum amount of money you can possibly make
     const double maxLoss( investmentValue + (2.0 * equityTradeCost_) );                             // maximum amount of money you can possibly lose (i.e. underlying goes to 0.00)
-/*
-    // nothing to gain
-    if ( maxGain <= 0.0 )
-        return;
-*/
+
     result[item_model_type::INVESTMENT_AMOUNT] = investmentValue;
     result[item_model_type::PREMIUM_AMOUNT] = premium;
     result[item_model_type::MAX_GAIN] = maxGain;
@@ -877,21 +845,7 @@ bool ExpectedValueCalculator::generateGreeks( int row, double strike, bool isCal
             if (( 0.0 < result.markvi ) && ( result.askvi < result.markvi ))
                 result.markvi = 0.0;
         }
-/*
-        // determine theo option value and VI
-        double theoOptionValue( chains_->tableData( row, isCall ? table_model_type::CALL_THEO_OPTION_VALUE : table_model_type::PUT_THEO_OPTION_VALUE ).toDouble() );
 
-        // use mark if they giving us bad value
-        if ( theoOptionValue < 0.0 )
-        {
-            LOG_WARN << "using mark for theo option value";
-            theoOptionValue = mark;
-        }
-
-        // calc!
-        if ( !calcGreeks( o, theoOptionValue, strike, isCall, result ) )
-            LOG_WARN << "invalid theo option value";
-*/
         destroyPricingMethod( o );
 
         if ( isCall )
@@ -1187,27 +1141,25 @@ bool ExpectedValueCalculator::calcGreeks( AbstractOptionPricing *o, double theoO
             return true;
         }
     }
-    else
-    {
-        // failure
-        static const QString failure(
-            "failed to calc vi\n"
-            "    underlying:     %1\n"
-            "    risk free rate: %2\n"
-            "    time to expiry: %3\n"
-            "    type:           %4\n"
-            "    strike:         %5\n"
-            "    option price:   %6" );
 
-        LOG_DEBUG << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " " <<
-            qPrintable( failure
-                .arg( underlying_ )
-                .arg( result.riskFreeRate )
-                .arg( result.timeToExpiry )
-                .arg( (OptionType::Call == type) ? "CALL" : "PUT" )
-                .arg( strike )
-                .arg( theoOptionValue ) );
-    }
+    // failure
+    static const QString failure(
+        "failed to calc vi\n"
+        "    underlying:     %1\n"
+        "    risk free rate: %2\n"
+        "    time to expiry: %3\n"
+        "    type:           %4\n"
+        "    strike:         %5\n"
+        "    option price:   %6" );
+
+    LOG_DEBUG << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " " << (isCall ? "CALL" : "PUT") << " " <<
+        qPrintable( failure
+            .arg( underlying_ )
+            .arg( result.riskFreeRate )
+            .arg( result.timeToExpiry )
+            .arg( (OptionType::Call == type) ? "CALL" : "PUT" )
+            .arg( strike )
+            .arg( theoOptionValue ) );
 
     return false;
 }

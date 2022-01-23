@@ -23,6 +23,8 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     abstractdaemon.cpp \
+    advancedfilterlistwidget.cpp \
+    advancedfilterwidget.cpp \
     analysiswidget.cpp \
     apibase/abstractapi.cpp \
     apibase/serializedapi.cpp \
@@ -96,6 +98,8 @@ SOURCES += \
 
 HEADERS += \
     abstractdaemon.h \
+    advancedfilterlistwidget.h \
+    advancedfilterwidget.h \
     analysiswidget.h \
     apibase/abstractapi.h \
     apibase/serializedapi.h \

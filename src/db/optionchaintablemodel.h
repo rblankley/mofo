@@ -174,6 +174,13 @@ public:
     // Properties
     // ========================================================================
 
+    /// Retrieve column description.
+    /**
+     * @param[in] col  column
+     * @return  description
+     */
+    virtual QString columnDescription( int col ) const override;
+
     /// Retrieve table data.
     /**
      * @param[in] row  row

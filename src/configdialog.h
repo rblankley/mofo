@@ -31,6 +31,7 @@ class QComboBox;
 class QLabel;
 class QLineEdit;
 class QPushButton;
+class QToolButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -94,7 +95,7 @@ private:
 
     QLabel *equityWatchListsLabel_;
     QLineEdit *equityWatchLists_;
-    QPushButton *equityWatchListsDialog_;
+    QToolButton *equityWatchListsDialog_;
 
     QLabel *historyLabel_;
     QLineEdit *history_;
@@ -113,7 +114,7 @@ private:
 
     QLabel *paletteHighlightLabel_;
     QLineEdit *paletteHighlight_;
-    QPushButton *paletteHighlightDialog_;
+    QToolButton *paletteHighlightDialog_;
 
     QLabel *optionChainRefreshRateLabel_;
     QLineEdit *optionChainRefreshRate_;
@@ -123,7 +124,7 @@ private:
 
     QLabel *optionChainWatchListsLabel_;
     QLineEdit *optionChainWatchLists_;
-    QPushButton *optionChainWatchListsDialog_;
+    QToolButton *optionChainWatchListsDialog_;
 
     QLabel *optionTradeCostLabel_;
     QLineEdit *optionTradeCost_;
@@ -133,7 +134,7 @@ private:
 
     QLabel *optionAnalysisFilterLabel_;
     QComboBox *optionAnalysisFilter_;
-    QPushButton *optionAnalysisFilterDialog_;
+    QToolButton *optionAnalysisFilterDialog_;
 
     QPushButton *okay_;
     QPushButton *cancel_;
