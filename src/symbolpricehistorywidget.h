@@ -30,6 +30,7 @@
 
 class QComboBox;
 class QScrollBar;
+class QStandardItem;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -106,6 +107,9 @@ private slots:
     /// Slot for current index changed.
     void onCurrentIndexChanged( int index );
 
+    /// Slot for standard item changed.
+    void onItemChanged( QStandardItem *item );
+
     /// Slot for value changed.
     void onValueChanged( int value );
 
@@ -117,8 +121,19 @@ private:
     static constexpr int MIN_CANDLE_WIDTH = 5;
     static constexpr int SPACING = 6;
 
+    bool init_;
+
     QString symbol_;
     QList<CandleData> candles_;
+
+    QList<MovingAverages> ma_;
+
+    QList<HistoricalVolatilities> hv_;
+    QList<MovingAveragesConvergenceDivergence> macd_;
+    QList<RelativeStrengthIndexes> rsi_;
+
+    QPixmap graph_;
+    QPixmap margin_;
 
     QComboBox *period_;
 
@@ -126,22 +141,10 @@ private:
     QComboBox *freqDayWeek_;
     QComboBox *freqDayWeekMonth_;
 
+    QComboBox *overlays_;
+    QComboBox *lowers_;
+
     QScrollBar *scroll_;
-
-    unsigned long long vmax_;
-
-    double gmin_;
-    double gmax_;
-    double ginterval_;
-
-    int numDecimalPlaces_;
-
-    QPixmap graph_;
-    QPixmap margin_;
-
-    int candlesWidth_;
-    int marginWidth_;
-    int marginHeight_;
 
     /// Initialize.
     void initialize();
@@ -161,11 +164,39 @@ private:
     /// Check is scroll bar is visible.
     bool scrollBarVisible() const {return (0 < scrollBarMaximum());}
 
+    /// Check if we have historical volatilities.
+    bool haveHistoricalVolatilities();
+
+    /// Check if we have moving averages.
+    bool haveMovingAverages();
+
+    /// Check if we have moving averages convergence/divergence (MACD)
+    bool haveMovingAveragesConvergenceDivergence( bool emaOnly = false );
+
+    /// Check if we have realtive strength indexes.
+    bool haveRelativeStrengthIndexes();
+
+    /// Calculate min/max values from list data.
+    template <class T>
+    void calcMinMaxValues( const QList<T>& values, double& min, double& max, unsigned long long& vmax ) const;
+
+    /// Calculate interval values.
+    void calcIntervalValues( double min, double max, double h, double div, double& interval, int& numDecimals ) const;
+
     /// Draw graph.
     void drawGraph();
 
     /// Scale value.
     static int scaled( double p, double min, double max, int height );
+
+    /// Translate overlays.
+    static void translateOverlays( QComboBox *w );
+
+    /// Translate lowers.
+    static void translateLowers( QComboBox *w );
+
+    /// Retrieve overlay color.
+    static QColor overlayColor( const QString& desc );
 
     // not implemented
     SymbolPriceHistoryWidget( const _Myt& other ) = delete;

@@ -29,12 +29,21 @@
 
 #include <QApplication>
 
+#ifdef Q_OS_WINDOWS
+#include <Windows.h>
+#endif
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionAnalyzer::OptionAnalyzer( model_type *model, QObject *parent ) :
     _Mybase( parent ),
     active_( false ),
     analysis_( model ),
     halt_( false ),
+#ifdef Q_OS_WINDOWS
+    prevIdleTime_( 0 ),
+    prevKernelTime_( 0 ),
+    prevUserTime_( 0 ),
+#endif
     workers_( 0 ),
     maxWorkers_( std::thread::hardware_concurrency() )
 {
@@ -135,7 +144,7 @@ void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QD
         return;
 
     // throttle cpu to max worker limit
-    while (( THROTTLE ) && ( maxWorkers_ <= workers_ ))
+    while (( THROTTLE ) && ( maxWorkers_ <= workers_ ) && ( THROTTLE_CPU_THRESHOLD < cpuUsage() ))
     {
         const QList<OptionAnalyzerThread*> threads( findChildren<OptionAnalyzerThread*>() );
 
@@ -239,4 +248,53 @@ void OptionAnalyzer::updateStatus( bool force )
             emit statusMessageChanged( message.arg( progress_, 0, 'f', 1 ) );
         }
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double OptionAnalyzer::cpuUsage() const
+{
+    // default to 100% cpu usage
+    double result( 100.0 );
+
+#ifdef Q_OS_WINDOWS
+    FILETIME idleTime;
+    FILETIME kernelTime;
+    FILETIME userTime;
+
+    // lookup system times
+    if ( GetSystemTimes( &idleTime, &kernelTime, &userTime ) )
+    {
+        ULARGE_INTEGER idle;
+        idle.HighPart = idleTime.dwHighDateTime;
+        idle.LowPart = idleTime.dwLowDateTime;
+
+        ULARGE_INTEGER kernel;
+        kernel.HighPart = kernelTime.dwHighDateTime;
+        kernel.LowPart = kernelTime.dwLowDateTime;
+
+        ULARGE_INTEGER user;
+        user.HighPart = userTime.dwHighDateTime;
+        user.LowPart = userTime.dwLowDateTime;
+
+        // check we have data to compare against
+        if ( 0 < prevIdleTime_ )
+        {
+            const quint64 idleTime( idle.QuadPart - prevIdleTime_ );
+            const quint64 sysTime( kernel.QuadPart - prevKernelTime_ + user.QuadPart - prevUserTime_ );
+
+            // compute total cpu usage
+            result = sysTime;
+            result /= sysTime + idleTime;
+
+            LOG_TRACE << "cpu usage " << result;
+        }
+
+        // store values for next time
+        prevIdleTime_ = idle.QuadPart;
+        prevKernelTime_ = kernel.QuadPart;
+        prevUserTime_ = user.QuadPart;
+    }
+#endif
+
+    return result;
 }

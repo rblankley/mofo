@@ -190,6 +190,15 @@ public:
      */
     virtual double historicalVolatility( const QString& symbol, const QDateTime& dt, int depth ) const;
 
+    /// Retrieve historical volatilities
+    /**
+     * @param[in] symbol  symbol to retrieve
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  volatilities
+     */
+    virtual void historicalVolatilities( const QString& symbol, const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const;
+
     /// Check if market is open.
     /**
      * @param[in] dt  datetime
@@ -237,6 +246,24 @@ public:
      * @return  list of market types
      */
     virtual QStringList marketTypes( bool hasHours = true ) const;
+
+    /// Retrieve moving averages.
+    /**
+     * @param[in] symbol  symbol
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  moving averages
+     */
+    virtual void movingAverages( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAverages>& data ) const;
+
+    /// Retrieve moving averages convergence/divergence (MACD)
+    /**
+     * @param[in] symbol  symbol
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  MACD data
+     */
+    virtual void movingAveragesConvergenceDivergence( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const;
 
     /// Retrieve number of regular days in a year.
     /**
@@ -293,6 +320,15 @@ public:
      * @param[out] end  end date
      */
     virtual void quoteHistoryDateRange( const QString& symbol, QDate& start, QDate& end ) const;
+
+    /// Retrieve RSI.
+    /**
+     * @param[in] symbol  symbol
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  RSI values
+     */
+    virtual void relativeStrengthIndex( const QString& symbol, const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const;
 
     /// Retrieve risk free interest rate.
     /**

@@ -393,6 +393,14 @@ QVariant OptionChainTableModel::data( const QModelIndex& index, int role ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+qint64 OptionChainTableModel::daysToExpiration() const
+{
+    const QDateTime now( AppDatabase::instance()->currentDateTime() );
+
+    return now.date().daysTo( expirationDate() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionChainTableModel::ColumnIndex OptionChainTableModel::mappedColumn( ColumnIndex col ) const
 {
     static const int diff( _PUT_COLUMNS_BEGIN - _CALL_COLUMNS_BEGIN );

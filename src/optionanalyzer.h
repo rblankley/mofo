@@ -145,7 +145,14 @@ private:
     static constexpr int WAIT_TIME = 50;
 
     static constexpr bool THROTTLE = true;
+    static constexpr double THROTTLE_CPU_THRESHOLD = 0.90;
     static constexpr int THROTTLE_YIELD_TIME = 50;
+
+#ifdef Q_OS_WINDOWS
+    mutable uint64_t prevIdleTime_;
+    mutable uint64_t prevKernelTime_;
+    mutable uint64_t prevUserTime_;
+#endif
 
     int symbolsTotal_;
 
@@ -162,6 +169,9 @@ private:
 
     /// Update status message.
     void updateStatus( bool force );
+
+    /// Retrieve CPU usage percent.
+    double cpuUsage() const;
 
     // not implemented
     OptionAnalyzer( const _Myt& ) = delete;

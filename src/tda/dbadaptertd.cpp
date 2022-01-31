@@ -562,6 +562,7 @@ void TDAmeritradeDatabaseAdapter::transformPriceHistoryImpl( const QJsonObject *
     QJsonObject obj;
     obj[DB_QUOTE_HISTORY] = quoteHistory;
 
+    LOG_TRACE << "transform complete";
     complete( obj );
 
     LOG_TRACE << "done";

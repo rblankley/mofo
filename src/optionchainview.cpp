@@ -28,6 +28,7 @@
 #include "db/optionchaintablemodel.h"
 
 #include <QAction>
+#include <QApplication>
 #include <QHeaderView>
 #include <QInputDialog>
 #include <QMenu>
@@ -153,6 +154,23 @@ void OptionChainView::mouseMoveEvent( QMouseEvent *event )
     }
 
     _Mybase::mouseMoveEvent( event );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionChainView::showEvent( QShowEvent *event )
+{
+    // refresh model
+    if ( !model_->ready() )
+    {
+        QApplication::setOverrideCursor( Qt::WaitCursor );
+
+        if ( !model_->refreshTableData() )
+            LOG_WARN << "error refreshing chain table data";
+
+        QApplication::restoreOverrideCursor();
+    }
+
+    _Mybase::showEvent( event );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

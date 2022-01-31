@@ -198,6 +198,12 @@ public:
      */
     virtual QVariant data( const QModelIndex& index, int role = Qt::DisplayRole ) const override;
 
+    /// Retrieve days to expiration.
+    /**
+     * @return  days until expiration
+     */
+    virtual qint64 daysToExpiration() const;
+
     /// Retrieve expiration date.
     /**
      * @return  expiration date

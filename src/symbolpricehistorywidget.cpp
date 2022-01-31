@@ -27,10 +27,15 @@
 
 #include <cmath>
 
+#include <QAbstractItemView>
+#include <QApplication>
 #include <QComboBox>
+#include <QCryptographicHash>
 #include <QHBoxLayout>
 #include <QPainter>
 #include <QScrollBar>
+#include <QStandardItem>
+#include <QStandardItemModel>
 
 const QString SymbolPriceHistoryWidget::STATE_GROUP_NAME( "symbolPriceHistory" );
 const QString SymbolPriceHistoryWidget::STATE_NAME( "[[default]]" );
@@ -50,6 +55,7 @@ static const QString MONTHLY( "monthly" );
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolPriceHistoryWidget::SymbolPriceHistoryWidget( const QString& symbol, QWidget *parent ) :
     _Mybase( parent ),
+    init_( false ),
     symbol_( symbol )
 {
     // init
@@ -80,6 +86,8 @@ SymbolPriceHistoryWidget::SymbolPriceHistoryWidget( const QString& symbol, QWidg
 
     // connect candle data signal
     connect( AppDatabase::instance(), &AppDatabase::candleDataChanged, this, &_Myt::onCandleDataChanged, Qt::QueuedConnection );
+
+    init_ = true;
 
     // refresh history
     refreshData();
@@ -124,6 +132,10 @@ void SymbolPriceHistoryWidget::translate()
     freqDayWeekMonth_->setItemText( 0, tr( "Day" ) );
     freqDayWeekMonth_->setItemText( 1, tr( "Week" ) );
     freqDayWeekMonth_->setItemText( 2, tr( "Month" ) );
+
+    translateOverlays( overlays_ );
+
+    translateLowers( lowers_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -132,12 +144,22 @@ void SymbolPriceHistoryWidget::refreshData()
     int p, f;
     QString ptype, ftype;
 
+    // check we are initialized
+    if ( !init_ )
+        return;
+
     // retrieve period and frequency
     if (( currentPeriod( p, ptype ) ) && ( currentFrequency( f, ftype ) ))
     {
         // clear graph
         candles_.clear();
         graph_ = margin_ = QPixmap();
+
+        ma_.clear();
+
+        hv_.clear();
+        macd_.clear();
+        rsi_.clear();
 
         // fetch
         AbstractDaemon::instance()->getCandles( symbol(), p, ptype, f, ftype );
@@ -159,9 +181,15 @@ void SymbolPriceHistoryWidget::paintEvent( QPaintEvent *e )
     // graph
     if ( !graph_.isNull() )
     {
-        const int offset( scrollBarVisible() ? scroll_->value() : graph_.width() - width() );
+        int offset( 0 );
 
-        painter.drawPixmap( 0 - offset, 0, graph_ );
+        if ( !margin_.isNull() )
+            offset += margin_.width();
+
+        if ( scrollBarVisible() )
+            offset -= scroll_->maximum() - scroll_->value();
+
+        painter.drawPixmap( width() - graph_.width() - offset, 0, graph_ );
     }
 
     // margin
@@ -188,9 +216,6 @@ void SymbolPriceHistoryWidget::onCandleDataChanged( const QString& s, const QDat
     Q_UNUSED( start )
     Q_UNUSED( stop )
 
-    static const int FOOTER( 25 );
-    static const double MIN_INTERVAL_HEIGHT( 50 );
-
     // check symbol
     if ( s != symbol() )
         return;
@@ -202,67 +227,8 @@ void SymbolPriceHistoryWidget::onCandleDataChanged( const QString& s, const QDat
     if (( currentPeriod( p, ptype ) ) && ( period == p ) && ( periodType == ptype ) &&
         ( currentFrequency( f, ftype ) ) && ( freq == f ) && ( freqType == ftype ))
     {
-        const QFontMetrics fm( font() );
-
         // set candles
         candles_ = candles;
-
-        // determine graph min/max values
-        double min( 999999.99 );
-        double max( 0.0 );
-
-        vmax_ = 0;
-
-        foreach ( const CandleData& cd, candles_ )
-        {
-            min = qMin( min, cd.lowPrice );
-            max = qMax( max, cd.highPrice );
-
-            vmax_ = qMax( vmax_, cd.totalVolume );
-        }
-
-        // determine price interval
-        QList<double> intervals;
-        intervals.append( 1.0 );
-        intervals.append( 2.0 );
-        intervals.append( 5.0 );
-
-        double interval( 0.0 );
-        double mult( 0.0001 );
-
-        do
-        {
-            foreach ( double val, intervals )
-            {
-                const double i( val*mult );
-                const double h( (height() - FOOTER) / ((max - min) / i) );
-
-                if ( MIN_INTERVAL_HEIGHT <= h )
-                {
-                    interval = i;
-                    break;
-                }
-            }
-
-            mult *= 10.0;
-
-        } while ( interval <= 0.0 );
-
-        // number of decimal places
-        numDecimalPlaces_ = 2;
-
-        if ( interval < 0.0009 )
-            numDecimalPlaces_ = 4;
-        else if ( interval < 0.009 )
-            numDecimalPlaces_ = 3;
-
-        // graph constants
-        gmin_ = interval * std::floor( min / interval );
-        gmax_ = interval * std::ceil( max / interval );
-        ginterval_ = interval;
-
-        marginWidth_ = SPACING + fm.boundingRect( QString::number( gmax_, 'f', numDecimalPlaces_ ) ).width();
-        marginHeight_ = SPACING + fm.boundingRect( "0123456789/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" ).height();
 
         // reset scroll bar
         scroll_->setValue( 0 );
@@ -280,6 +246,13 @@ void SymbolPriceHistoryWidget::onCandleDataChanged( const QString& s, const QDat
 void SymbolPriceHistoryWidget::onCurrentIndexChanged( int index )
 {
     Q_UNUSED( index )
+
+    // for lower graph, just need to draw
+    if ( lowers_ == sender() )
+    {
+        drawGraph();
+        return;
+    }
 
     // hide/show freq boxes
     if ( period_ == sender() )
@@ -303,6 +276,18 @@ void SymbolPriceHistoryWidget::onCurrentIndexChanged( int index )
             freqDayWeek_->show();
     }
 
+    // check frequency selection
+    int f;
+    QString ftype;
+
+    if ( currentFrequency( f, ftype ) )
+    {
+        const bool isDaily( DAILY == ftype );
+
+        overlays_->setVisible( isDaily );
+        lowers_->setVisible( isDaily );
+    }
+
     // refresh
     refreshData();
 
@@ -315,6 +300,15 @@ void SymbolPriceHistoryWidget::onCurrentIndexChanged( int index )
 
     AppDatabase::instance()->setWidgetState( AppDatabase::PriceHistory, STATE_GROUP_NAME, symbol(), state.toLatin1() );
     AppDatabase::instance()->setWidgetState( AppDatabase::PriceHistory, STATE_GROUP_NAME, STATE_NAME, state.toLatin1() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolPriceHistoryWidget::onItemChanged( QStandardItem *item )
+{
+    Q_UNUSED( item )
+
+    // update graph
+    drawGraph();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -364,6 +358,10 @@ void SymbolPriceHistoryWidget::initialize()
     freqDayWeekMonth_->addItem( QString(), "1:" + WEEKLY );
     freqDayWeekMonth_->addItem( QString(), "1:" + MONTHLY );
 
+    overlays_ = new QComboBox( this );
+
+    lowers_ = new QComboBox( this );
+
     scroll_ = new QScrollBar( Qt::Horizontal, this );
     scroll_->hide();
 
@@ -379,7 +377,88 @@ void SymbolPriceHistoryWidget::initialize()
     connect( freqDayWeek_, static_cast<void(QComboBox::*)(int)>( &QComboBox::currentIndexChanged ), this, &_Myt::onCurrentIndexChanged );
     connect( freqDayWeekMonth_, static_cast<void(QComboBox::*)(int)>( &QComboBox::currentIndexChanged ), this, &_Myt::onCurrentIndexChanged );
 
+    connect( lowers_, static_cast<void(QComboBox::*)(int)>( &QComboBox::currentIndexChanged ), this, &_Myt::onCurrentIndexChanged );
+
     connect( scroll_, &QScrollBar::valueChanged, this, &_Myt::onValueChanged );
+
+    //
+    // overlays
+    //
+
+    QStringList otypes;
+    otypes.append( "SMA" );
+    otypes.append( "EMA" );
+
+    QStringList otypedepths;
+    otypedepths.append( "5" );
+    otypedepths.append( "10" );
+    otypedepths.append( "12" );
+    otypedepths.append( "15" );
+    otypedepths.append( "20" );
+    otypedepths.append( "26" );
+    otypedepths.append( "30" );
+    otypedepths.append( "50" );
+    otypedepths.append( "100" );
+    otypedepths.append( "200" );
+
+    QStandardItemModel *overlaysModel( new QStandardItemModel( 0, 1, this ) );
+    QStandardItem *item;
+
+    item = new QStandardItem( QString() );
+    overlaysModel->appendRow( item );
+
+    foreach ( const QString& otype, otypes )
+        foreach ( const QString& otypedepth, otypedepths )
+        {
+            // SMA12 and SMA26 are not supported
+            if (( "SMA" == otype ) && (( "12" == otypedepth ) || ( "26" == otypedepth )))
+                continue;
+
+            item = new QStandardItem();
+            item->setData( otype + otypedepth, Qt::UserRole );
+            item->setFlags( Qt::ItemIsUserCheckable | Qt::ItemIsEnabled );
+            item->setCheckState( Qt::Unchecked );
+            overlaysModel->appendRow( item );
+        }
+
+    overlays_->setModel( overlaysModel );
+
+    connect( overlaysModel, &QStandardItemModel::itemChanged, this, &_Myt::onItemChanged );
+
+    //
+    // lowers
+    //
+
+    lowers_->addItem( QString(), "NONE" );
+    lowers_->addItem( QString(), "MACD" );
+
+    QStringList rsidepths;
+    rsidepths.append( "2" );
+    rsidepths.append( "3" );
+    rsidepths.append( "4" );
+    rsidepths.append( "5" );
+    rsidepths.append( "6" );
+    rsidepths.append( "10" );
+    rsidepths.append( "14" );
+    rsidepths.append( "20" );
+    rsidepths.append( "50" );
+
+    foreach ( const QString& rsidepth, rsidepths )
+        lowers_->addItem( QString(), "RSI" + rsidepth );
+
+    QStringList hvdepths;
+    hvdepths.append( "5" );
+    hvdepths.append( "10" );
+    hvdepths.append( "20" );
+    hvdepths.append( "30" );
+    hvdepths.append( "60" );
+    hvdepths.append( "90" );
+    hvdepths.append( "120" );
+    hvdepths.append( "240" );
+    hvdepths.append( "480" );
+
+    foreach ( const QString& hvdepth, hvdepths )
+        lowers_->addItem( QString(), "HV" + hvdepth );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -390,6 +469,8 @@ void SymbolPriceHistoryWidget::createLayout()
     boxes->addWidget( freqMin_ );
     boxes->addWidget( freqDayWeek_ );
     boxes->addWidget( freqDayWeekMonth_ );
+    boxes->addWidget( overlays_ );
+    boxes->addWidget( lowers_ );
     boxes->addStretch();
 
     QVBoxLayout *form( new QVBoxLayout( this ) );
@@ -448,14 +529,390 @@ int SymbolPriceHistoryWidget::scrollBarMaximum() const
 {
     if ( candles_.isEmpty() )
         return 0;
+    else if (( graph_.isNull() ) || ( margin_.isNull() ))
+        return 0;
 
-    return qMax( 0, (candlesWidth_ + marginWidth_) - width() );
+    return qMax( 0, (graph_.width() + margin_.width()) - width() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolPriceHistoryWidget::haveHistoricalVolatilities()
+{
+    if ( 0 == lowers_->currentIndex() )
+        return false;
+
+    // check for lower graph HV selected
+    const QString data( lowers_->currentData().toString() );
+
+    if (( "HV" == data.left( 2 ) ) && ( candles_.size() ))
+    {
+        const QDate start( candles_.first().stamp.date() );
+        const QDate end( candles_.last().stamp.date() );
+
+        // fetch historical volatilties
+        if ( hv_.isEmpty() )
+        {
+            QApplication::setOverrideCursor( Qt::WaitCursor );
+
+            // fetch!
+            AppDatabase::instance()->historicalVolatilities( symbol(), start, end, hv_ );
+
+            QApplication::restoreOverrideCursor();
+        }
+
+        return (( hv_.size() == candles_.size() ) &&
+            ( hv_.first().date == start ) &&
+            ( hv_.last().date == end ));
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolPriceHistoryWidget::haveMovingAverages()
+{
+    bool check( false );
+
+    // check for overlays selected
+    const QAbstractItemModel *model( overlays_->model() );
+    const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
+
+    foreach ( const QModelIndex& index, indexes )
+    {
+        const QString data( model->data( index, Qt::UserRole ).toString() );
+
+        if (( "EMA12" != data ) && ( "EMA26" != data ))
+        {
+            check = true;
+            break;
+        }
+    }
+
+    if (( check ) && ( candles_.size() ))
+    {
+        const QDate start( candles_.first().stamp.date() );
+        const QDate end( candles_.last().stamp.date() );
+
+        // fetch moving averages
+        if ( ma_.isEmpty() )
+        {
+            QApplication::setOverrideCursor( Qt::WaitCursor );
+
+            // fetch!
+            AppDatabase::instance()->movingAverages( symbol(), start, end, ma_ );
+
+            QApplication::restoreOverrideCursor();
+        }
+
+        return (( ma_.size() == candles_.size() ) &&
+            ( ma_.first().date == start ) &&
+            ( ma_.last().date == end ));
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolPriceHistoryWidget::haveMovingAveragesConvergenceDivergence( bool emaOnly )
+{
+    bool check( false );
+
+    // check EMA12 or EMA26 selected
+    if ( emaOnly )
+    {
+        // check for overlays selected
+        const QAbstractItemModel *model( overlays_->model() );
+        const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
+
+        foreach ( const QModelIndex& index, indexes )
+        {
+            const QString data( model->data( index, Qt::UserRole ).toString() );
+
+            if (( "EMA12" == data ) || ( "EMA26" == data ))
+            {
+                check = true;
+                break;
+            }
+        }
+    }
+
+    // check for lower graph MACD selected
+    else if ( lowers_->currentIndex() )
+    {
+        const QString data( lowers_->currentData().toString() );
+
+        check = ("MACD" == data);
+    }
+
+    if (( check ) && ( candles_.size() ))
+    {
+        const QDate start( candles_.first().stamp.date() );
+        const QDate end( candles_.last().stamp.date() );
+
+        // fetch MACD
+        if ( macd_.isEmpty() )
+        {
+            QApplication::setOverrideCursor( Qt::WaitCursor );
+
+            // fetch!
+            AppDatabase::instance()->movingAveragesConvergenceDivergence( symbol(), start, end, macd_ );
+
+            QApplication::restoreOverrideCursor();
+        }
+
+        return (( macd_.size() == candles_.size() ) &&
+            ( macd_.first().date == start ) &&
+            ( macd_.last().date == end ));
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolPriceHistoryWidget::haveRelativeStrengthIndexes()
+{
+    if ( 0 == lowers_->currentIndex() )
+        return false;
+
+    // check for lower graph RSI selected
+    const QString data( lowers_->currentData().toString() );
+
+    if (( "RSI" == data.left( 3 ) ) && ( candles_.size() ))
+    {
+        const QDate start( candles_.first().stamp.date() );
+        const QDate end( candles_.last().stamp.date() );
+
+        // fetch relative strength indexes
+        if ( rsi_.isEmpty() )
+        {
+            QApplication::setOverrideCursor( Qt::WaitCursor );
+
+            // fetch!
+            AppDatabase::instance()->relativeStrengthIndex( symbol(), start, end, rsi_ );
+
+            QApplication::restoreOverrideCursor();
+        }
+
+        return (( rsi_.size() == candles_.size() ) &&
+            ( rsi_.first().date == start ) &&
+            ( rsi_.last().date == end ));
+    }
+
+    return false;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+
+template <>
+void SymbolPriceHistoryWidget::calcMinMaxValues( const QList<CandleData>& values, double& min, double& max, unsigned long long& vmax ) const
+{
+    min = 999999.99;
+    max = 0.0;
+
+    vmax = 0;
+
+    foreach ( const CandleData& cd, values )
+    {
+        min = qMin( min, cd.lowPrice );
+        max = qMax( max, cd.highPrice );
+
+        vmax = qMax( vmax, cd.totalVolume );
+    }
+}
+
+template <>
+void SymbolPriceHistoryWidget::calcMinMaxValues( const QList<HistoricalVolatilities>& values, double& min, double& max, unsigned long long& vmax ) const
+{
+    Q_UNUSED( vmax );
+
+    min = 999999.99;
+    max = 0.0;
+
+    const QString data( lowers_->currentData().toString() );
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    const int index( QStringView{ data }.mid( 2 ).toInt() );
+#else
+    const int index( data.midRef( 2 ).toInt() );
+#endif
+
+    foreach ( const HistoricalVolatilities& hv, values )
+    {
+        const double val( hv.volatilities[index] );
+
+        min = qMin( min, val );
+        max = qMax( max, val );
+    }
+}
+
+template <>
+void SymbolPriceHistoryWidget::calcMinMaxValues( const QList<MovingAverages>& values, double& min, double& max, unsigned long long& vmax ) const
+{
+    Q_UNUSED( vmax );
+
+    min = 999999.99;
+    max = 0.0;
+
+    // check for overlays selected
+    const QAbstractItemModel *model( overlays_->model() );
+    const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
+
+    foreach ( const MovingAverages& ma, values )
+        foreach ( const QModelIndex& index, indexes )
+        {
+            const QString data( model->data( index, Qt::UserRole ).toString() );
+
+            const QString type( data.left( 3 ) );
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+            const int d( QStringView{ data }.mid( 3 ).toInt() );
+#else
+            const int d( data.midRef( 3 ).toInt() );
+#endif
+
+            double val;
+
+            if (( "SMA" == type ) && ( ma.sma.contains( d ) ))
+                val = ma.sma[d];
+            else if (( "EMA" == type ) && ( ma.ema.contains( d ) ))
+                val = ma.ema[d];
+            else
+            {
+                continue;
+            }
+
+            min = qMin( min, val );
+            max = qMax( max, val );
+        }
+
+}
+
+template <>
+void SymbolPriceHistoryWidget::calcMinMaxValues( const QList<MovingAveragesConvergenceDivergence>& values, double& min, double& max, unsigned long long& vmax ) const
+{
+    min =  999999.99;
+    max = -999999.99;
+
+    // vmax == 0.0 - MACD min/max values
+    // vmax != 0.0 - EMA min/max values
+    if ( 0.0 == vmax )
+    {
+        foreach ( const MovingAveragesConvergenceDivergence& macd, values )
+        {
+            min = qMin( min, macd.macd );
+            min = qMin( min, macd.signal );
+            min = qMin( min, macd.histogram );
+
+            max = qMax( max, macd.macd );
+            max = qMax( max, macd.signal );
+            max = qMax( max, macd.histogram );
+        }
+    }
+    else
+    {
+        // check for overlays selected
+        const QAbstractItemModel *model( overlays_->model() );
+        const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
+
+        foreach ( const MovingAveragesConvergenceDivergence& macd, values )
+            foreach ( const QModelIndex& index, indexes )
+            {
+                const QString data( model->data( index, Qt::UserRole ).toString() );
+
+                double val;
+
+                if (( "EMA12" == data ) || ( "EMA26" == data ))
+                {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                    val = macd.ema[QStringView{ data }.mid( 3 ).toInt()];
+#else
+                    val = macd.ema[data.midRef( 3 ).toInt()];
+#endif
+                }
+                else
+                {
+                    continue;
+                }
+
+                min = qMin( min, val );
+                max = qMax( max, val );
+            }
+
+    }
+}
+
+template <>
+void SymbolPriceHistoryWidget::calcMinMaxValues( const QList<RelativeStrengthIndexes>& values, double& min, double& max, unsigned long long& vmax ) const
+{
+    Q_UNUSED( vmax );
+
+    min = 999999.99;
+    max = 0.0;
+
+    const QString data( lowers_->currentData().toString() );
+
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+    const int index( QStringView{ data }.mid( 3 ).toInt() );
+#else
+    const int index( data.midRef( 3 ).toInt() );
+#endif
+
+    foreach ( const RelativeStrengthIndexes& rsi, values )
+    {
+        const double val( rsi.values[index] );
+
+        min = qMin( min, val );
+        max = qMax( max, val );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolPriceHistoryWidget::calcIntervalValues( double min, double max, double gheight, double div, double& interval, int& numDecimals ) const
+{
+    const int FOOTER( 25 );
+    const double MIN_INTERVAL_HEIGHT( 50.0 / div );
+
+    // determine price interval
+    QList<double> intervals;
+    intervals.append( 1.0 );
+    intervals.append( 2.0 );
+    intervals.append( 5.0 );
+
+    double mult( 0.0001 );
+
+    interval = 0.0;
+
+    do
+    {
+        foreach ( double val, intervals )
+        {
+            const double i( val*mult );
+            const double h( (gheight - FOOTER) / ((max - min) / i) );
+
+            if ( MIN_INTERVAL_HEIGHT <= h )
+            {
+                interval = i;
+                break;
+            }
+        }
+
+        mult *= 10.0;
+
+    } while ( interval <= 0.0 );
+
+    // number of decimal places
+    numDecimals = 2;
+
+    if ( interval < 0.0009 )
+        numDecimals = 4;
+    else if ( interval < 0.009 )
+        numDecimals = 3;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolPriceHistoryWidget::drawGraph()
 {
-    int footer( marginHeight_ );
+    unsigned long long unused;
 
     // no data
     if ( candles_.isEmpty() )
@@ -468,42 +925,135 @@ void SymbolPriceHistoryWidget::drawGraph()
     if (( !currentPeriod( p, ptype ) ) || ( !currentFrequency( f, ftype ) ))
         return;
 
+    // height to small
+    if ( height() < 128 )
+        return;
+
+    QPainter painter;
+
+    // determine candles min/max and volume max
+    double gmin;
+    double gmax;
+
+    unsigned long long vmax;
+
+    calcMinMaxValues( candles_, gmin, gmax, vmax );
+
+    // check overlay min/max
+    if ( haveMovingAverages() )
+    {
+        double min;
+        double max;
+
+        calcMinMaxValues( ma_, min, max, unused );
+
+        gmin = qMin( gmin, min );
+        gmax = qMax( gmax, max );
+    }
+
+    if ( haveMovingAveragesConvergenceDivergence( true ) )
+    {
+        double min;
+        double max;
+
+        calcMinMaxValues( macd_, min, max, (unused = 1.0) );
+
+        gmin = qMin( gmin, min );
+        gmax = qMax( gmax, max );
+    }
+
+    // determine interval
+    double ginterval;
+    int numDecimalPlaces;
+
+    calcIntervalValues( gmin, gmax, height(), 1.0, ginterval, numDecimalPlaces );
+
+    // graph constants
+    gmin = ginterval * std::floor( gmin / ginterval );
+    gmax = ginterval * std::ceil( gmax / ginterval );
+
+    const QFontMetrics fm( fontMetrics() );
+
+    int marginWidth( SPACING + fm.boundingRect( QString::number( gmax, 'f', numDecimalPlaces ) ).width() );
+    int marginHeight( SPACING + fm.boundingRect( "0123456789/:ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz" ).height() );
+
+    // check for lower existance
+    const bool lowerExists(
+        haveHistoricalVolatilities() ||
+        haveRelativeStrengthIndexes() ||
+        haveMovingAveragesConvergenceDivergence() );
+
+    double lmin( 0.0 );
+    double lmax( 0.0 );
+
+    double linterval( 0.0 );
+    int numDecimalPlacesLower( 2 );
+
+    if ( lowerExists )
+    {
+        // determine lower min/max
+        if ( haveHistoricalVolatilities() )
+            calcMinMaxValues( hv_, lmin, lmax, unused );
+        else if ( haveRelativeStrengthIndexes() )
+            calcMinMaxValues( rsi_, lmin, lmax, unused );
+        else if ( haveMovingAveragesConvergenceDivergence() )
+            calcMinMaxValues( macd_, lmin, lmax, (unused = 0.0) );
+
+        // determine interval
+        calcIntervalValues( lmin, lmax, height() / 4, 2.0, linterval, numDecimalPlacesLower );
+
+        // graph constants
+        lmin = linterval * std::floor( lmin / linterval );
+        lmax = linterval * std::ceil( lmax / linterval );
+
+        // adjust margin width
+        marginWidth = qMax( marginWidth, qMax(
+            SPACING + fm.boundingRect( QString::number( lmin, 'f', numDecimalPlacesLower ) ).width(),
+            SPACING + fm.boundingRect( QString::number( lmax, 'f', numDecimalPlacesLower ) ).width() ) );
+    }
+
     // compute candles width
     int cwidth( MIN_CANDLE_WIDTH + 2 );
 
-    while ( (marginWidth_ + (cwidth * candles_.size())) < width() )
+    while ( (marginWidth + (cwidth * candles_.size())) < width() )
         cwidth += 2;
 
     cwidth -= 2;
 
-    candlesWidth_ = cwidth * candles_.size();
+    int gheight( height() );
+    int gwidth( cwidth * candles_.size() );
 
     // check scroll bar visible
-    if ( scrollBarVisible() )
+    int smax( qMax( 0, (gwidth + marginWidth) - width()) );
+
+    if ( 0 < smax )
     {
-        scroll_->setMaximum( scrollBarMaximum() );
-        scroll_->setPageStep( candlesWidth_ );
+        scroll_->setRange( 0, smax );
+        scroll_->setPageStep( gwidth );
         scroll_->setSingleStep( cwidth );
         scroll_->show();
 
-        footer += scroll_->height();
+        gheight -= scroll_->height();
     }
     else
     {
         scroll_->hide();
     }
 
-    QPainter painter;
-
     // -----
     // graph
     // -----
 
-    const int gwidth( candlesWidth_ + marginWidth_ );               // px
-    const int gheight( height() );                                  // px
+    int gbottom( gheight - marginHeight );
+    int lbottom( 0 );
 
-    const int gbottom( gheight - footer );                          // px
-    const int gright( candlesWidth_ );                              // px
+    if ( lowerExists )
+    {
+        lbottom = gbottom;
+
+        gbottom *= 3;
+        gbottom /= 4;
+    }
 
     graph_ = QPixmap( gwidth, gheight );
     graph_.fill( palette().base().color() );
@@ -513,11 +1063,11 @@ void SymbolPriceHistoryWidget::drawGraph()
     // price intervals
     painter.setPen( QPen( Qt::darkGray, 0 ) );
 
-    for ( double i( gmin_ ); i <= gmax_; i += ginterval_ )
+    for ( double i( gmin ); i <= gmax; i += ginterval )
     {
-        const int y( gbottom - scaled( i, gmin_, gmax_, gbottom ) );
+        const int y( gbottom - scaled( i, gmin, gmax, gbottom ) );
 
-        painter.drawLine( 0, y, gright, y );
+        painter.drawLine( 0, y, gwidth, y );
     }
 
     // candles
@@ -528,14 +1078,16 @@ void SymbolPriceHistoryWidget::drawGraph()
     int x( coffset );
     int xfooter( -1 );
 
-    foreach ( const CandleData& cd, candles_ )
+    for ( int idx( 0 ); idx < candles_.size(); ++idx )
     {
+        const CandleData cd( candles_[idx] );
+
         const QColor fill( (cd.openPrice <= cd.closePrice) ? Qt::darkGreen : Qt::red );
 
         // total volume
         const QRectF vrect(
             QPointF( x+1, gbottom ),
-            QPointF( x+2, gbottom - scaled( cd.totalVolume, 0.0, 2.0*vmax_, gbottom ) ) );
+            QPointF( x+2, gbottom - scaled( cd.totalVolume, 0.0, 2.0*vmax, gbottom ) ) );
 
         painter.setPen( QPen( Qt::darkGray, 0 ) );
         painter.setBrush( QBrush( Qt::darkGray ) );
@@ -543,8 +1095,8 @@ void SymbolPriceHistoryWidget::drawGraph()
 
         // high/low price
         const QRectF hlrect(
-            QPointF( x+1, gbottom - scaled( cd.lowPrice, gmin_, gmax_, gbottom ) ),
-            QPointF( x+2, gbottom - scaled( cd.highPrice, gmin_, gmax_, gbottom ) ) );
+            QPointF( x+1, gbottom - scaled( cd.lowPrice, gmin, gmax, gbottom ) ),
+            QPointF( x+2, gbottom - scaled( cd.highPrice, gmin, gmax, gbottom ) ) );
 
         painter.setPen( QPen( fill, 0 ) );
         painter.setBrush( QBrush( fill ) );
@@ -552,8 +1104,8 @@ void SymbolPriceHistoryWidget::drawGraph()
 
         // open/close price
         const QRectF ocrect(
-            QPointF( x-coffset, gbottom - scaled( cd.openPrice, gmin_, gmax_, gbottom ) ),
-            QPointF( x+coffset+3, gbottom - scaled( cd.closePrice, gmin_, gmax_, gbottom ) ) );
+            QPointF( x-coffset, gbottom - scaled( cd.openPrice, gmin, gmax, gbottom ) ),
+            QPointF( x+coffset+3, gbottom - scaled( cd.closePrice, gmin, gmax, gbottom ) ) );
 
         painter.drawRect( ocrect );
 
@@ -626,30 +1178,198 @@ void SymbolPriceHistoryWidget::drawGraph()
             dprev = d;
         }
 
+        // draw label
         if ( label.length() )
         {
-            // draw label
-            painter.setPen( QPen( Qt::darkGray, 0 ) );
+            bool overlap( true );
 
-            const QRectF lrect(
-                QPointF( x+1, gbottom ),
-                QPointF( x+2, gbottom+2 ) );
-
-            painter.drawRect( lrect );
-
+            // update location so labels do not overlap
             if ( xfooter < x )
             {
-                // update location to labels do not overlap
-                const QFontMetrics fm( painter.fontMetrics() );
-
                 xfooter = x + fm.boundingRect( label ).width();
+                overlap = false;
+            }
 
-                painter.drawText( x, gbottom+4, 50, marginHeight_-SPACING, Qt::AlignLeft | Qt::AlignTop, label );
+            // draw for each graph (upper and lower)
+            QList<int> bottoms;
+            bottoms.append( gbottom );
+
+            if ( lowerExists )
+                bottoms.append( lbottom );
+
+            painter.setPen( QPen( Qt::darkGray, 0 ) );
+
+            foreach ( int bottom, bottoms )
+            {
+                const QRectF lrect(
+                    QPointF( x+1, bottom ),
+                    QPointF( x+2, bottom+2 ) );
+
+                painter.drawRect( lrect );
+
+                if ( !overlap )
+                    painter.drawText( x, bottom+4, 50, marginHeight-SPACING, Qt::AlignLeft | Qt::AlignTop, label );
+            }
+        }
+
+        // overlays
+        const QAbstractItemModel *model( overlays_->model() );
+        const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
+
+        foreach ( const QModelIndex& index, indexes )
+        {
+            const QString data( model->data( index, Qt::UserRole ).toString() );
+            const QVariant c( model->data( index, Qt::ForegroundRole ) );
+
+            if ( 0 < idx )
+            {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                const int d( QStringView{ data }.mid( 3 ).toInt() );
+#else
+                const int d( data.midRef( 3 ).toInt() );
+#endif
+
+                const bool macdVal(( 12 == d ) || ( 26 == d ));
+
+                double pval;
+                double val;
+
+                if (( "SMA" == data.left( 3 ) ) && ( ma_.size() ))
+                {
+                    pval = ma_[idx-1].sma[d];
+                    val = ma_[idx].sma[d];
+                }
+                else if (( "EMA" == data.left( 3 ) ) && ( macdVal ) && ( macd_.size() ))
+                {
+                    pval = macd_[idx-1].ema[d];
+                    val = macd_[idx].ema[d];
+                }
+                else if (( "EMA" == data.left( 3 ) ) && ( !macdVal ) && ( ma_.size() ))
+                {
+                    pval = ma_[idx-1].ema[d];
+                    val = ma_[idx].ema[d];
+                }
+                else
+                {
+                    continue;
+                }
+
+                painter.setPen( QPen( c.value<QBrush>(), 2 ) );
+
+                painter.drawLine(
+                    QPoint( x+2-cwidth, gbottom - scaled( pval, gmin, gmax, gbottom ) ),
+                    QPoint( x+2,        gbottom - scaled(  val, gmin, gmax, gbottom ) ) );
             }
         }
 
         // next candle
         x += cwidth;
+    }
+
+    // -----
+    // lower
+    // -----
+
+    int lheight( 0 );
+    int lwidth( 0 );
+
+    if ( lowerExists )
+    {
+        // graph constants
+        lheight = (gheight / 4) - ((marginHeight * 3) / 2);
+        lwidth = gwidth;
+
+        // value intervals
+        painter.setPen( QPen( Qt::darkGray, 0 ) );
+
+        for ( double i( lmin ); i <= lmax; i += linterval )
+        {
+            const int y( lbottom - scaled( i, lmin, lmax, lheight ) );
+
+            painter.drawLine( 0, y, lwidth, y );
+        }
+
+        // draw values
+        const QString data( lowers_->currentData().toString() );
+
+        painter.setPen( QPen( palette().windowText(), 2 ) );
+
+        int x( coffset );
+
+        for ( int idx( 0 ); idx < candles_.size(); ++idx )
+        {
+            // HV
+            if ( haveHistoricalVolatilities() )
+            {
+                if ( 0 < idx )
+                {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                    const double pval( hv_[idx-1].volatilities[QStringView{ data }.mid( 2 ).toInt()] );
+                    const double val( hv_[idx].volatilities[QStringView{ data }.mid( 2 ).toInt()] );
+#else
+                    const double pval( hv_[idx-1].volatilities[data.midRef( 2 ).toInt()] );
+                    const double val( hv_[idx].volatilities[data.midRef( 2 ).toInt()] );
+#endif
+
+                    painter.drawLine(
+                        QPoint( x+2-cwidth, lbottom - scaled( pval, lmin, lmax, lheight ) ),
+                        QPoint( x+2,        lbottom - scaled(  val, lmin, lmax, lheight ) ) );
+                }
+            }
+
+            // MACD
+            else if ( haveMovingAveragesConvergenceDivergence() )
+            {
+                const MovingAveragesConvergenceDivergence macd( macd_[idx] );
+
+                const QColor fill( 0.0 <= macd.histogram ? Qt::darkGreen : Qt::red );
+
+                // histogram
+                const QRectF hrect(
+                    QPointF( x-coffset,   lbottom - scaled( 0.0,            lmin, lmax, lheight ) ),
+                    QPointF( x+coffset+3, lbottom - scaled( macd.histogram, lmin, lmax, lheight ) ) );
+
+                painter.setPen( QPen( fill, 0 ) );
+                painter.setBrush( QBrush( fill ) );
+                painter.drawRect( hrect );
+
+                if ( 0 < idx )
+                {
+                    // MACD signal
+                    painter.drawLine(
+                        QPoint( x+2-cwidth, lbottom - scaled( macd_[idx-1].signal, lmin, lmax, lheight ) ),
+                        QPoint( x+2,        lbottom - scaled( macd.signal,         lmin, lmax, lheight ) ) );
+
+                    // MACD
+                    painter.setPen( QPen( palette().windowText(), 2 ) );
+                    painter.drawLine(
+                        QPoint( x+2-cwidth, lbottom - scaled( macd_[idx-1].macd, lmin, lmax, lheight ) ),
+                        QPoint( x+2,        lbottom - scaled( macd.macd,         lmin, lmax, lheight ) ) );
+                }
+            }
+
+            // RSI
+            else if ( haveRelativeStrengthIndexes() )
+            {
+                if ( 0 < idx )
+                {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                    const double pval( rsi_[idx-1].values[QStringView{ data }.mid( 3 ).toInt()] );
+                    const double val( rsi_[idx].values[QStringView{ data }.mid( 3 ).toInt()] );
+#else
+                    const double pval( rsi_[idx-1].values[data.midRef( 3 ).toInt()] );
+                    const double val( rsi_[idx].values[data.midRef( 3 ).toInt()] );
+#endif
+
+                    painter.drawLine(
+                        QPoint( x+2-cwidth, lbottom - scaled( pval, lmin, lmax, lheight ) ),
+                        QPoint( x+2,        lbottom - scaled(  val, lmin, lmax, lheight ) ) );
+                }
+            }
+
+            // next value
+            x += cwidth;
+        }
     }
 
     painter.end();
@@ -658,7 +1378,7 @@ void SymbolPriceHistoryWidget::drawGraph()
     // margin
     // ------
 
-    margin_ = QPixmap( marginWidth_, gheight );
+    margin_ = QPixmap( marginWidth, gheight );
     margin_.fill( palette().base().color() );
 
     painter.begin( &margin_ );
@@ -667,12 +1387,26 @@ void SymbolPriceHistoryWidget::drawGraph()
     painter.setPen( QPen( Qt::darkGray, 0 ) );
     painter.drawLine( 0, 0, 0, gbottom );
 
-    for ( double i( gmin_ ); i <= gmax_; i += ginterval_ )
+    for ( double i( gmin ); i <= gmax; i += ginterval )
     {
-        const int y( gbottom - scaled( i, gmin_, gmax_, gbottom ) );
+        const int y( gbottom - scaled( i, gmin, gmax, gbottom ) );
 
         painter.drawLine( 0, y, 2, y );
-        painter.drawText( 4, y-25, marginWidth_-SPACING, 50, Qt::AlignRight | Qt::AlignVCenter, QString::number( i, 'f', numDecimalPlaces_ ) );
+        painter.drawText( 4, y-25, marginWidth-SPACING, 50, Qt::AlignRight | Qt::AlignVCenter, QString::number( i, 'f', numDecimalPlaces ) );
+    }
+
+    // lower value intervals
+    if ( lowerExists )
+    {
+        painter.drawLine( 0, lbottom, 0, lbottom - lheight );
+
+        for ( double i( lmin ); i <= lmax; i += linterval )
+        {
+            const int y( lbottom - scaled( i, lmin, lmax, lheight ) );
+
+            painter.drawLine( 0, y, 2, y );
+            painter.drawText( 4, y-25, marginWidth-SPACING, 50, Qt::AlignRight | Qt::AlignVCenter, QString::number( i, 'f', numDecimalPlaces ) );
+        }
     }
 
     painter.end();
@@ -685,4 +1419,64 @@ void SymbolPriceHistoryWidget::drawGraph()
 int SymbolPriceHistoryWidget::scaled( double p, double min, double max, int height )
 {
     return std::round( ((p - min) / (max - min)) * height );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolPriceHistoryWidget::translateOverlays( QComboBox *w )
+{
+    QAbstractItemModel *model( w->model() );
+
+    model->setData( model->index( 0, 0 ), tr( "OVERLAYS" ), Qt::DisplayRole );
+
+    for ( int i( 1 ); i < model->rowCount(); ++i )
+    {
+        const QString data( model->data( model->index( i, 0 ), Qt::UserRole ).toString() );
+
+        QString text;
+
+        if ( "SMA" == data.left( 3 ) )
+            text = tr( "SMA(%0)" ).arg( data.mid( 3 ) );
+        else if ( "EMA" == data.left( 3 ) )
+            text = tr( "EMA(%0)" ).arg( data.mid( 3 ) );
+
+        model->setData( model->index( i, 0 ), text, Qt::DisplayRole );
+        model->setData( model->index( i, 0 ), overlayColor( data ), Qt::ForegroundRole );
+    }
+
+    // adjust view width to fit contents
+    w->view()->setMinimumWidth(
+        w->view()->sizeHintForColumn( 0 ) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolPriceHistoryWidget::translateLowers( QComboBox *w )
+{
+    for ( int i( 0 ); i < w->count(); ++i )
+    {
+        const QString data( w->itemData( i ).toString() );
+
+        QString text;
+
+        if ( "NONE" == data )
+            text = tr( "LOWERS" );
+        else if ( "MACD" == data )
+            text = tr( "MACD" );
+        else if ( "RSI" == data.left( 3 ) )
+            text = tr( "RSI(%0)" ).arg( data.mid( 3 ) );
+        else if ( "HV" == data.left( 2 ) )
+            text = tr( "HV(%0)" ).arg( data.mid( 2 ) );
+
+        w->setItemText( i, text );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QColor SymbolPriceHistoryWidget::overlayColor( const QString& desc )
+{
+    QCryptographicHash h( QCryptographicHash::Md5 );
+    h.addData( desc.toLatin1() );
+
+    const QByteArray a( h.result() );
+
+    return QColor( (unsigned char) a[0], (unsigned char) a[1], (unsigned char) a[2] );
 }

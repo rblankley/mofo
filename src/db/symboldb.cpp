@@ -38,7 +38,7 @@
 #include <QSqlTableModel>
 
 static const QString DB_NAME( "%1.db" );
-static const QString DB_VERSION( "3" );
+static const QString DB_VERSION( "4" );
 
 static const QString CALL( "CALL" );
 static const QString PUT( "PUT" );
@@ -168,8 +168,8 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
             {
                 const QSqlRecord rec( model.record( row ) );
 
-                const double v( rec.value( "volatility" ).toDouble() );
-                const int v_depth( rec.value( "depth" ).toInt() );
+                const double v( rec.value( DB_VOLATILITY ).toDouble() );
+                const int v_depth( rec.value( DB_DEPTH ).toInt() );
 
                 if ( v_depth == depth )
                     return v;
@@ -204,6 +204,69 @@ double SymbolDatabase::historicalVolatility( const QDateTime& dt, int depth ) co
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::historicalVolatilities( const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const
+{
+    static const QString sql( "SELECT * FROM historicalVolatility "
+        "WHERE DATE(:start)<=DATE(date) AND DATE(date)<=DATE(:end) "
+        "ORDER BY DATE(date)" );
+
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
+    query.prepare( sql );
+    query.bindValue( ":start", start.toString( Qt::ISODate ) );
+    query.bindValue( ":end", end.toString( Qt::ISODate ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
+    model.setQuery( query );
+#endif
+
+    // fetch all rows
+    while ( model.canFetchMore() )
+        model.fetchMore();
+
+    // extract data
+    QMap<QDate, HistoricalVolatilities*> vols;
+
+    for ( int row( 0 ); row < model.rowCount(); ++row )
+    {
+        const QSqlRecord rec( model.record( row ) );
+
+        const QDate dt( QDate::fromString( rec.value( DB_DATE ).toString(), Qt::ISODate ) );
+
+        if ( !vols.contains( dt ) )
+        {
+            vols[dt] = new HistoricalVolatilities();
+            vols[dt]->date = dt;
+        }
+
+        const int depth( rec.value( DB_DEPTH ).toInt() );
+        const double vol( 100.0 * rec.value( DB_VOLATILITY ).toDouble() );
+
+        vols[dt]->volatilities[depth] = vol;
+    }
+
+    // populate results
+    foreach ( HistoricalVolatilities *vol, vols )
+    {
+        data.append( *vol );
+        delete vol;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QDateTime SymbolDatabase::lastFundamentalProcessed() const
 {
     QDateTime stamp;
@@ -230,6 +293,125 @@ QDateTime SymbolDatabase::lastQuoteHistoryProcessed() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::movingAverages( const QDate& start, const QDate& end, QList<MovingAverages>& data ) const
+{
+    static const QString sql( "SELECT * FROM movingAverage "
+        "WHERE DATE(:start)<=DATE(date) AND DATE(date)<=DATE(:end) "
+        "ORDER BY DATE(date)" );
+
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
+    query.prepare( sql );
+    query.bindValue( ":start", start.toString( Qt::ISODate ) );
+    query.bindValue( ":end", end.toString( Qt::ISODate ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
+    model.setQuery( query );
+#endif
+
+    // fetch all rows
+    while ( model.canFetchMore() )
+        model.fetchMore();
+
+    // extract data
+    QMap<QDate, MovingAverages*> avgs;
+
+    for ( int row( 0 ); row < model.rowCount(); ++row )
+    {
+        const QSqlRecord rec( model.record( row ) );
+
+        const QDate dt( QDate::fromString( rec.value( DB_DATE ).toString(), Qt::ISODate ) );
+
+        if ( !avgs.contains( dt ) )
+        {
+            avgs[dt] = new MovingAverages();
+            avgs[dt]->date = dt;
+        }
+
+        const QString t( rec.value( DB_TYPE ).toString() );
+
+        const int depth( rec.value( DB_DEPTH ).toInt() );
+        const double avg( rec.value( DB_AVERAGE ).toDouble() );
+
+        if ( SIMPLE == t )
+            avgs[dt]->sma[depth] = avg;
+        else if ( EXPONENTIAL == t )
+            avgs[dt]->ema[depth] = avg;
+    }
+
+    // populate results
+    foreach ( MovingAverages *avg, avgs )
+    {
+        data.append( *avg );
+        delete avg;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::movingAveragesConvergenceDivergence( const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const
+{
+    static const QString sql( "SELECT * FROM movingAverageConvergenceDivergence "
+        "WHERE DATE(:start)<=DATE(date) AND DATE(date)<=DATE(:end) "
+        "ORDER BY DATE(date)" );
+
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
+    query.prepare( sql );
+    query.bindValue( ":start", start.toString( Qt::ISODate ) );
+    query.bindValue( ":end", end.toString( Qt::ISODate ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
+    model.setQuery( query );
+#endif
+
+    // fetch all rows
+    while ( model.canFetchMore() )
+        model.fetchMore();
+
+    // extract data
+    for ( int row( 0 ); row < model.rowCount(); ++row )
+    {
+        const QSqlRecord rec( model.record( row ) );
+
+        MovingAveragesConvergenceDivergence macd;
+        macd.date = QDate::fromString( rec.value( DB_DATE ).toString(), Qt::ISODate );
+        macd.ema[12] = rec.value( DB_EMA12 ).toDouble();
+        macd.ema[26] = rec.value( DB_EMA26 ).toDouble();
+        macd.macd = rec.value( DB_VALUE ).toDouble();
+        macd.signal = rec.value( DB_SIGNAL_VALUE ).toDouble();
+        macd.histogram = rec.value( DB_DIFF ).toDouble();
+
+        data.append( macd );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDatabase::quoteHistoryDateRange( QDate& start, QDate& end ) const
 {
     const QString sql( "SELECT date FROM quoteHistory ORDER BY DATE(date) %1 LIMIT 5" );
@@ -241,7 +423,7 @@ void SymbolDatabase::quoteHistoryDateRange( QDate& start, QDate& end ) const
     {
         const QSqlRecord rec( modelEnd.record( i ) );
 
-        end = QDate::fromString( rec.value( "date" ).toString(), Qt::ISODate );
+        end = QDate::fromString( rec.value( DB_DATE ).toString(), Qt::ISODate );
         break;
     }
 
@@ -252,8 +434,71 @@ void SymbolDatabase::quoteHistoryDateRange( QDate& start, QDate& end ) const
     {
         const QSqlRecord rec( modelStart.record( i ) );
 
-        start = QDate::fromString( rec.value( "date" ).toString(), Qt::ISODate );
+        start = QDate::fromString( rec.value( DB_DATE ).toString(), Qt::ISODate );
         break;
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::relativeStrengthIndex( const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const
+{
+    static const QString sql( "SELECT * FROM relativeStrengthIndex "
+        "WHERE DATE(:start)<=DATE(date) AND DATE(date)<=DATE(:end) "
+        "ORDER BY DATE(date)" );
+
+    // this method is used by background threads, need to open dedicated connection
+    QSqlDatabase conn( openDatabaseConnection() );
+
+    QSqlQuery query( conn );
+    query.prepare( sql );
+    query.bindValue( ":start", start.toString( Qt::ISODate ) );
+    query.bindValue( ":end", end.toString( Qt::ISODate ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
+    model.setQuery( query );
+#endif
+
+    // fetch all rows
+    while ( model.canFetchMore() )
+        model.fetchMore();
+
+    // extract data
+    QMap<QDate, RelativeStrengthIndexes*> values;
+
+    for ( int row( 0 ); row < model.rowCount(); ++row )
+    {
+        const QSqlRecord rec( model.record( row ) );
+
+        const QDate dt( QDate::fromString( rec.value( DB_DATE ).toString(), Qt::ISODate ) );
+
+        if ( !values.contains( dt ) )
+        {
+            values[dt] = new RelativeStrengthIndexes();
+            values[dt]->date = dt;
+        }
+
+        const int depth( rec.value( DB_DEPTH ).toInt() );
+        const double value( rec.value( DB_VALUE ).toDouble() );
+
+        values[dt]->values[depth] = value;
+    }
+
+    // populate results
+    foreach ( RelativeStrengthIndexes *value, values )
+    {
+        data.append( *value );
+        delete value;
     }
 }
 
@@ -404,6 +649,8 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
             if ( v.isObject() )
                 result &= addQuoteHistory( conn, v.toObject() );
 
+        LOG_TRACE << "calc historical...";
+
         // calculate historical volatility
         calcHistoricalVolatility( conn );
 
@@ -412,9 +659,14 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
 
         // calculate RSI
         calcRelativeStrengthIndex( conn );
+
+        // calculate MACD
+        calcMovingAverageConvergenceDivergence( conn );
     }
 
     // commit to database
+    LOG_TRACE << "commit...";
+
     if (( result ) && ( !(result = conn.commit()) ))
         LOG_ERROR << "commit failed";
 
@@ -425,6 +677,7 @@ bool SymbolDatabase::processQuoteHistory( const QJsonObject& obj )
     if ( result )
         writeSetting( LAST_QUOTE_HISTORY, AppDatabase::instance()->currentDateTime().toString( Qt::ISODateWithMs ), conn );
 
+    LOG_TRACE << "done";
     return result;
 }
 
@@ -1034,14 +1287,15 @@ void SymbolDatabase::calcMovingAverage( const QSqlDatabase& conn )
                 if ( a.length() < d )
                     break;
 
-                // calc sma and ema
-                const double w( 2.0 / (1.0 + d) );
-                const double sma( Stats::calcMean( a.mid( a.length() - d ) ) );
-
+                // calc ema
                 if ( !ema.contains( d ) )
-                    ema[d] = sma;
+                    ema[d] = Stats::calcMean( a.mid( a.length() - d ) ); // use sma
                 else
+                {
+                    const double w( 2.0 / (1.0 + d) );
+
                     ema[d] = close*w + ema[d]*(1.0 - w);
+                }
 
                 // check if this already exists in db
                 if (( i < forced ) && ( d <= depth ))
@@ -1052,7 +1306,7 @@ void SymbolDatabase::calcMovingAverage( const QSqlDatabase& conn )
                 movingAvgSymbols.append( symbol() );
                 movingAvgTypes.append( SIMPLE );
                 movingAvgDepths.append( d );
-                movingAvg.append( sma );
+                movingAvg.append( Stats::calcMean( a.mid( a.length() - d ) ) );
 
                 // exponential moving average
                 movingAvgDates.append( rec.value( DB_DATE ).toString() );
@@ -1314,6 +1568,189 @@ void SymbolDatabase::calcRelativeStrengthIndex( const QSqlDatabase& conn )
     valuesQuery.bindValue( ":" + DB_SYMBOL, rsiSymbols );
     valuesQuery.bindValue( ":" + DB_DEPTH, rsiDepths );
     valuesQuery.bindValue( ":" + DB_VALUE, rsi );
+
+    // exec sql
+    if ( !valuesQuery.execBatch() )
+    {
+        const QSqlError e( valuesQuery.lastError() );
+
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::calcMovingAverageConvergenceDivergence( const QSqlDatabase& conn )
+{
+    // records for quote history
+    QVariantList quoteDates;
+    QVariantList quoteSymbols;
+    QVariantList quoteExists;
+
+    // records for MACD
+    QVariantList convDivDates;
+    QVariantList convDivSymbols;
+    QVariantList convDivExp12Vals;
+    QVariantList convDivExp26Vals;
+    QVariantList convDiv;
+    QVariantList convDivSignal;
+    QVariantList convDivDiff;
+
+    // moving average days
+    QVector<int> mad;
+    mad.append( 12 );       // 12d
+    mad.append( 26 );       // 26d
+
+    // ---- //
+
+    static const QString sql( "SELECT * FROM quoteHistory ORDER BY date ASC" );
+
+    QSqlQuery query( conn );
+    query.prepare( sql );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    QSqlQueryModel model;
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    model.setQuery( std::move( query ) );
+#else
+    model.setQuery( query );
+#endif
+
+    // fetch all rows
+    while ( model.canFetchMore() )
+        model.fetchMore();
+
+    // force update of last N rows
+    const int forced( model.rowCount() - FORCED_UPDATE );
+
+    // calculate averages
+    QVector<double> a;
+    a.reserve( model.rowCount() );
+
+    QMap<int, double> ema;
+    QVector<double> macdVals;
+
+    for ( int i( 0 ); i < model.rowCount(); ++i )
+    {
+        const QSqlRecord rec( model.record( i ) );
+
+        const double close( rec.value( DB_CLOSE_PRICE ).toDouble() );
+
+        if ( 0.0 < close )
+        {
+            a.append( close );
+
+            // lookup depth of this record
+            bool exists( false );
+
+            if ( !rec.isNull( DB_MACD ) )
+                exists = rec.value( DB_MACD ).toBool();
+
+            // calc moving average for each depth
+            foreach ( int d, mad )
+            {
+                if ( a.length() < d )
+                    break;
+
+                // calc ema
+                if ( !ema.contains( d ) )
+                    ema[d] = Stats::calcMean( a.mid( a.length() - d ) ); // use sma
+                else
+                {
+                    const double w( 2.0 / (1.0 + d) );
+
+                    ema[d] = close*w + ema[d]*(1.0 - w);
+                }
+            }
+
+            // check we can calc MACD
+            if ( !ema.contains( 26 ) )
+                continue;
+
+            const double macd( ema[12] - ema[26] );
+
+            // calc ema9 of macd
+            if ( !ema.contains( 9 ) )
+            {
+                macdVals.append( macd );
+
+                if ( 9 == macdVals.size() )
+                    ema[9] = Stats::calcMean( macdVals ); // use sma
+                else
+                {
+                    continue;
+                }
+            }
+            else
+            {
+                const double w( 2.0 / (1.0 + 9.0) );
+
+                ema[9] = macd*w + ema[9]*(1.0 - w);
+            }
+
+            // check if this already exists in db
+            if (( i < forced ) && ( exists ))
+                continue;
+
+            // MACD
+            convDivDates.append( rec.value( DB_DATE ).toString() );
+            convDivSymbols.append( symbol() );
+            convDivExp12Vals.append( ema[12] );
+            convDivExp26Vals.append( ema[26] );
+            convDiv.append( macd );
+            convDivSignal.append( ema[9] );
+            convDivDiff.append( macd - ema[9] );
+
+            quoteDates.append( rec.value( DB_DATE ).toString() );
+            quoteSymbols.append( symbol() );
+            quoteExists.append( true );
+        }
+    }
+
+    // ---- //
+
+    static const QString quoteSql( "UPDATE quoteHistory "
+        "SET macd=:macd "
+            "WHERE date=:date AND symbol=:symbol" );
+
+    QSqlQuery quoteQuery( conn );
+    quoteQuery.prepare( quoteSql );
+
+    quoteQuery.bindValue( ":" + DB_DATE, quoteDates );
+    quoteQuery.bindValue( ":" + DB_SYMBOL, quoteSymbols );
+    quoteQuery.bindValue( ":" + DB_MACD, quoteExists );
+
+    // exec sql
+    if ( !quoteQuery.execBatch() )
+    {
+        const QSqlError e( quoteQuery.lastError() );
+
+        LOG_ERROR << "error during update " << e.type() << " " << qPrintable( e.text() );
+    }
+
+    // ---- //
+
+    static const QString valuesSql( "REPLACE INTO movingAverageConvergenceDivergence (date,symbol,"
+        "ema12,ema26,value,signalValue,diff) "
+            "VALUES (:date,:symbol,"
+                ":ema12,:ema26,:value,:signalValue,:diff) " );
+
+    QSqlQuery valuesQuery( conn );
+    valuesQuery.prepare( valuesSql );
+
+    valuesQuery.bindValue( ":" + DB_DATE, convDivDates );
+    valuesQuery.bindValue( ":" + DB_SYMBOL, convDivSymbols );
+    valuesQuery.bindValue( ":" + DB_EMA12, convDivExp12Vals );
+    valuesQuery.bindValue( ":" + DB_EMA26, convDivExp26Vals );
+    valuesQuery.bindValue( ":" + DB_VALUE, convDiv );
+    valuesQuery.bindValue( ":" + DB_SIGNAL_VALUE, convDivSignal );
+    valuesQuery.bindValue( ":" + DB_DIFF, convDivDiff );
 
     // exec sql
     if ( !valuesQuery.execBatch() )

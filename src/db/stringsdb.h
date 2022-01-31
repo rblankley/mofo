@@ -262,10 +262,16 @@ inline static const QString DB_DATETIME                             = "datetime"
 inline static const QString DB_MA_DEPTH                             = "maDepth";
 inline static const QString DB_HV_DEPTH                             = "hvDepth";
 inline static const QString DB_RSI_DEPTH                            = "rsiDepth";
+inline static const QString DB_MACD                                 = "macd";
 
 inline static const QString DB_AVERAGE                              = "average";
 inline static const QString DB_DEPTH                                = "depth";
 inline static const QString DB_VALUE                                = "value";
+
+inline static const QString DB_EMA12                                = "ema12";
+inline static const QString DB_EMA26                                = "ema26";
+inline static const QString DB_SIGNAL_VALUE                         = "signalValue";
+inline static const QString DB_DIFF                                 = "diff";
 
 // Instrument (Fundamental Data)
 inline static const QString DB_DESCRIPTION                          = "description";

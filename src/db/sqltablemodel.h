@@ -33,6 +33,7 @@
 class SqlTableModel : public QSqlTableModel
 {
     Q_OBJECT
+    Q_PROPERTY( bool ready READ ready RESET resetReady );
 
     using _Myt = SqlTableModel;
     using _Mybase = QSqlTableModel;
@@ -111,6 +112,12 @@ public:
      */
     virtual QVariant data0( int col, int role = Qt::DisplayRole ) const;
 
+    /// Check if data is ready.
+    /**
+     * @return  @c true if data is ready, @c false otherwise
+     */
+    virtual bool ready() const {return ready_;}
+
 public slots:
 
     // ========================================================================
@@ -123,7 +130,12 @@ public slots:
      */
     virtual bool refreshTableData();
 
+    /// Reset data ready flag.
+    virtual void resetReady() {ready_ = false;}
+
 protected:
+
+    bool ready_;                                    ///< Data is ready.
 
     QVector<bool> columnIsText_;                    ///< Column contains text data.
     QVector<int> numDecimalPlaces_;                 ///< Number of decimal places for this column that contains numeric data.

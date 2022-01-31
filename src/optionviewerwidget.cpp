@@ -183,30 +183,46 @@ void OptionViewerWidget::onButtonPressed()
             // retrieve chains
             const OptionChainView *view( qobject_cast<const OptionChainView*>( expiryDates_->widget( i ) ) );
 
-            if ( view )
-            {
-                if ( analysisOne_ == sender() )
-                    if ( expiryDates_->currentWidget() != view )
-                        continue;
+            OptionChainTableModel *viewModel( (view ? view->model() : nullptr) );
 
-                // create a calculator
-                OptionProfitCalculator *calc( OptionProfitCalculator::create( model_->tableData( QuoteTableModel::MARK ).toDouble(), view->model(), tradingModel_ ) );
+            if ( !viewModel )
+                continue;
 
-                if ( !calc )
-                    LOG_WARN << "no calculator";
-                else
+            if ( analysisOne_ == sender() )
+                if ( expiryDates_->currentWidget() != view )
+                    continue;
+
+            // check DTE
+            if (( calcFilter.minDaysToExpiry() ) && ( viewModel->daysToExpiration() < calcFilter.minDaysToExpiry() ))
+                continue;
+            else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < viewModel->daysToExpiration() ))
+                continue;
+
+            // refresh stale data
+            if ( !viewModel->ready() )
+                if ( !viewModel->refreshTableData() )
                 {
-                    // setup calculator
-                    calc->setFilter( calcFilter );
-                    calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
-
-                    // analyze
-                    calc->analyze( OptionTradingItemModel::SINGLE );
-                    calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
-                    calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
-
-                    OptionProfitCalculator::destroy( calc );
+                    LOG_WARN << "error refreshing chain table data";
+                    continue;
                 }
+
+            // create a calculator
+            OptionProfitCalculator *calc( OptionProfitCalculator::create( model_->tableData( QuoteTableModel::MARK ).toDouble(), viewModel, tradingModel_ ) );
+
+            if ( !calc )
+                LOG_WARN << "no calculator";
+            else
+            {
+                // setup calculator
+                calc->setFilter( calcFilter );
+                calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+
+                // analyze
+                calc->analyze( OptionTradingItemModel::SINGLE );
+                calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
+                calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+
+                OptionProfitCalculator::destroy( calc );
             }
         }
 
@@ -303,6 +319,8 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
     if ( symbol() != underlying )
         return;
 
+    LOG_TRACE << "refresh table data";
+
     // refresh model
     if ( !model_->refreshTableData() )
     {
@@ -332,12 +350,18 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
             // found!
             if ( d == viewModel->expirationDate() )
             {
-                // refresh model
-                if ( !viewModel->refreshTableData() )
-                {
-                    LOG_WARN << "error refreshing chain table data";
-                    return;
-                }
+                LOG_TRACE << "existing model";
+
+                // reset ready
+                viewModel->resetReady();
+
+                // refresh view model
+                if ( view->isVisible() )
+                    if ( !viewModel->refreshTableData() )
+                    {
+                        LOG_WARN << "error refreshing chain table data";
+                        return;
+                    }
 
                 expiryDates_->setTabText( i, view->title() );
 
@@ -353,15 +377,10 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
         // no instance found; create one
         if ( !found )
         {
+            LOG_TRACE << "create new model";
+
             OptionChainTableModel *viewModel( new OptionChainTableModel( underlying, d, QDateTime() ) );
             OptionChainView *view( new OptionChainView( viewModel, this ) );
-
-            // refresh model
-            if ( !viewModel->refreshTableData() )
-            {
-                LOG_WARN << "error refreshing chain table data";
-                return;
-            }
 
             expiryDates_->insertTab( index, view, view->title() );
         }

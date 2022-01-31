@@ -134,6 +134,9 @@ private:
     template <class T>
     static QString columnDescription( const T& table, int col );
 
+    /// Retrieve charting value description.
+    static QString chartingValueDescription( const QString& data );
+
     /// Translate table columns.
     static void translateTableColumns( QComboBox *w );
 

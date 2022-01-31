@@ -283,6 +283,19 @@ double AppDatabase::historicalVolatility( const QString& symbol, const QDateTime
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::historicalVolatilities( const QString& symbol, const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        child->historicalVolatilities( start, end, data );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, const QString& product, bool *isExtended ) const
 {
     QString sql( "SELECT isOpen, product FROM marketHours WHERE DATE(date)=DATE(:date) AND marketType=:marketType" );
@@ -493,6 +506,32 @@ QStringList AppDatabase::marketTypes( bool hasHours ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::movingAverages( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAverages>& data ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        child->movingAverages( start, end, data );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::movingAveragesConvergenceDivergence( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        child->movingAveragesConvergenceDivergence( start, end, data );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QSqlDatabase AppDatabase::openDatabaseConnection( const QString& symbol ) const
 {
     SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
@@ -514,6 +553,19 @@ void AppDatabase::quoteHistoryDateRange( const QString& symbol, QDate& start, QD
 
     if ( child )
         child->quoteHistoryDateRange( start, end );
+    else
+    {
+        LOG_WARN << "could not find symbol " << qPrintable( symbol );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::relativeStrengthIndex( const QString& symbol, const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+        child->relativeStrengthIndex( start, end, data );
     else
     {
         LOG_WARN << "could not find symbol " << qPrintable( symbol );
@@ -1140,29 +1192,6 @@ bool AppDatabase::processData( const QJsonObject& obj )
             const int freq( quoteHistory[DB_FREQUENCY].toInt() );
             const QString freqType( quoteHistory[DB_FREQUENCY_TYPE].toString() );
 
-            // parse out candles
-            QList<CandleData> candles;
-
-            foreach ( const QJsonValue& candleVal, history->toArray() )
-               if ( candleVal.isObject() )
-               {
-                   const QJsonObject candle( candleVal.toObject() );
-
-                   CandleData data;
-                   data.stamp = QDateTime::fromString( candle[DB_DATETIME].toString(), Qt::ISODateWithMs );
-                   data.openPrice = candle[DB_OPEN_PRICE].toDouble();
-                   data.highPrice = candle[DB_HIGH_PRICE].toDouble();
-                   data.lowPrice = candle[DB_LOW_PRICE].toDouble();
-                   data.closePrice = candle[DB_CLOSE_PRICE].toDouble();
-                   data.totalVolume = candle[DB_TOTAL_VOLUME].toVariant().toULongLong();
-
-                   // append candle
-                   candles.append( data );
-               }
-
-            // emit signal
-            emit candleDataChanged( symbol, start, stop, period, periodType, freq, freqType, candles );
-
             // for daily, process as quote history
             if ( DAILY == freqType )
             {
@@ -1179,6 +1208,35 @@ bool AppDatabase::processData( const QJsonObject& obj )
                 quoteHistoryProcessed = result;
                 quoteHistorySymbol = symbol;
             }
+
+            LOG_TRACE << "parse candles";
+
+            // parse out candles
+            QList<CandleData> candles;
+
+            foreach ( const QJsonValue& candleVal, history->toArray() )
+               if ( candleVal.isObject() )
+               {
+                   const QJsonObject candle( candleVal.toObject() );
+
+                   CandleData data;
+                   data.stamp = QDateTime::fromString( candle[DB_DATETIME].toString(), Qt::ISODateWithMs );
+
+                   data.openPrice = candle[DB_OPEN_PRICE].toDouble();
+                   data.highPrice = candle[DB_HIGH_PRICE].toDouble();
+                   data.lowPrice = candle[DB_LOW_PRICE].toDouble();
+                   data.closePrice = candle[DB_CLOSE_PRICE].toDouble();
+                   data.totalVolume = candle[DB_TOTAL_VOLUME].toVariant().toULongLong();
+
+                   // append candle
+                   candles.append( data );
+               }
+
+            LOG_TRACE << "candle data changed...";
+
+            // emit signal
+            emit candleDataChanged( symbol, start, stop, period, periodType, freq, freqType, candles );
+            LOG_TRACE << "candle data changed... done";
         }
     }
 

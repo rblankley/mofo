@@ -102,15 +102,21 @@ protected:
 
     /// Leave event.
     /**
-     * @param[in,out] event  event
+     * @param[in,out] e  event
      */
-    virtual void leaveEvent( QEvent *event ) override;
+    virtual void leaveEvent( QEvent *e ) override;
 
     /// Mouse move event.
     /**
-     * @param[in,out] event  event
+     * @param[in,out] e  event
      */
-    virtual void mouseMoveEvent( QMouseEvent *event ) override;
+    virtual void mouseMoveEvent( QMouseEvent *e ) override;
+
+    /// Show event.
+    /**
+     * @param[in,out] e  event
+     */
+    virtual void showEvent( QShowEvent *e ) override;
 
 private slots:
 

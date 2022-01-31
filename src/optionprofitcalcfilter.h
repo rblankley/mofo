@@ -750,7 +750,7 @@ private:
     bool checkAdvancedFilters() const;
 
     /// Retrieve table data value.
-    QVariant tableData( const QString& t, int col ) const;
+    QVariant tableData( const QString& t, const QString& col ) const;
 
 };
 

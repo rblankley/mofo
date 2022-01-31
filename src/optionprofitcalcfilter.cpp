@@ -107,6 +107,7 @@ static const QString QUOTE_TABLE( "Q" );
 static const QString FUNDAMENTALS_TABLE( "F" );
 static const QString OPTION_CHAIN_TABLE( "OC" );
 static const QString OPTION_TRADING_TABLE( "OT" );
+static const QString CHARTING( "C" );
 
 static const QString STRING_VALUE( "S" );
 static const QString INT_VALUE( "I" );
@@ -753,7 +754,10 @@ bool OptionProfitCalculatorFilter::checkAdvancedFilters() const
     QStringList tables;
 
     if ( q_ )
+    {
         tables.append( QUOTE_TABLE );
+        tables.append( CHARTING );
+    }
 
     if ( f_ )
         tables.append( FUNDAMENTALS_TABLE );
@@ -779,7 +783,7 @@ bool OptionProfitCalculatorFilter::checkAdvancedFilters() const
         if ( !tables.contains( t0[0] ) )
             continue;
 
-        const QVariant v0( tableData( t0[0], t0[1].toInt() ) );
+        const QVariant v0( tableData( t0[0], t0[1] ) );
 
         // retrieve operand
         const QStringList op( filter[1].split( ":" ) );
@@ -794,7 +798,7 @@ bool OptionProfitCalculatorFilter::checkAdvancedFilters() const
             if ( !tables.contains( t1[0] ) )
                 continue;
 
-            v1 = tableData( t1[0], t1[1].toInt() );
+            v1 = tableData( t1[0], t1[1] );
         }
         else if ( STRING_VALUE == t0[2] )
             v1 = filter[2];
@@ -864,16 +868,132 @@ bool OptionProfitCalculatorFilter::checkAdvancedFilters() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QVariant OptionProfitCalculatorFilter::tableData( const QString& t, int col ) const
+QVariant OptionProfitCalculatorFilter::tableData( const QString& t, const QString& col ) const
 {
     if (( QUOTE_TABLE == t ) && ( q_ ))
-        return q_->data0( col );
+        return q_->data0( col.toInt() );
     else if (( FUNDAMENTALS_TABLE == t ) && ( f_ ))
-        return f_->data0( col );
+        return f_->data0( col.toInt() );
     else if (( OPTION_CHAIN_TABLE == t ) && ( oc_ ))
-        return oc_->data( ocr_, col );
+        return oc_->data( ocr_, col.toInt() );
     else if (( OPTION_TRADING_TABLE == t ) && ( t_ ))
-        return (*t_)[col];
+        return (*t_)[col.toInt()];
+    else if (( CHARTING == t ) && ( q_ ))
+    {
+        const QDateTime now( AppDatabase::instance()->currentDateTime() );
+
+        const QString symbol( q_->data0( QuoteTableModel::SYMBOL ).toString() );
+        const QDate start( now.date().addDays( -5 ) );
+        const QDate end( now.date() );
+
+        // exponential moving average (from MACD)
+        if (( "EMA12" == col ) || ( "EMA26" == col ))
+        {
+            QList<MovingAveragesConvergenceDivergence> values;
+
+            AppDatabase::instance()->movingAveragesConvergenceDivergence( symbol, start, end, values );
+
+            if ( values.size() )
+            {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                return values.last().ema[ QStringView{ col }.mid( 3 ).toInt() ];
+#else
+                return values.last().ema[ col.midRef( 3 ).toInt() ];
+#endif
+            }
+        }
+        // simple moving average
+        // exponential moving average
+        else if (( "SMA" == col.left( 3 ) ) || ( "EMA" == col.left( 3 ) ))
+        {
+            QList<MovingAverages> values;
+
+            AppDatabase::instance()->movingAverages( symbol, start, end, values );
+
+            if ( values.size() )
+            {
+                if ( "SMA" == col.left( 3 ) )
+                {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                    return values.last().sma[ QStringView{ col }.mid( 3 ).toInt() ];
+#else
+                    return values.last().sma[ col.midRef( 3 ).toInt() ];
+#endif
+                }
+                else if ( "EMA" == col.left( 3 ) )
+                {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                    return values.last().ema[ QStringView{ col }.mid( 3 ).toInt() ];
+#else
+                    return values.last().ema[ col.midRef( 3 ).toInt() ];
+#endif
+                }
+            }
+        }
+        // relative strength index
+        else if ( "RSI" == col.left( 3 ) )
+        {
+            QList<RelativeStrengthIndexes> values;
+
+            AppDatabase::instance()->relativeStrengthIndex( symbol, start, end, values );
+
+            if ( values.size() )
+            {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                return values.last().values[ QStringView{ col }.mid( 3 ).toInt() ];
+#else
+                return values.last().values[ col.midRef( 3 ).toInt() ];
+#endif
+            }
+        }
+        // historical volatility
+        else if ( "HV" == col.left( 2 ) )
+        {
+            QList<HistoricalVolatilities> values;
+
+            AppDatabase::instance()->historicalVolatilities( symbol, start, end, values );
+
+            if ( values.size() )
+            {
+#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
+                return values.last().volatilities[ QStringView{ col }.mid( 2 ).toInt() ];
+#else
+                return values.last().volatilities[ col.midRef( 2 ).toInt() ];
+#endif
+            }
+        }
+        // macd
+        else if ( "MACD" == col.left( 4 ) )
+        {
+            QList<MovingAveragesConvergenceDivergence> values;
+
+            AppDatabase::instance()->movingAveragesConvergenceDivergence( symbol, start, end, values );
+
+            if (( "MACDBUYFLAG" == col ) && ( 2 <= values.size() ))
+            {
+                const double pval( values[values.size()-2].histogram );
+                const double val( values[values.size()-1].histogram );
+
+                return ((( pval < 0.0 ) && ( 0.0 <= val )) ? 1 : 0);
+            }
+            else if (( "MACDSELLFLAG" == col ) && ( 2 <= values.size() ))
+            {
+                const double pval( values[values.size()-2].histogram );
+                const double val( values[values.size()-1].histogram );
+
+                return ((( 0.0 <= pval ) && ( val < 0.0 )) ? 1 : 0);
+            }
+            else if ( values.size() )
+            {
+                if ( "MACD" == col )
+                    return values.last().macd;
+                else if ( "MACDSIG" == col )
+                    return values.last().signal;
+                else if ( "MACDH" == col )
+                    return values.last().histogram;
+            }
+        }
+    }
 
     return QVariant();
 }

@@ -24,6 +24,7 @@
 #define CANDLEDATA_H
 
 #include <QDateTime>
+#include <QMap>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -31,11 +32,50 @@
 struct CandleData
 {
     QDateTime stamp;
+
     double openPrice;
     double highPrice;
     double lowPrice;
     double closePrice;
     unsigned long long totalVolume;
+};
+
+/// Historical Volatilities.
+struct HistoricalVolatilities
+{
+    QDate date;
+
+    QMap<int, double> volatilities;
+};
+
+/// Moving Averages.
+struct MovingAverages
+{
+    QDate date;
+
+    QMap<int, double> sma;
+    QMap<int, double> ema;
+};
+
+/// Moving Averages Convergence/Divergence.
+struct MovingAveragesConvergenceDivergence
+{
+    QDate date;
+
+    QMap<int, double> ema;
+
+    double macd;
+    double signal;
+
+    double histogram;
+};
+
+/// Relative Strength Indexes.
+struct RelativeStrengthIndexes
+{
+    QDate date;
+
+    QMap<int, double> values;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

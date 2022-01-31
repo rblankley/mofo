@@ -29,9 +29,12 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SqlTableModel::SqlTableModel( int columns, QObject *parent, QSqlDatabase db ) :
     _Mybase( parent, db ),
+    ready_( false ),
     columnIsText_( columns, false ),
     numDecimalPlaces_( columns, 0 )
 {
+    // default to manual submit edit strategy
+    setEditStrategy( QSqlTableModel::OnManualSubmit );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -59,7 +62,7 @@ bool SqlTableModel::refreshTableData()
     do
     {
         if ( select() )
-            return true;
+            return (ready_ = true);
 
         // wait a moment
         QThread::msleep( SELECT_TIMEOUT );

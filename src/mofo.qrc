@@ -14,6 +14,7 @@
         <file>db/default_symbol.sql</file>
         <file>db/version2_symbol.sql</file>
         <file>db/version3_symbol.sql</file>
+        <file>db/version4_symbol.sql</file>
         <file>res/analysis.png</file>
         <file>res/bar-chart.png</file>
         <file>res/cancel.png</file>

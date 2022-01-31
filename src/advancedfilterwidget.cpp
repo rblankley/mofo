@@ -37,6 +37,7 @@ static const QString QUOTE_TABLE( "Q" );
 static const QString FUNDAMENTALS_TABLE( "F" );
 static const QString OPTION_CHAIN_TABLE( "OC" );
 static const QString OPTION_TRADING_TABLE( "OT" );
+static const QString CHARTING( "C" );
 
 static const QString STRING_VALUE( "S" );
 static const QString INT_VALUE( "I" );
@@ -138,7 +139,9 @@ void AdvancedFilterWidget::translate()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void AdvancedFilterWidget::resizeEvent( QResizeEvent *e )
 {
-    const int w( (42 * width()) / 100 );
+    const int w( (49 * (width() - operand_->sizeHint().width() - remove_->sizeHint().width())) / 100 );
+
+    table_->setFixedWidth( w );
 
     tableVal_->setFixedWidth( w );
     stringVal_->setFixedWidth( w );
@@ -167,7 +170,7 @@ void AdvancedFilterWidget::onCurrentIndexChanged( int index )
     {
         tableVal_->setVisible( true );
         stringVal_->setVisible( false );
-        integerVal_->setValue( false );
+        integerVal_->setVisible( false );
         doubleVal_->setVisible( false );
 
         // clear and re-populate table values that can be matched
@@ -265,6 +268,67 @@ void AdvancedFilterWidget::populateTableColumns( QComboBox *w, const QString& ty
     populateTableColumns( FUNDAMENTALS_TABLE, FundamentalsTableModel( QString() ), type, w );
     populateTableColumns( OPTION_CHAIN_TABLE, OptionChainTableModel( QString(), QDate() ), type, w );
     populateTableColumns( OPTION_TRADING_TABLE, OptionTradingItemModel(), type, w );
+
+    if (( type.isEmpty() ) || ( DOUBLE_VALUE == type ))
+    {
+        // simple moving average
+        w->addItem( QString(), CHARTING + ":SMA5:D" );
+        w->addItem( QString(), CHARTING + ":SMA10:D" );
+        w->addItem( QString(), CHARTING + ":SMA15:D" );
+        w->addItem( QString(), CHARTING + ":SMA20:D" );
+        w->addItem( QString(), CHARTING + ":SMA30:D" );
+        w->addItem( QString(), CHARTING + ":SMA50:D" );
+        w->addItem( QString(), CHARTING + ":SMA100:D" );
+        w->addItem( QString(), CHARTING + ":SMA200:D" );
+
+        // exponential moving average
+        w->addItem( QString(), CHARTING + ":EMA5:D" );
+        w->addItem( QString(), CHARTING + ":EMA10:D" );
+        w->addItem( QString(), CHARTING + ":EMA12:D" );
+        w->addItem( QString(), CHARTING + ":EMA15:D" );
+        w->addItem( QString(), CHARTING + ":EMA20:D" );
+        w->addItem( QString(), CHARTING + ":EMA26:D" );
+        w->addItem( QString(), CHARTING + ":EMA30:D" );
+        w->addItem( QString(), CHARTING + ":EMA50:D" );
+        w->addItem( QString(), CHARTING + ":EMA100:D" );
+        w->addItem( QString(), CHARTING + ":EMA200:D" );
+
+        // macd
+        w->addItem( QString(), CHARTING + ":MACD:D" );
+        w->addItem( QString(), CHARTING + ":MACDSIG:D" );
+        w->addItem( QString(), CHARTING + ":MACDH:D" );
+    }
+
+    if (( type.isEmpty() ) || ( INT_VALUE == type ))
+    {
+        w->addItem( QString(), CHARTING + ":MACDBUYFLAG:I" );
+        w->addItem( QString(), CHARTING + ":MACDSELLFLAG:I" );
+    }
+
+    if (( type.isEmpty() ) || ( DOUBLE_VALUE == type ))
+    {
+        // relative strength index
+        w->addItem( QString(), CHARTING + ":RSI2:D" );
+        w->addItem( QString(), CHARTING + ":RSI3:D" );
+        w->addItem( QString(), CHARTING + ":RSI4:D" );
+        w->addItem( QString(), CHARTING + ":RSI5:D" );
+        w->addItem( QString(), CHARTING + ":RSI6:D" );
+        w->addItem( QString(), CHARTING + ":RSI10:D" );
+        w->addItem( QString(), CHARTING + ":RSI14:D" );
+        w->addItem( QString(), CHARTING + ":RSI20:D" );
+        w->addItem( QString(), CHARTING + ":RSI50:D" );
+
+        // historical volatility
+        w->addItem( QString(), CHARTING + ":HV5:D" );
+        w->addItem( QString(), CHARTING + ":HV10:D" );
+        w->addItem( QString(), CHARTING + ":HV20:D" );
+        w->addItem( QString(), CHARTING + ":HV30:D" );
+        w->addItem( QString(), CHARTING + ":HV60:D" );
+        w->addItem( QString(), CHARTING + ":HV90:D" );
+        w->addItem( QString(), CHARTING + ":HV120:D" );
+        w->addItem( QString(), CHARTING + ":HV240:D" );
+        w->addItem( QString(), CHARTING + ":HV480:D" );
+    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -272,6 +336,44 @@ template <class T>
 QString AdvancedFilterWidget::columnDescription( const T& table, int col )
 {
     return table.columnDescription( col );
+}
+
+QString AdvancedFilterWidget::chartingValueDescription( const QString& data )
+{
+    // simple moving average
+    if ( "SMA" == data.left( 3 ) )
+        return tr( "Simple Moving Average - %0 Days" ).arg( data.mid( 3 ) );
+
+    // exponential moving average
+    else if ( "EMA" == data.left( 3 ) )
+        return tr( "Exponential Moving Average - %0 Days" ).arg( data.mid( 3 ) );
+
+    // relative strength index
+    else if ( "RSI" == data.left( 3 ) )
+        return tr( "Relative Strength Index - %0 Days" ).arg( data.mid( 3 ) );
+
+    // historical volatility
+    else if ( "HV" == data.left( 2 ) )
+        return tr( "Historical Volatility - %0 Days" ).arg( data.mid( 2 ) );
+
+    // macd
+    else if ( "MACD" == data.left( 4 ) )
+    {
+        const QString title( tr( "Moving Average Convergence/Divergence (MACD)" ) );
+
+        if ( "MACD" == data )
+            return title;
+        else if ( "MACDSIG" == data )
+            return tr( "%0 - Signal Line Value" ).arg( title );
+        else if ( "MACDH" == data )
+            return tr( "%0 - Histogram Value" ).arg( title );
+        else if ( "MACDBUYFLAG" == data )
+            return tr( "%0 - Buy Flag" ).arg( title );
+        else if ( "MACDSELLFLAG" == data )
+            return tr( "%0 - Sell Flag" ).arg( title );
+    }
+
+    return QString();
 }
 
 void AdvancedFilterWidget::translateTableColumns( QComboBox *w )
@@ -300,6 +402,10 @@ void AdvancedFilterWidget::translateTableColumns( QComboBox *w )
             colDescription = colDescriptionFormat.arg(
                 tr( "Trades" ),
                 columnDescription( OptionTradingItemModel(), data[1].toInt() ) );
+        else if ( CHARTING == data[0] )
+            colDescription = colDescriptionFormat.arg(
+                tr( "Charting" ),
+                chartingValueDescription( data[1] ) );
 
         w->setItemText( i, colDescription );
     }

@@ -23,6 +23,7 @@
 #ifndef SYMBOLDB_H
 #define SYMBOLDB_H
 
+#include "candledata.h"
 #include "sqldb.h"
 
 #include <QDate>
@@ -90,6 +91,14 @@ public:
      */
     virtual double historicalVolatility( const QDateTime& dt, int depth ) const;
 
+    /// Retrieve historical volatilities
+    /**
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  volatilities
+     */
+    virtual void historicalVolatilities( const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const;
+
     /// Retrieve last fundamental processed stamp.
     /**
      * @return  stamp of last fundamental processed
@@ -102,12 +111,36 @@ public:
      */
     virtual QDateTime lastQuoteHistoryProcessed() const;
 
+    /// Retrieve moving averages.
+    /**
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  moving averages
+     */
+    virtual void movingAverages( const QDate& start, const QDate& end, QList<MovingAverages>& data ) const;
+
+    /// Retrieve moving average convergence/divergence (MACD)
+    /**
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  MACD data
+     */
+    virtual void movingAveragesConvergenceDivergence( const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const;
+
     /// Retrieve quote history date range.
     /**
      * @param[out] start  start date
      * @param[out] end  end date
      */
     virtual void quoteHistoryDateRange( QDate& start, QDate& end ) const;
+
+    /// Retrieve RSI.
+    /**
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[out] data  RSI values
+     */
+    virtual void relativeStrengthIndex( const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const;
 
     /// Retrieve symbol.
     /**
@@ -277,6 +310,9 @@ private:
 
     /// Calculate relative strength index.
     void calcRelativeStrengthIndex( const QSqlDatabase& conn );
+
+    /// Calculate moving average convergence/divergence (MACD).
+    void calcMovingAverageConvergenceDivergence( const QSqlDatabase& conn );
 
     /// Calculate dividend frequency.
     void calcDividendFrequencyFromDate( const QSqlDatabase& conn, const QJsonValue& date );
