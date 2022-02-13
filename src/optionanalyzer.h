@@ -128,6 +128,7 @@ protected:
     QString customFilter_;                          ///< Custom filter.
 
     bool halt_;                                     ///< Halt flag (for shutdown).
+    bool throttle_;                                 ///< Throttle flag.
 
 private slots:
 
@@ -145,8 +146,7 @@ private:
     static constexpr int WAIT_TIME = 50;
 
     static constexpr bool THROTTLE = true;
-    static constexpr double THROTTLE_CPU_THRESHOLD = 0.90;
-    static constexpr int THROTTLE_YIELD_TIME = 50;
+    static constexpr double THROTTLE_CPU_THRESHOLD = 0.95;
 
 #ifdef Q_OS_WINDOWS
     mutable uint64_t prevIdleTime_;
@@ -169,6 +169,9 @@ private:
 
     /// Update status message.
     void updateStatus( bool force );
+
+    /// Check if should throttle.
+    bool needToThrottle() const;
 
     /// Retrieve CPU usage percent.
     double cpuUsage() const;

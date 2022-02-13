@@ -10,11 +10,13 @@
         <file>db/version7_app.sql</file>
         <file>db/version8_app.sql</file>
         <file>db/version9_app.sql</file>
+        <file>db/version10_app.sql</file>
         <file>db/createdb_symbol.sql</file>
         <file>db/default_symbol.sql</file>
         <file>db/version2_symbol.sql</file>
         <file>db/version3_symbol.sql</file>
         <file>db/version4_symbol.sql</file>
+        <file>db/version5_symbol.sql</file>
         <file>res/analysis.png</file>
         <file>res/bar-chart.png</file>
         <file>res/cancel.png</file>

@@ -161,7 +161,7 @@ void OptionViewerWidget::onButtonPressed()
         // retrieve fundamentals
         FundamentalsTableModel fundamentals( symbol() );
 
-        if ( !fundamentals.refreshTableData() )
+        if ( !fundamentals.refreshData() )
         {
             LOG_WARN << "error refreshing fundamentals table data";
             return;
@@ -200,7 +200,7 @@ void OptionViewerWidget::onButtonPressed()
 
             // refresh stale data
             if ( !viewModel->ready() )
-                if ( !viewModel->refreshTableData() )
+                if ( !viewModel->refreshData() )
                 {
                     LOG_WARN << "error refreshing chain table data";
                     continue;
@@ -312,7 +312,6 @@ void OptionViewerWidget::refreshData()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const QList<QDate>& expiryDates, bool background )
 {
-    Q_UNUSED( expiryDates );
     Q_UNUSED( background );
 
     // nothing to do
@@ -322,7 +321,7 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
     LOG_TRACE << "refresh table data";
 
     // refresh model
-    if ( !model_->refreshTableData() )
+    if ( !model_->refreshData() )
     {
         LOG_WARN << "error refreshing quote table data";
         return;
@@ -330,59 +329,74 @@ void OptionViewerWidget::onOptionChainUpdated( const QString& underlying, const 
 
     const bool empty( 0 == expiryDates_->count() );
 
-    // iterate all expiration dates
-    foreach ( const QDate& d, expiryDates )
+    // no expiration dates
+    // probably symbol without options
+    if ( expiryDates.isEmpty() )
     {
-        bool found( false );
+        analysisAll_->setEnabled( false );
 
-        int index( expiryDates_->count() );
+        // request quote instead
+        AbstractDaemon::instance()->getQuote( symbol_ );
+    }
 
-        // check tabs for instance of this date
-        for ( int i( expiryDates_->count() ); i--; )
+    else
+    {
+        analysisAll_->setEnabled( true );
+
+        // iterate all expiration dates
+        foreach ( const QDate& d, expiryDates )
         {
-            const OptionChainView *view( qobject_cast<OptionChainView*>( expiryDates_->widget( i ) ) );
+            bool found( false );
 
-            OptionChainTableModel *viewModel( (view ? view->model() : nullptr) );
+            int index( expiryDates_->count() );
 
-            if ( !viewModel )
-                continue;
-
-            // found!
-            if ( d == viewModel->expirationDate() )
+            // check tabs for instance of this date
+            for ( int i( expiryDates_->count() ); i--; )
             {
-                LOG_TRACE << "existing model";
+                const OptionChainView *view( qobject_cast<OptionChainView*>( expiryDates_->widget( i ) ) );
 
-                // reset ready
-                viewModel->resetReady();
+                OptionChainTableModel *viewModel( (view ? view->model() : nullptr) );
 
-                // refresh view model
-                if ( view->isVisible() )
-                    if ( !viewModel->refreshTableData() )
-                    {
-                        LOG_WARN << "error refreshing chain table data";
-                        return;
-                    }
+                if ( !viewModel )
+                    continue;
 
-                expiryDates_->setTabText( i, view->title() );
+                // found!
+                if ( d == viewModel->expirationDate() )
+                {
+                    LOG_TRACE << "existing model";
 
-                found = true;
-                break;
+                    // reset ready
+                    viewModel->resetReady();
+
+                    // refresh view model
+                    if ( view->isVisible() )
+                        if ( !viewModel->refreshData() )
+                        {
+                            LOG_WARN << "error refreshing chain table data";
+                            return;
+                        }
+
+                    expiryDates_->setTabText( i, view->title() );
+
+                    found = true;
+                    break;
+                }
+
+                // otherwise check date so we insert at proper location
+                if ( d <= viewModel->expirationDate() )
+                    index = i;
             }
 
-            // otherwise check date so we insert at proper location
-            if ( d <= viewModel->expirationDate() )
-                index = i;
-        }
+            // no instance found; create one
+            if ( !found )
+            {
+                LOG_TRACE << "create new model";
 
-        // no instance found; create one
-        if ( !found )
-        {
-            LOG_TRACE << "create new model";
+                OptionChainTableModel *viewModel( new OptionChainTableModel( underlying, d, QDateTime() ) );
+                OptionChainView *view( new OptionChainView( viewModel, this ) );
 
-            OptionChainTableModel *viewModel( new OptionChainTableModel( underlying, d, QDateTime() ) );
-            OptionChainView *view( new OptionChainView( viewModel, this ) );
-
-            expiryDates_->insertTab( index, view, view->title() );
+                expiryDates_->insertTab( index, view, view->title() );
+            }
         }
     }
 
@@ -401,7 +415,7 @@ void OptionViewerWidget::onQuotesUpdated( const QStringList& symbols, bool backg
         return;
 
     // refresh model
-    model_->refreshTableData();
+    model_->refreshData();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

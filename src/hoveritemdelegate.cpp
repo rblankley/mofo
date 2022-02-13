@@ -56,9 +56,7 @@ void HoverItemDelegate::paint( QPainter *painter, const QStyleOptionViewItem& op
     if ( QStyle::State_MouseOver & opt.state )
         opt.backgroundBrush = opt.palette.brush( QPalette::Highlight );
 
-    painter->save();
     style->drawControl( QStyle::CE_ItemViewItem, &opt, painter, w );
-    painter->restore();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

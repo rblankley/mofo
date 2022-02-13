@@ -52,11 +52,11 @@ public:
     /// Constructor.
     /**
      * @param[in] symbol  underlying symbol
-     * @param[in] expiryDate  expiration date
+     * @param[in] expiryDates  expiration dates
      * @param[in] model  trading model
      * @param[in] parent  parent object
      */
-    OptionAnalyzerThread( const QString& symbol, const QDate& expiryDate, model_type *model, QObject *parent = nullptr );
+    OptionAnalyzerThread( const QString& symbol, const QList<QDate>& expiryDates, model_type *model, QObject *parent = nullptr );
 
     /// Destructor.
     virtual ~OptionAnalyzerThread();
@@ -82,7 +82,7 @@ protected:
     model_type *analysis_;                          ///< Trading model.
 
     QString symbol_;                                ///< Symbol.
-    QDate expiryDate_;                              ///< Expiration date.
+    QList<QDate> expiryDates_;                      ///< Expiration dates.
 
     QString filter_;                                ///< Custom filter.
 

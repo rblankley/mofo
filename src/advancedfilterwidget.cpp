@@ -273,30 +273,103 @@ void AdvancedFilterWidget::populateTableColumns( QComboBox *w, const QString& ty
     {
         // simple moving average
         w->addItem( QString(), CHARTING + ":SMA5:D" );
+        w->addItem( QString(), CHARTING + ":SMA5SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA5MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA5MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA10:D" );
+        w->addItem( QString(), CHARTING + ":SMA10SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA10MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA10MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA15:D" );
+        w->addItem( QString(), CHARTING + ":SMA15SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA15MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA15MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA20:D" );
+        w->addItem( QString(), CHARTING + ":SMA20SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA20MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA20MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA30:D" );
+        w->addItem( QString(), CHARTING + ":SMA30SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA30MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA30MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA50:D" );
+        w->addItem( QString(), CHARTING + ":SMA50SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA50MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA50MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA100:D" );
+        w->addItem( QString(), CHARTING + ":SMA100SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA100MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA100MAX:D" );
+
         w->addItem( QString(), CHARTING + ":SMA200:D" );
+        w->addItem( QString(), CHARTING + ":SMA200SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":SMA200MIN:D" );
+        w->addItem( QString(), CHARTING + ":SMA200MAX:D" );
 
         // exponential moving average
         w->addItem( QString(), CHARTING + ":EMA5:D" );
+        w->addItem( QString(), CHARTING + ":EMA5SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA5MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA5MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA10:D" );
+        w->addItem( QString(), CHARTING + ":EMA10SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA10MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA10MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA12:D" );
+        w->addItem( QString(), CHARTING + ":EMA12SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA12MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA12MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA15:D" );
+        w->addItem( QString(), CHARTING + ":EMA15SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA15MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA15MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA20:D" );
+        w->addItem( QString(), CHARTING + ":EMA20SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA20MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA20MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA26:D" );
+        w->addItem( QString(), CHARTING + ":EMA26SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA26MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA26MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA30:D" );
+        w->addItem( QString(), CHARTING + ":EMA30SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA30MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA30MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA50:D" );
+        w->addItem( QString(), CHARTING + ":EMA50SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA50MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA50MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA100:D" );
+        w->addItem( QString(), CHARTING + ":EMA100SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA100MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA100MAX:D" );
+
         w->addItem( QString(), CHARTING + ":EMA200:D" );
+        w->addItem( QString(), CHARTING + ":EMA200SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":EMA200MIN:D" );
+        w->addItem( QString(), CHARTING + ":EMA200MAX:D" );
 
         // macd
         w->addItem( QString(), CHARTING + ":MACD:D" );
+        w->addItem( QString(), CHARTING + ":MACDSLOPE:D" );
         w->addItem( QString(), CHARTING + ":MACDSIG:D" );
+        w->addItem( QString(), CHARTING + ":MACDSIGSLOPE:D" );
         w->addItem( QString(), CHARTING + ":MACDH:D" );
+        w->addItem( QString(), CHARTING + ":MACDHSLOPE:D" );
     }
 
     if (( type.isEmpty() ) || ( INT_VALUE == type ))
@@ -309,25 +382,100 @@ void AdvancedFilterWidget::populateTableColumns( QComboBox *w, const QString& ty
     {
         // relative strength index
         w->addItem( QString(), CHARTING + ":RSI2:D" );
+        w->addItem( QString(), CHARTING + ":RSI2SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI2MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI2MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI3:D" );
+        w->addItem( QString(), CHARTING + ":RSI3SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI3MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI3MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI4:D" );
+        w->addItem( QString(), CHARTING + ":RSI4SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI4MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI4MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI5:D" );
+        w->addItem( QString(), CHARTING + ":RSI5SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI5MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI5MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI6:D" );
+        w->addItem( QString(), CHARTING + ":RSI6SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI6MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI6MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI10:D" );
+        w->addItem( QString(), CHARTING + ":RSI10SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI10MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI10MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI14:D" );
+        w->addItem( QString(), CHARTING + ":RSI14SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI14MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI14MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI20:D" );
+        w->addItem( QString(), CHARTING + ":RSI20SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI20MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI20MAX:D" );
+
         w->addItem( QString(), CHARTING + ":RSI50:D" );
+        w->addItem( QString(), CHARTING + ":RSI50SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":RSI50MIN:D" );
+        w->addItem( QString(), CHARTING + ":RSI50MAX:D" );
 
         // historical volatility
         w->addItem( QString(), CHARTING + ":HV5:D" );
+        w->addItem( QString(), CHARTING + ":HV5SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV5MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV5MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV10:D" );
+        w->addItem( QString(), CHARTING + ":HV10SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV10MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV10MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV20:D" );
+        w->addItem( QString(), CHARTING + ":HV20SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV20MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV20MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV30:D" );
+        w->addItem( QString(), CHARTING + ":HV30SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV30MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV30MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV60:D" );
+        w->addItem( QString(), CHARTING + ":HV60SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV60MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV60MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV90:D" );
+        w->addItem( QString(), CHARTING + ":HV90SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV90MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV90MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV120:D" );
+        w->addItem( QString(), CHARTING + ":HV120SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV120MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV120MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV240:D" );
+        w->addItem( QString(), CHARTING + ":HV240SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV240MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV240MAX:D" );
+
         w->addItem( QString(), CHARTING + ":HV480:D" );
+        w->addItem( QString(), CHARTING + ":HV480SLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HV480MIN:D" );
+        w->addItem( QString(), CHARTING + ":HV480MAX:D" );
+
+        w->addItem( QString(), CHARTING + ":HVDTE:D" );
+        w->addItem( QString(), CHARTING + ":HVDTESLOPE:D" );
+        w->addItem( QString(), CHARTING + ":HVDTEMIN:D" );
+        w->addItem( QString(), CHARTING + ":HVDTEMAX:D" );
     }
 }
 
@@ -338,39 +486,60 @@ QString AdvancedFilterWidget::columnDescription( const T& table, int col )
     return table.columnDescription( col );
 }
 
-QString AdvancedFilterWidget::chartingValueDescription( const QString& data )
+QString AdvancedFilterWidget::chartingValueDescription( const QString& cdata )
 {
+    QString data( cdata );
+    QString suffix;
+
+    if ( cdata.endsWith( "SLOPE" ) )
+    {
+        data = cdata.chopped( 5 );
+        suffix = tr( "- Slope" );
+    }
+    else if ( cdata.endsWith( "MIN" ) )
+    {
+        data = cdata.chopped( 3 );
+        suffix = tr( "- Minimum Value" );
+    }
+    else if ( cdata.endsWith( "MAX" ) )
+    {
+        data = cdata.chopped( 3 );
+        suffix = tr( "- Maximum Value" );
+    }
+
     // simple moving average
-    if ( "SMA" == data.left( 3 ) )
-        return tr( "Simple Moving Average - %0 Days" ).arg( data.mid( 3 ) );
+    if ( data.startsWith( "SMA" ) )
+        return tr( "Simple Moving Average - %1 Days %2" ).arg( QStringView{ data }.mid( 3 ) ).arg( suffix );
 
     // exponential moving average
-    else if ( "EMA" == data.left( 3 ) )
-        return tr( "Exponential Moving Average - %0 Days" ).arg( data.mid( 3 ) );
+    else if ( data.startsWith( "EMA" ) )
+        return tr( "Exponential Moving Average - %1 Days %2" ).arg( QStringView{ data }.mid( 3 ) ).arg( suffix );
 
     // relative strength index
-    else if ( "RSI" == data.left( 3 ) )
-        return tr( "Relative Strength Index - %0 Days" ).arg( data.mid( 3 ) );
+    else if ( data.startsWith( "RSI" ) )
+        return tr( "Relative Strength Index - %1 Days %2" ).arg( QStringView{ data }.mid( 3 ) ).arg( suffix );
 
     // historical volatility
-    else if ( "HV" == data.left( 2 ) )
-        return tr( "Historical Volatility - %0 Days" ).arg( data.mid( 2 ) );
+    else if ( data.startsWith( "HVDTE" ) )
+        return tr( "Historical Volatility - Trading Days Until Expiration %1" ).arg( suffix );
+    else if ( data.startsWith( "HV" ) )
+        return tr( "Historical Volatility - %1 Days %2" ).arg( QStringView{ data }.mid( 2 ) ).arg( suffix );
 
     // macd
-    else if ( "MACD" == data.left( 4 ) )
+    else if ( data.startsWith( "MACD" ) )
     {
         const QString title( tr( "Moving Average Convergence/Divergence (MACD)" ) );
 
         if ( "MACD" == data )
-            return title;
+            return QString( "%1 %2" ).arg( title, suffix );
         else if ( "MACDSIG" == data )
-            return tr( "%0 - Signal Line Value" ).arg( title );
+            return tr( "%1 - Signal Line Value %2" ).arg( title, suffix );
         else if ( "MACDH" == data )
-            return tr( "%0 - Histogram Value" ).arg( title );
+            return tr( "%1 - Histogram Value %2" ).arg( title, suffix );
         else if ( "MACDBUYFLAG" == data )
-            return tr( "%0 - Buy Flag" ).arg( title );
+            return tr( "%1 - Buy Flag" ).arg( title );
         else if ( "MACDSELLFLAG" == data )
-            return tr( "%0 - Sell Flag" ).arg( title );
+            return tr( "%1 - Sell Flag" ).arg( title );
     }
 
     return QString();

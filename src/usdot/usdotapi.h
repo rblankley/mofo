@@ -25,6 +25,8 @@
 
 #include "../apibase/serializedxmlapi.h"
 
+#include <QMutex>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// U.S. Department of the Treasury API implementation.
@@ -122,6 +124,8 @@ private:
     EndpointMap endpoints_;
 
     using PendingRequestsMap = QMap<QUuid, Endpoint>;
+
+    mutable QMutex m_;
 
     PendingRequestsMap pendingRequests_;
 

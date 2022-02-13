@@ -49,7 +49,7 @@ TDAmeritrade::TDAmeritrade( QObject *parent ) :
 
     loadEndpoints();
 
-    connect( this, &_Myt::processDocumentJson, this, &_Myt::onProcessDocumentJson );
+    connect( this, &_Myt::processDocumentJson, this, &_Myt::onProcessDocumentJson, Qt::DirectConnection );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -68,6 +68,8 @@ void TDAmeritrade::getAccount( const QString& id )
 
     const QUuid uuid( QUuid::createUuid() );
 
+    QMutexLocker guard( &m_ );
+
     pendingRequests_[uuid] = GET_ACCOUNT;
     send( uuid, s, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
@@ -78,6 +80,8 @@ void TDAmeritrade::getAccounts()
     const QUrl url( endpoints_[GET_ACCOUNTS] );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_ACCOUNTS;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -98,6 +102,8 @@ void TDAmeritrade::getFundamentalData( const QString& symbol )
 
     const QUuid uuid( QUuid::createUuid() );
 
+    QMutexLocker guard( &m_ );
+
     pendingRequests_[uuid] = GET_INSTRUMENTS;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
@@ -112,6 +118,8 @@ void TDAmeritrade::getInstrument( const QString& cusip )
     s.replace( "{cusip}", cusip );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_INSTRUMENT;
     send( uuid, s, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -142,6 +150,8 @@ void TDAmeritrade::getMarketHours( const QDate& date, const QStringList& markets
 
     const QUuid uuid( QUuid::createUuid() );
 
+    QMutexLocker guard( &m_ );
+
     pendingRequests_[uuid] = GET_MARKET_HOURS;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
@@ -162,6 +172,8 @@ void TDAmeritrade::getMarketHoursSingle( const QDate& date, const QString& marke
     url.setQuery( urlQuery );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_MARKET_HOURS_SINGLE;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -187,6 +199,8 @@ void TDAmeritrade::getOptionChain( const QString& symbol, const QString& strateg
     url.setQuery( urlQuery );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_OPTION_CHAIN;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -235,6 +249,8 @@ void TDAmeritrade::getPriceHistory( const QString& symbol, int period, const QSt
     priceHistoryRequests_[uuid] = request;
 
     // request!
+    QMutexLocker guard( &m_ );
+
     pendingRequests_[uuid] = GET_PRICE_HISTORY;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
@@ -249,6 +265,8 @@ void TDAmeritrade::getQuote( const QString& symbol )
     s.replace( "{symbol}", symbol );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_QUOTE;
     send( uuid, s, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -277,6 +295,8 @@ void TDAmeritrade::getQuotes( const QStringList& symbols )
     url.setQuery( urlQuery );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_QUOTES;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -336,12 +356,18 @@ void TDAmeritrade::onProcessDocumentJson( const QUuid& uuid, const QByteArray& r
     Q_UNUSED( request )
     Q_UNUSED( requestType )
 
-    if ( !pendingRequests_.contains( uuid ) )
-        return;
+    Endpoint type;
 
-    const Endpoint type( pendingRequests_[uuid] );
+    {
+        QMutexLocker guard( &m_ );
 
-    pendingRequests_.remove( uuid );
+        if ( !pendingRequests_.contains( uuid ) )
+            return;
+
+        type = pendingRequests_[uuid];
+
+        pendingRequests_.remove( uuid );
+    }
 
     if ( 200 != status )
     {
@@ -455,16 +481,10 @@ void TDAmeritrade::parseOptionChainDoc( const QJsonDocument& doc )
 
     const QJsonObject obj( doc.object() );
 
-    const QString status( obj[JSON_STATUS].toString() );
     const QString symbol( obj[JSON_SYMBOL].toString() );
 
     // validate
-    if ( "SUCCESS" != status )
-    {
-        LOG_WARN << "bad status " << qPrintable( status );
-        return;
-    }
-    else if ( symbol.isEmpty() )
+    if ( symbol.isEmpty() )
     {
         LOG_WARN << "missing symbol";
         return;

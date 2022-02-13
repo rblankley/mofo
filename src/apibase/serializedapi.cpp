@@ -42,7 +42,7 @@ SerializedWebInterface::SerializedWebInterface( QObject *parent ) :
 {
     // connect signals
     connect( this, &_Myt::replyDownloadProgress, this, &_Myt::onReplyDownloadProgress );
-    connect( this, &_Myt::replyReceived, this, &_Myt::onReplyReceived );
+    connect( this, &_Myt::replyReceived, this, &_Myt::onReplyReceived, Qt::DirectConnection );
 
     // delete all stale downloads
     QDir d;
@@ -296,8 +296,13 @@ void SerializedWebInterface::onReplyReceived( QNetworkReply *reply, bool valid, 
     }
     else
     {
+        QNetworkReply *newReply;
+
         LOG_DEBUG << "attempting request " << qPrintable( rc.uuid.toString() ) << " again " << rc.attempts << " " << rc.maxAttempts;
-        processRequestControl( rc );
+        newReply = processRequestControl( rc );
+
+        // ensure network reply lives in application thread
+        newReply->moveToThread( QCoreApplication::instance()->thread() );
     }
 
     // destroy control block

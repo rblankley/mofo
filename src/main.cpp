@@ -25,8 +25,11 @@
 #include "tddaemon.h"
 
 #include "./db/appdb.h"
+#include "./db/symboldbs.h"
+
 #include "./tda/dbadaptertd.h"
 #include "./tda/tdapi.h"
+
 #include "./usdot/usdotapi.h"
 #include "./usdot/dbadapterusdot.h"
 
@@ -34,6 +37,8 @@
 #include <QDateTime>
 #include <QDir>
 #include <QPalette>
+
+#include <QtConcurrent>
 
 #if defined( Q_OS_WIN )
 #include <Windows.h>
@@ -170,8 +175,13 @@ int main( int argc, char *argv[] )
         return -1;
     }
 
+    SymbolDatabases *sdbs( SymbolDatabases::instance() );
+
     // set app sytle
     setStyle( a, db->palette(), db->paletteHighlight() );
+
+    // increase thread pool size
+    QThreadPool::globalInstance()->setMaxThreadCount( 2 * QThread::idealThreadCount() );
 
     // ---- //
 
@@ -182,24 +192,25 @@ int main( int argc, char *argv[] )
     usdot->setNetworkAccessManager( net );
 
     DeptOfTheTreasuryDatabaseAdapter *usdotadapter( new DeptOfTheTreasuryDatabaseAdapter );
-    QObject::connect( usdot, &DeptOfTheTreasury::dailyTreasuryBillRatesReceived, usdotadapter, &DeptOfTheTreasuryDatabaseAdapter::transformDailyTreasuryBillRates );
-    QObject::connect( usdot, &DeptOfTheTreasury::dailyTreasuryYieldCurveRatesReceived, usdotadapter, &DeptOfTheTreasuryDatabaseAdapter::transformDailyTreasuryYieldCurveRates );
+    QObject::connect( usdot, &DeptOfTheTreasury::dailyTreasuryBillRatesReceived, usdotadapter, &DeptOfTheTreasuryDatabaseAdapter::transformDailyTreasuryBillRates, Qt::DirectConnection );
+    QObject::connect( usdot, &DeptOfTheTreasury::dailyTreasuryYieldCurveRatesReceived, usdotadapter, &DeptOfTheTreasuryDatabaseAdapter::transformDailyTreasuryYieldCurveRates, Qt::DirectConnection );
 
-    QObject::connect( usdotadapter, &DeptOfTheTreasuryDatabaseAdapter::transformComplete, db, &AppDatabase::processData );
+    QObject::connect( usdotadapter, &DeptOfTheTreasuryDatabaseAdapter::transformComplete, db, &AppDatabase::processData, Qt::DirectConnection );
 
     // setup td ameritrade api
     TDAmeritrade *tda( new TDAmeritrade );
     tda->setNetworkAccessManager( net );
 
     TDAmeritradeDatabaseAdapter *tdaadapter( new TDAmeritradeDatabaseAdapter );
-    QObject::connect( tda, &TDAmeritrade::accountsReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformAccounts );
-    QObject::connect( tda, &TDAmeritrade::instrumentReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformInstruments );
-    QObject::connect( tda, &TDAmeritrade::marketHoursReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformMarketHours );
-    QObject::connect( tda, &TDAmeritrade::optionChainReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformOptionChain );
-    QObject::connect( tda, &TDAmeritrade::priceHistoryReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformPriceHistory );
-    QObject::connect( tda, &TDAmeritrade::quotesReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformQuotes );
+    QObject::connect( tda, &TDAmeritrade::accountsReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformAccounts, Qt::DirectConnection );
+    QObject::connect( tda, &TDAmeritrade::instrumentReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformInstruments, Qt::DirectConnection );
+    QObject::connect( tda, &TDAmeritrade::marketHoursReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformMarketHours, Qt::DirectConnection );
+    QObject::connect( tda, &TDAmeritrade::optionChainReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformOptionChain, Qt::DirectConnection );
+    QObject::connect( tda, &TDAmeritrade::priceHistoryReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformPriceHistory, Qt::DirectConnection );
+    QObject::connect( tda, &TDAmeritrade::quotesReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformQuotes, Qt::DirectConnection );
 
     QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, db, &AppDatabase::processData, Qt::DirectConnection );
+    QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, sdbs, &SymbolDatabases::processData, Qt::DirectConnection );
 
     // setup daemon
     [[maybe_unused]] TDAmeritradeDaemon *daemon( new TDAmeritradeDaemon( tda, usdot ) );

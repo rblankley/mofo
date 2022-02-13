@@ -460,9 +460,7 @@ void GridTableHeaderView::paintSection( QPainter *painter, const QRect& rect, in
         if ( fg.canConvert<QBrush>() )
             opt.palette.setBrush( QPalette::ButtonText, fg.value<QBrush>() );
 
-        painter->save();
         style()->drawControl( QStyle::CE_Header, &opt, painter, this );
-        painter->restore();
     }
 }
 

@@ -383,11 +383,11 @@ bool TDAmeritradeDatabaseAdapter::transformAccounts( const QJsonArray& a ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritradeDatabaseAdapter::transformInstrumentsImpl( const QJsonObject *tdobj ) const
+bool TDAmeritradeDatabaseAdapter::transformInstruments( const QJsonObject& tdobj ) const
 {
     QJsonArray instruments;
 
-    for ( QJsonObject::const_iterator instIt( tdobj->constBegin() ); instIt != tdobj->constEnd(); ++instIt )
+    for ( QJsonObject::const_iterator instIt( tdobj.constBegin() ); instIt != tdobj.constEnd(); ++instIt )
         if ( instIt->isObject() )
             instruments.append( parseInstrument( instIt->toObject() ) );
 
@@ -397,21 +397,6 @@ void TDAmeritradeDatabaseAdapter::transformInstrumentsImpl( const QJsonObject *t
     complete( obj );
 
     LOG_TRACE << "done";
-    delete tdobj;
-}
-
-bool TDAmeritradeDatabaseAdapter::transformInstruments( const QJsonObject& tdobj ) const
-{
-    QJsonObject *obj( new QJsonObject( tdobj ) );
-
-    QFuture<void> f;
-
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    f = QtConcurrent::run( &_Myt::transformInstrumentsImpl, this, obj );
-#else
-    f = QtConcurrent::run( this, &_Myt::transformInstrumentsImpl, obj );
-#endif
-
     return true;
 }
 
@@ -434,72 +419,6 @@ bool TDAmeritradeDatabaseAdapter::transformMarketHours( const QJsonObject& tdobj
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritradeDatabaseAdapter::transformOptionChainImpl( const QJsonObject *tdobj ) const
-{
-    const QJsonObject::const_iterator symbol( tdobj->constFind( JSON_SYMBOL ) );
-
-    LOG_DEBUG << "transform option chain for " << qPrintable( symbol->toString() ) << "...";
-
-    const QJsonObject::const_iterator calls( tdobj->constFind( JSON_CALL_EXP_DATE_MAP ) );
-    const QJsonObject::const_iterator puts( tdobj->constFind( JSON_PUT_EXP_DATE_MAP ) );
-
-    const double underlyingPrice( tdobj->value( JSON_UNDERLYING_PRICE ).toDouble() );
-
-    // parse out calls and puts
-    QJsonArray options;
-    QMutex m;
-
-    QFuture<void> fcalls;
-    QFuture<void> fputs;
-
-    if (( tdobj->constEnd() != calls ) && ( calls->isObject() ))
-    {
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        fcalls = QtConcurrent::run( &_Myt::parseOptionChain, this, calls, underlyingPrice, &options, &m );
-#else
-        fcalls = QtConcurrent::run( this, &_Myt::parseOptionChain, calls, underlyingPrice, &options, &m );
-#endif
-    }
-
-    if (( tdobj->constEnd() != puts ) && ( puts->isObject() ))
-    {
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        fputs = QtConcurrent::run( &_Myt::parseOptionChain, this, puts, underlyingPrice, &options, &m );
-#else
-        fputs = QtConcurrent::run( this, &_Myt::parseOptionChain, puts, underlyingPrice, &options, &m );
-#endif
-    }
-
-    // transform!
-    QJsonObject optionChain;
-    transform( (*tdobj), optionChainFields_, optionChain );
-
-    // parse underlying (optional)
-    const QJsonObject::const_iterator underlying( tdobj->constFind( JSON_UNDERLYING ) );
-
-    if (( tdobj->constEnd() != underlying ) && ( underlying->isObject() ))
-    {
-        QJsonArray quotes;
-        quotes.append( parseQuote( underlying->toObject() ) );
-
-        optionChain[DB_QUOTES] = quotes;
-    }
-
-    // wait for completion
-    fcalls.waitForFinished();
-    fputs.waitForFinished();
-
-    optionChain[DB_OPTIONS] = options;
-
-    QJsonObject obj;
-    obj[DB_OPTION_CHAIN] = optionChain;
-
-    complete( obj );
-
-    LOG_TRACE << "done";
-    delete tdobj;
-}
-
 bool TDAmeritradeDatabaseAdapter::transformOptionChain( const QJsonObject& tdobj ) const
 {
     // validate
@@ -507,7 +426,7 @@ bool TDAmeritradeDatabaseAdapter::transformOptionChain( const QJsonObject& tdobj
     const QJsonObject::const_iterator strategy( tdobj.constFind( JSON_STRATEGY ) );
     const QJsonObject::const_iterator symbol( tdobj.constFind( JSON_SYMBOL ) );
 
-    if (( tdobj.constEnd() == status ) || ( !status->isString() ) || ( SUCCESS != status->toString() ))
+    if (( tdobj.constEnd() == status ) || ( !status->isString() ))
     {
         LOG_WARN << "bad or missing status";
         return false;
@@ -527,51 +446,93 @@ bool TDAmeritradeDatabaseAdapter::transformOptionChain( const QJsonObject& tdobj
     if ( SINGLE != strategy->toString() )
         return true;
 
+    // check success status
+    if ( SUCCESS != status->toString() )
+    {
+        LOG_INFO << "non-success status " << qPrintable( status->toString() );
+
+        // emit empty chain
+        QJsonObject optionChain;
+        optionChain[DB_OPTIONS] = QJsonObject();
+        optionChain[DB_UNDERLYING] = symbol->toString();
+
+        QJsonObject obj;
+        obj[DB_OPTION_CHAIN] = optionChain;
+
+        complete( obj );
+
+        return true;
+    }
+
     // ---- //
 
-    QJsonObject *obj( new QJsonObject( tdobj ) );
+    LOG_DEBUG << "transform option chain for " << qPrintable( symbol->toString() ) << "...";
 
-    QFuture<void> f;
+    const QJsonObject::const_iterator calls( tdobj.constFind( JSON_CALL_EXP_DATE_MAP ) );
+    const QJsonObject::const_iterator puts( tdobj.constFind( JSON_PUT_EXP_DATE_MAP ) );
 
+    const double underlyingPrice( tdobj[JSON_UNDERLYING_PRICE].toDouble() );
+
+    // parse out calls and puts
+    QJsonArray options;
+    QMutex m;
+
+    QFuture<void> fcalls;
+    QFuture<void> fputs;
+
+    if (( tdobj.constEnd() != calls ) && ( calls->isObject() ))
+    {
 #if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    f = QtConcurrent::run( &_Myt::transformOptionChainImpl, this, obj );
+        fcalls = QtConcurrent::run( &_Myt::parseOptionChain, this, calls, underlyingPrice, &options, &m );
 #else
-    f = QtConcurrent::run( this, &_Myt::transformOptionChainImpl, obj );
+        fcalls = QtConcurrent::run( this, &_Myt::parseOptionChain, calls, underlyingPrice, &options, &m );
 #endif
+    }
 
+    if (( tdobj.constEnd() != puts ) && ( puts->isObject() ))
+    {
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+        fputs = QtConcurrent::run( &_Myt::parseOptionChain, this, puts, underlyingPrice, &options, &m );
+#else
+        fputs = QtConcurrent::run( this, &_Myt::parseOptionChain, puts, underlyingPrice, &options, &m );
+#endif
+    }
+
+    // transform!
+    QJsonObject optionChain;
+    transform( tdobj, optionChainFields_, optionChain );
+
+    // parse underlying (optional)
+    const QJsonObject::const_iterator underlying( tdobj.constFind( JSON_UNDERLYING ) );
+
+    if (( tdobj.constEnd() != underlying ) && ( underlying->isObject() ))
+    {
+        QJsonArray quotes;
+        quotes.append( parseQuote( underlying->toObject() ) );
+
+        optionChain[DB_QUOTES] = quotes;
+    }
+
+    // wait for completion
+    fcalls.waitForFinished();
+    fputs.waitForFinished();
+
+    optionChain[DB_OPTIONS] = options;
+
+    QJsonObject obj;
+    obj[DB_OPTION_CHAIN] = optionChain;
+
+    complete( obj );
+
+    LOG_TRACE << "done";
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritradeDatabaseAdapter::transformPriceHistoryImpl( const QJsonObject *tdobj ) const
-{
-    const QJsonObject::const_iterator symbol( tdobj->constFind( JSON_SYMBOL ) );
-
-    LOG_DEBUG << "transform price history for " << qPrintable( symbol->toString() ) << "...";
-
-    const QJsonObject::const_iterator candles( tdobj->constFind( JSON_CANDLES ) );
-
-    // transform!
-    QJsonObject quoteHistory;
-    transform( (*tdobj), priceHistoryFields_, quoteHistory );
-
-    // parse out candles
-    if (( tdobj->constEnd() != candles ) && ( candles->isArray() ))
-        quoteHistory[DB_HISTORY] = parsePriceHistory( candles->toArray() );
-
-    QJsonObject obj;
-    obj[DB_QUOTE_HISTORY] = quoteHistory;
-
-    LOG_TRACE << "transform complete";
-    complete( obj );
-
-    LOG_TRACE << "done";
-    delete tdobj;
-}
-
 bool TDAmeritradeDatabaseAdapter::transformPriceHistory( const QJsonObject& tdobj ) const
 {
     // validate
+    const QJsonObject::const_iterator candles( tdobj.constFind( JSON_CANDLES ) );
     const QJsonObject::const_iterator empty( tdobj.constFind( JSON_EMPTY ) );
     const QJsonObject::const_iterator freqType( tdobj.constFind( JSON_FREQUENCY_TYPE ) );
     const QJsonObject::const_iterator symbol( tdobj.constFind( JSON_SYMBOL ) );
@@ -598,27 +559,33 @@ bool TDAmeritradeDatabaseAdapter::transformPriceHistory( const QJsonObject& tdob
 
     // ---- //
 
-    QJsonObject *obj( new QJsonObject( tdobj ) );
+    LOG_DEBUG << "transform price history for " << qPrintable( symbol->toString() ) << "...";
 
-    QFuture<void> f;
+    // transform!
+    QJsonObject quoteHistory;
+    transform( tdobj, priceHistoryFields_, quoteHistory );
 
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    f = QtConcurrent::run( &_Myt::transformPriceHistoryImpl, this, obj );
-#else
-    f = QtConcurrent::run( this, &_Myt::transformPriceHistoryImpl, obj );
-#endif
+    // parse out candles
+    if (( tdobj.constEnd() != candles ) && ( candles->isArray() ))
+        quoteHistory[DB_HISTORY] = parsePriceHistory( candles->toArray() );
 
+    QJsonObject obj;
+    obj[DB_QUOTE_HISTORY] = quoteHistory;
+
+    complete( obj );
+
+    LOG_TRACE << "done";
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritradeDatabaseAdapter::transformQuotesImpl( const QJsonObject *tdobj ) const
+bool TDAmeritradeDatabaseAdapter::transformQuotes( const QJsonObject& tdobj ) const
 {
     const QDateTime now( QDateTime::currentDateTime() );
 
     QJsonArray quotes;
 
-    foreach ( const QJsonValue& quoteVal, (*tdobj) )
+    foreach ( const QJsonValue& quoteVal, tdobj )
         if ( quoteVal.isObject() )
             quotes.append( parseQuote( quoteVal.toObject(), now ) );
 
@@ -628,21 +595,6 @@ void TDAmeritradeDatabaseAdapter::transformQuotesImpl( const QJsonObject *tdobj 
     complete( obj );
 
     LOG_TRACE << "done";
-    delete tdobj;
-}
-
-bool TDAmeritradeDatabaseAdapter::transformQuotes( const QJsonObject& tdobj ) const
-{
-    QJsonObject *obj( new QJsonObject( tdobj ) );
-
-    QFuture<void> f;
-
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    f = QtConcurrent::run( &_Myt::transformQuotesImpl, this, obj );
-#else
-    f = QtConcurrent::run( this, &_Myt::transformQuotesImpl, obj );
-#endif
-
     return true;
 }
 

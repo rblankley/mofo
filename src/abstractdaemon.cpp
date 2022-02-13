@@ -23,6 +23,7 @@
 #include "common.h"
 
 #include "db/appdb.h"
+#include "db/symboldbs.h"
 
 #include <QTimer>
 
@@ -42,7 +43,8 @@ AbstractDaemon *AbstractDaemon::instance_( nullptr );
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 AbstractDaemon::AbstractDaemon( QObject *parent ) :
     _Mybase( parent ),
-    db_( AppDatabase::instance() ),
+    adb_( AppDatabase::instance() ),
+    sdbs_( SymbolDatabases::instance() ),
     queueWhenClosed_( false ),
     paused_( false )
 {
@@ -71,7 +73,7 @@ AbstractDaemon::AbstractDaemon( QObject *parent ) :
     // configs
     onConfigurationChanged();
 
-    connect( db_, &AppDatabase::configurationChanged, this, &_Myt::onConfigurationChanged );
+    connect( adb_, &AppDatabase::configurationChanged, this, &_Myt::onConfigurationChanged );
 
     // set instance
     QMutexLocker guard( &instanceMutex_ );
@@ -131,6 +133,12 @@ void AbstractDaemon::getCandles( const QString& symbol, int period, const QStrin
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void AbstractDaemon::getOptionChain( const QString& symbol )
+{
+    Q_UNUSED( symbol )
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AbstractDaemon::getQuote( const QString& symbol )
 {
     Q_UNUSED( symbol )
 }
@@ -256,7 +264,7 @@ void AbstractDaemon::onConfigurationChanged()
     static const int MIN_TO_MS = 60 * 1000;
 
     // read config
-    configs_ = db_->configs();
+    configs_ = adb_->configs();
 
     // update timer intervals
     updateTimerInterval( equity_, configs_[EQUITY_REFRESH_RATE].toString().toInt() * MIN_TO_MS );
@@ -304,7 +312,7 @@ QStringList AbstractDaemon::watchlistSymbols( const QString& lists ) const
     QStringList result;
 
     foreach ( const QString& list, lists.split( "," ) )
-        result.append( db_->watchlist( list.trimmed() ) );
+        result.append( adb_->watchlist( list.trimmed() ) );
 
     result.removeDuplicates();
     result.sort();

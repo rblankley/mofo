@@ -23,7 +23,6 @@
 #ifndef APPDB_H
 #define APPDB_H
 
-#include "candledata.h"
 #include "marketproducthours.h"
 #include "sqldb.h"
 
@@ -35,8 +34,6 @@
 #include <QMap>
 #include <QMutex>
 #include <QStringList>
-
-class SymbolDatabase;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -66,46 +63,11 @@ signals:
     /// Signal for when accounts changed.
     void accountsChanged();
 
-    /// Signal for when candle data changed.
-    /**
-     * @param[in] symbol  symbol
-     * @param[in] start  graph start date/time
-     * @param[in] stop  graph stop date/time
-     * @param[in] period  history period
-     * @param[in] periodType  period type (day, month, year, or ytd)
-     * @param[in] freq  frequency
-     * @param[in] freqType  frequency type (minute, daily, weekly, or monthly)
-     * @param[in] candles  list of candle data
-     */
-    void candleDataChanged( const QString& symbol, const QDateTime& start, const QDateTime& stop, int period, const QString& periodType, int freq, const QString& freqType, const QList<CandleData>& candles );
-
     /// Signal for when configuration changed.
     void configurationChanged();
 
-    /// Signal for when instruments changed.
-    void instrumentsChanged();
-
     /// Signal for when market hours changed.
     void marketHoursChanged();
-
-    /// Signal for when option chains have changed.
-    /**
-     * @param[in] symbol  symbol
-     * @param[in] expiryDates  expiration dates
-     */
-    void optionChainChanged( const QString& symbol, const QList<QDate>& expiryDates );
-
-    /// Signal for when quote history has changed.
-    /**
-     * @param[in] symbol  symbol
-     */
-    void quoteHistoryChanged( const QString& symbol );
-
-    /// Signal for when quotes have changed.
-    /**
-     * @param[in] symbols  symbols
-     */
-    void quotesChanged( const QStringList& symbols );
 
     /// Signal for when treasury bill rates changed.
     void treasuryBillRatesChanged();
@@ -145,29 +107,6 @@ public:
      */
     virtual QDateTime currentDateTime() const;
 
-    /// Retrieve cusip for symbol.
-    /**
-     * @param[in] symbol  symbol
-     * @return  cusip or empty string upon failure
-     */
-    virtual QString cusip( const QString& symbol ) const;
-
-    /// Retrieve dividend date and amount.
-    /**
-     * @param[in] symbol  symbol
-     * @param[out] date  dividend date
-     * @param[out] frequency  dividend frequency (annualized)
-     * @return  dividend amount (yearly)
-     */
-    virtual double dividendAmount( const QString& symbol, QDate& date, double& frequency ) const;
-
-    /// Retrieve dividend yield.
-    /**
-     * @param[in] symbol  symbol
-     * @return  dividend yield (yearly)
-     */
-    virtual double dividendYield( const QString& symbol ) const;
-
     /// Retrieve filter.
     /**
      * @param[in] name  filter name
@@ -181,24 +120,6 @@ public:
      */
     virtual QStringList filters() const;
 
-    /// Retrieve historical volatility.
-    /**
-     * @param[in] symbol  symbol to retrieve
-     * @param[in] dt  date to retrieve
-     * @param[in] depth  depth in days
-     * @return  historical volatility
-     */
-    virtual double historicalVolatility( const QString& symbol, const QDateTime& dt, int depth ) const;
-
-    /// Retrieve historical volatilities
-    /**
-     * @param[in] symbol  symbol to retrieve
-     * @param[in] start  starting date to retrieve
-     * @param[in] end  ending date to retrieve
-     * @param[out] data  volatilities
-     */
-    virtual void historicalVolatilities( const QString& symbol, const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const;
-
     /// Check if market is open.
     /**
      * @param[in] dt  datetime
@@ -208,20 +129,6 @@ public:
      * @return  @c true if open, @c flase otherwise
      */
     virtual bool isMarketOpen( const QDateTime& dt, const QString& marketType, const QString& product = QString(), bool *isExtended = nullptr ) const;
-
-    /// Retrieve last fundamental processed stamp.
-    /**
-     * @param[in] symbol  symbol
-     * @return  stamp of last fundamental processed
-     */
-    virtual QDateTime lastFundamentalProcessed( const QString& symbol ) const;
-
-    /// Retrieve last quote history processed stamp.
-    /**
-     * @param[in] symbol  symbol
-     * @return  stamp of last quote history processed
-     */
-    virtual QDateTime lastQuoteHistoryProcessed( const QString& symbol ) const;
 
     /// Check if market hours exist.
     /**
@@ -246,24 +153,6 @@ public:
      * @return  list of market types
      */
     virtual QStringList marketTypes( bool hasHours = true ) const;
-
-    /// Retrieve moving averages.
-    /**
-     * @param[in] symbol  symbol
-     * @param[in] start  starting date to retrieve
-     * @param[in] end  ending date to retrieve
-     * @param[out] data  moving averages
-     */
-    virtual void movingAverages( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAverages>& data ) const;
-
-    /// Retrieve moving averages convergence/divergence (MACD)
-    /**
-     * @param[in] symbol  symbol
-     * @param[in] start  starting date to retrieve
-     * @param[in] end  ending date to retrieve
-     * @param[out] data  MACD data
-     */
-    virtual void movingAveragesConvergenceDivergence( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const;
 
     /// Retrieve number of regular days in a year.
     /**
@@ -312,23 +201,6 @@ public:
      * @return  palette highlight color
      */
     virtual QColor paletteHighlight() const {return paletteHighlight_;}
-
-    /// Retrieve quote history date range.
-    /**
-     * @param[in] symbol  symbol
-     * @param[out] start  start date
-     * @param[out] end  end date
-     */
-    virtual void quoteHistoryDateRange( const QString& symbol, QDate& start, QDate& end ) const;
-
-    /// Retrieve RSI.
-    /**
-     * @param[in] symbol  symbol
-     * @param[in] start  starting date to retrieve
-     * @param[in] end  ending date to retrieve
-     * @param[out] data  RSI values
-     */
-    virtual void relativeStrengthIndex( const QString& symbol, const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const;
 
     /// Retrieve risk free interest rate.
     /**
@@ -423,18 +295,8 @@ public:
     // Methods
     // ========================================================================
 
-    /// Open database connection.
-    /**
-     * @return  connection to database
-     */
-    virtual QSqlDatabase openDatabaseConnection() const override {return _Mybase::openDatabaseConnection();}
-
-    /// Open database connection for symbol.
-    /**
-     * @param[in]  symbol
-     * @return  connection to database
-     */
-    virtual QSqlDatabase openDatabaseConnection( const QString& symbol ) const;
+    /// Remove thread specific database connection.
+    virtual void removeConnection();
 
     /// Remove filter.
     /**
@@ -521,44 +383,39 @@ protected:
 
     /// Add account to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addAccount( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addAccount( const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add account balances to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] accountId  account id
      * @param[in] type  balance type
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj );
+    virtual bool addAccountBalances( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj );
 
     /// Add market hours to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addMarketHours( const QSqlDatabase& conn, const QJsonObject& obj );
+    virtual bool addMarketHours( const QJsonObject& obj );
 
     /// Add product type to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] type  type
      * @param[in] description  description
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addProductType( const QSqlDatabase& conn, const QString& type, const QString& description );
+    virtual bool addProductType( const QString& type, const QString& description );
 
     /// Add session hours to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] date  date
      * @param[in] marketType  market type
      * @param[in] product  product
@@ -566,25 +423,23 @@ protected:
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj );
+    virtual bool addSessionHours( const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj );
 
     /// Add treasury bill rate to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addTreasuryBillRate( const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add treasury yield curve rate to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  timestamp
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addTreasuryYieldCurveRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addTreasuryYieldCurveRate( const QDateTime& stamp, const QJsonObject& obj );
 
 private:
 
@@ -601,13 +456,10 @@ private:
     void readSettings();
 
     /// Parse account balances.
-    bool parseAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
+    bool parseAccountBalances( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
 
     /// Parse session hours.
-    bool parseSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj );
-
-    /// Find symbol database.
-    SymbolDatabase *findSymbol( const QString& symbol );
+    bool parseSessionHours( const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj );
 
     /// Check for session hours.
     bool checkSessionHours( const QDateTime& dt, const QString& marketType, const QString& product, bool *isExtended ) const;
@@ -628,8 +480,6 @@ private:
     _Myt& operator = ( const _Myt&& ) = delete;
 
 };
-
-Q_DECLARE_METATYPE( QList<CandleData> );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 

@@ -124,11 +124,11 @@ public slots:
     // Methods
     // ========================================================================
 
-    /// Refresh table data.
+    /// Refresh data.
     /**
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool refreshTableData();
+    virtual bool refreshData();
 
     /// Reset data ready flag.
     virtual void resetReady() {ready_ = false;}

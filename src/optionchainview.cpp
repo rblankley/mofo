@@ -164,7 +164,7 @@ void OptionChainView::showEvent( QShowEvent *event )
     {
         QApplication::setOverrideCursor( Qt::WaitCursor );
 
-        if ( !model_->refreshTableData() )
+        if ( !model_->refreshData() )
             LOG_WARN << "error refreshing chain table data";
 
         QApplication::restoreOverrideCursor();

@@ -85,7 +85,7 @@ public:
 
 private:
 
-    static constexpr int SPLITTER_WIDTH = 8;
+    static constexpr int SPLITTER_WIDTH = 12;
 
     static const QString STATE_GROUP_NAME;
 

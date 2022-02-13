@@ -20,6 +20,11 @@ DEFINES += QT_DEPRECATED_WARNINGS
 # include and lib paths below.
 #DEFINES += HAVE_CLIO_H
 
+# Qt logging settings.
+DEFINES += QT_NO_DEBUG_OUTPUT
+DEFINES += QT_NO_INFO_OUTPUT
+DEFINES += QT_NO_WARNING_OUTPUT
+
 
 SOURCES += \
     abstractdaemon.cpp \
@@ -43,6 +48,7 @@ SOURCES += \
     db/sqldb.cpp \
     db/sqltablemodel.cpp \
     db/symboldb.cpp \
+    db/symboldbs.cpp \
     filtereditordialog.cpp \
     filtersdialog.cpp \
     filterselectiondialog.cpp \
@@ -119,12 +125,14 @@ HEADERS += \
     db/itemmodel.h \
     db/marketproducthours.h \
     db/optionchaintablemodel.h \
+    db/optiondata.h \
     db/optiontradingitemmodel.h \
     db/quotetablemodel.h \
     db/sqldb.h \
     db/sqltablemodel.h \
     db/stringsdb.h \
     db/symboldb.h \
+    db/symboldbs.h \
     filtereditordialog.h \
     filtersdialog.h \
     filterselectiondialog.h \

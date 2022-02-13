@@ -185,8 +185,11 @@ void WatchlistSelectionDialog::generateBoxes()
 
     foreach ( const QString& list, lists )
     {
+        QString text( list );
+        text.replace( "&", "&&" );
+
         QCheckBox *box = new QCheckBox( this );
-        box->setText( list );
+        box->setText( text );
         box->setCheckable( true );
 
         boxes_[list] = box;

@@ -31,11 +31,11 @@
 #include "db/quotetablemodel.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-OptionAnalyzerThread::OptionAnalyzerThread( const QString& symbol, const QDate& expiryDate, model_type *model, QObject *parent ) :
+OptionAnalyzerThread::OptionAnalyzerThread( const QString& symbol, const QList<QDate>& expiryDates, model_type *model, QObject *parent ) :
     _Mybase( parent ),
     analysis_( model ),
     symbol_( symbol ),
-    expiryDate_( expiryDate )
+    expiryDates_( expiryDates )
 {
     assert( symbol.length() );
 }
@@ -48,10 +48,6 @@ OptionAnalyzerThread::~OptionAnalyzerThread()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionAnalyzerThread::run()
 {
-    const QDateTime now( AppDatabase::instance()->currentDateTime() );
-
-    QStringList cnames;
-
     // create filter for analysis
     OptionProfitCalculatorFilter calcFilter;
 
@@ -61,35 +57,29 @@ void OptionAnalyzerThread::run()
     if ( f.length() )
         calcFilter.restoreState( AppDatabase::instance()->filter( f ) );
 
+    // retrieve quote and fundamentals
+    QuoteTableModel quote( symbol_ );
+    FundamentalsTableModel fundamentals( symbol_ );
+
+    if ( !quote.refreshData() )
+        LOG_WARN << "error refreshing quote table data";
+    else if ( !fundamentals.refreshData() )
+        LOG_WARN << "error refreshing fundamentals table data";
+
+    // check filter
+    else if ( !calcFilter.check( &quote, &fundamentals ) )
+        LOG_TRACE << "filtered out from underlying";
+
+    else
     {
-        // open connections to databases
-        QSqlDatabase connApp( AppDatabase::instance()->openDatabaseConnection() );
-        cnames.append( connApp.connectionName() );
-
-        QSqlDatabase connSymbol( AppDatabase::instance()->openDatabaseConnection( symbol_ ) );
-        cnames.append( connSymbol.connectionName() );
-
-        // retrieve quote and fundamentals
-        QuoteTableModel quote( symbol_ );
-        FundamentalsTableModel fundamentals( symbol_ );
-
-        if ( !quote.refreshTableData() )
-            LOG_WARN << "error refreshing quote table data";
-        else if ( !fundamentals.refreshTableData() )
-            LOG_WARN << "error refreshing fundamentals table data";
-
-        // check filter
-        else if ( !calcFilter.check( &quote, &fundamentals ) )
-            LOG_TRACE << "filtered out from underlying";
-
-        else
+        foreach ( const QDate& d, expiryDates_ )
         {
-            LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( expiryDate_.toString() ) << "...";
+            LOG_DEBUG << "processing " << qPrintable( symbol_ ) << " " << qPrintable( d.toString() ) << "...";
 
             // retrieve chain data
-            OptionChainTableModel chains( symbol_, expiryDate_ );
+            OptionChainTableModel chains( symbol_, d );
 
-            if ( !chains.refreshTableData() )
+            if ( !chains.refreshData() )
                 LOG_WARN << "error refreshing chain table data";
             else
             {
@@ -116,9 +106,8 @@ void OptionAnalyzerThread::run()
         }
     }
 
-    // remove databases
-    foreach ( const QString& cname, cnames )
-        QSqlDatabase::removeDatabase( cname );
+    // remove app database connection
+    AppDatabase::instance()->removeConnection();
 
     LOG_DEBUG << "processing complete";
 }

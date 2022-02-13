@@ -223,7 +223,7 @@ private:
     QNetworkReply *handleRequest( Method m, const QUrl &url, bool blocking, unsigned int timeout, const QByteArray& content = QByteArray(), const QString& contentType = QString() );
 
     /// Parse network reply.
-    void parseNetworkReply( QNetworkReply *reply );
+    void parseNetworkReply( QNetworkReply *reply, bool deleteReply = false );
 
     /// Save content for debugging purposes.
     static void saveContent( const QByteArray& a, const QString& filename );

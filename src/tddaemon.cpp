@@ -23,12 +23,14 @@
 #include "tddaemon.h"
 
 #include "db/appdb.h"
+#include "db/symboldbs.h"
 
 #include "tda/tdcredentialsdialog.h"
 
 #include "usdot/usdotapi.h"
 
 #include <QApplication>
+#include <QThreadPool>
 
 static const QString EQUITY_MARKET( "EQUITY" );
 static const QString OPTION_MARKET( "OPTION" );
@@ -50,15 +52,16 @@ TDAmeritradeDaemon::TDAmeritradeDaemon( TDAmeritrade *api, DeptOfTheTreasury *us
 
     connect( api_, &TDAmeritrade::connectedStateChanged, this, &_Myt::onConnectedStateChanged );
 
-    connect( api_, &TDAmeritrade::requestsPendingChanged, this, &_Myt::onRequestsPendingChanged );
-    connect( usdot_, &TDAmeritrade::requestsPendingChanged, this, &_Myt::onRequestsPendingChanged );
+    connect( api_, &TDAmeritrade::requestsPendingChanged, this, &_Myt::onRequestsPendingChanged, Qt::QueuedConnection );
+    connect( usdot_, &TDAmeritrade::requestsPendingChanged, this, &_Myt::onRequestsPendingChanged, Qt::QueuedConnection );
 
-    connect( db_, &AppDatabase::accountsChanged, this, &_Myt::onAccountsChanged );
-    connect( db_, &AppDatabase::instrumentsChanged, this, &_Myt::onInstrumentsChanged, Qt::QueuedConnection );
-    connect( db_, &AppDatabase::marketHoursChanged, this, &_Myt::onMarketHoursChanged );
-    connect( db_, &AppDatabase::optionChainChanged, this, &_Myt::onOptionChainChanged, Qt::QueuedConnection );
-    connect( db_, &AppDatabase::quotesChanged, this, &_Myt::onQuotesChanged, Qt::QueuedConnection );
-    connect( db_, &AppDatabase::treasuryYieldCurveRatesChanged, this, &_Myt::onTreasuryYieldCurveRatesChanged );
+    connect( adb_, &AppDatabase::accountsChanged, this, &_Myt::onAccountsChanged, Qt::QueuedConnection );
+    connect( adb_, &AppDatabase::marketHoursChanged, this, &_Myt::onMarketHoursChanged, Qt::QueuedConnection );
+    connect( adb_, &AppDatabase::treasuryYieldCurveRatesChanged, this, &_Myt::onTreasuryYieldCurveRatesChanged, Qt::QueuedConnection );
+
+    connect( sdbs_, &SymbolDatabases::instrumentsChanged, this, &_Myt::onInstrumentsChanged, Qt::QueuedConnection );
+    connect( sdbs_, &SymbolDatabases::optionChainChanged, this, &_Myt::onOptionChainChanged, Qt::QueuedConnection );
+    connect( sdbs_, &SymbolDatabases::quotesChanged, this, &_Myt::onQuotesChanged, Qt::QueuedConnection );
 
     connect( this, &_Mybase::activeChanged, this, &_Myt::onActiveChanged );
 }
@@ -107,7 +110,7 @@ void TDAmeritradeDaemon::getAccounts()
 void TDAmeritradeDaemon::getCandles( const QString& symbol, int period, const QString& periodType, int freq, const QString& freqType )
 {
     // fetch price history
-    api_->getPriceHistory( symbol, period, periodType, freq, freqType, QDateTime(), db_->currentDateTime() );
+    api_->getPriceHistory( symbol, period, periodType, freq, freqType, QDateTime(), adb_->currentDateTime() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -121,12 +124,19 @@ void TDAmeritradeDaemon::getOptionChain( const QString& symbol )
 
     // fetch price history
     if ( needQuoteHistory( symbol ) )
-        retrievePriceHistory( symbol, db_->currentDateTime() );
+        retrievePriceHistory( symbol, adb_->currentDateTime() );
 
     // fetch chain
     api_->getOptionChain( symbol );
 
     emit statusMessageChanged( MESSAGE.arg( symbol ) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritradeDaemon::getQuote( const QString& symbol )
+{
+    // fetch quote
+    api_->getQuote( symbol );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -198,7 +208,7 @@ void TDAmeritradeDaemon::dequeue()
     else if (( !isActive() ) && ( init_ ))
         return;
 
-    const QDateTime now( db_->currentDateTime() );
+    const QDateTime now( adb_->currentDateTime() );
 
     // check for date change... refresh data on date change
     if ( today_ != now.date() )
@@ -259,7 +269,7 @@ void TDAmeritradeDaemon::queueEquityRequests( const QStringList& symbols, bool f
         LOG_TRACE << "forcing queue";
     else if ( queueWhenClosed_ )
         LOG_TRACE << "queue when markets closed set";
-    else if ( !db_->isMarketOpen( db_->currentDateTime(), EQUITY_MARKET ) )
+    else if ( !adb_->isMarketOpen( adb_->currentDateTime(), EQUITY_MARKET ) )
     {
         LOG_TRACE << "markets are closed";
         return;
@@ -286,7 +296,7 @@ void TDAmeritradeDaemon::retrievePriceHistory( const QString& symbol, const QDat
     QDate start;
     QDate end;
 
-    db_->quoteHistoryDateRange( symbol, start, end );
+    sdbs_->quoteHistoryDateRange( symbol, start, end );
 
     // no history
     //   -or-
@@ -336,7 +346,7 @@ void TDAmeritradeDaemon::queueOptionChainRequests( const QStringList& symbols, c
         LOG_TRACE << "forcing queue";
     else if ( queueWhenClosed_ )
         LOG_TRACE << "queue when markets closed set";
-    else if ( !db_->isMarketOpen( db_->currentDateTime(), OPTION_MARKET ) )
+    else if ( !adb_->isMarketOpen( adb_->currentDateTime(), OPTION_MARKET ) )
     {
         LOG_TRACE << "markets are closed";
         return;
@@ -509,10 +519,10 @@ void TDAmeritradeDaemon::onTreasuryYieldCurveRatesChanged()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool TDAmeritradeDaemon::needFundamentals( const QString& symbol ) const
 {
-    const QDateTime stamp( db_->lastFundamentalProcessed( symbol ) );
+    const QDateTime stamp( sdbs_->lastFundamentalProcessed( symbol ) );
 
     // once per day
-    if (( !stamp.isValid() ) || ( stamp.date() < db_->currentDateTime().date() ))
+    if (( !stamp.isValid() ) || ( stamp.date() < adb_->currentDateTime().date() ))
         return true;
 
     return false;
@@ -521,10 +531,10 @@ bool TDAmeritradeDaemon::needFundamentals( const QString& symbol ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool TDAmeritradeDaemon::needQuoteHistory( const QString& symbol ) const
 {
-    const QDateTime stamp( db_->lastQuoteHistoryProcessed( symbol ) );
+    const QDateTime stamp( sdbs_->lastQuoteHistoryProcessed( symbol ) );
 
     // once per day
-    if (( !stamp.isValid() ) || ( stamp.date() < db_->currentDateTime().date() ))
+    if (( !stamp.isValid() ) || ( stamp.date() < adb_->currentDateTime().date() ))
         return true;
 
     return false;
@@ -556,7 +566,7 @@ bool TDAmeritradeDaemon::processTreasYieldsState( const QDateTime& now )
         QDate start;
         QDate end;
 
-        db_->treasuryYieldCurveDateRange( start, end );
+        adb_->treasuryYieldCurveDateRange( start, end );
 
         while ( fetchTreas_ <= now.date() )
         {
@@ -609,7 +619,7 @@ bool TDAmeritradeDaemon::processMarketHoursState( const QDateTime& now )
     // fetch market hours
     if ( FETCH_MARKET_HOURS == currentState() )
     {
-        const QStringList marketTypes( db_->marketTypes() );
+        const QStringList marketTypes( adb_->marketTypes() );
 
         while ( fetchMarketHours_ <= now.date().addDays( MARKET_HOURS_HIST ) )
         {
@@ -617,7 +627,7 @@ bool TDAmeritradeDaemon::processMarketHoursState( const QDateTime& now )
 
             // check we have hours for every market type
             foreach ( const QString& marketType, marketTypes )
-                if ( !db_->marketHoursExist( fetchMarketHours_, marketType ) )
+                if ( !adb_->marketHoursExist( fetchMarketHours_, marketType ) )
                 {
                     fetch = true;
                     break;
@@ -656,10 +666,10 @@ bool TDAmeritradeDaemon::processMarketHoursState( const QDateTime& now )
                 okay = false;
             else
             {
-                const QStringList marketTypes( db_->marketTypes() );
+                const QStringList marketTypes( adb_->marketTypes() );
 
                 foreach ( const QString& marketType, marketTypes )
-                    if ( !db_->marketHoursExist( now.date(), marketType ) )
+                    if ( !adb_->marketHoursExist( now.date(), marketType ) )
                     {
                         okay = false;
                         break;
@@ -724,6 +734,13 @@ bool TDAmeritradeDaemon::processAccountsState()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool TDAmeritradeDaemon::processActiveState( const QDateTime& now )
 {
+    // check we are not overloading cpu
+    if ( QThreadPool::globalInstance()->maxThreadCount() <= QThreadPool::globalInstance()->activeThreadCount() )
+    {
+        LOG_DEBUG << "throttle...";
+        return false;
+    }
+
     // request equity quotes
     if ( equityQueue_.size() )
     {

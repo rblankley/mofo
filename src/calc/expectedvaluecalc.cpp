@@ -24,6 +24,8 @@
 
 #include "db/appdb.h"
 #include "db/optionchaintablemodel.h"
+#include "db/optiondata.h"
+#include "db/symboldbs.h"
 
 #include "util/abstractoptionpricing.h"
 
@@ -36,11 +38,18 @@
 ExpectedValueCalculator::ExpectedValueCalculator( double underlying, const table_model_type *chains, item_model_type *results ) :
     _Mybase( underlying, chains, results )
 {
+    const QDateTime now( AppDatabase::instance()->currentDateTime() );
+
     // separate strikes into ascending and descending lists
     for ( int row( 0 ); row < chains_->rowCount(); ++row )
     {
         // ignore non-standard options
         if ( isNonStandard( row ) )
+            continue;
+        // ignore expired options
+        else if ( chains->tableData( row, table_model_type::CALL_EXPIRY_DATE ).toDateTime() < now )
+            continue;
+        else if ( chains->tableData( row, table_model_type::PUT_EXPIRY_DATE ).toDateTime() < now )
             continue;
 
         const double strike( chains_->tableData( row, table_model_type::STRIKE_PRICE ).toDouble() );
@@ -306,6 +315,8 @@ bool ExpectedValueCalculator::generateProbCurve()
     }
 
     // generate probabilities
+    OptionChainCurves curves;
+
     double prevProb( 1.0 );
 
     foreach ( const double& strike, asc_ )
@@ -349,7 +360,26 @@ bool ExpectedValueCalculator::generateProbCurve()
             LOG_WARN << qPrintable( chains_->symbol() ) << " " << daysToExpiry_ << " " << strike << " probability inversion";
             probCurve_[strike] = prevProb;
         }
+
+        // track curve data
+        if ( greeksCall_.contains( strike ) )
+            curves.callVolatility[strike] = greeksCall_[strike].markvi;
+
+        if ( greeksPut_.contains( strike ) )
+            curves.putVolatility[strike] = greeksPut_[strike].markvi;
+
+        curves.volatility[strike] = (call.vi + put.vi) / 2.0;
+
+        curves.itmProbability[strike] = probCurve_[strike];
+        curves.otmProbability[strike] = 1.0 - probCurve_[strike];
     }
+
+    // save option curve info
+    SymbolDatabases::instance()->setOptionChainCurves(
+        chains_->symbol(),
+        chains_->expirationDate(),
+        QDateTime::fromString( chains_->data0( table_model_type::STAMP ).toString(), Qt::ISODateWithMs ),
+        curves );
 
     return true;
 }

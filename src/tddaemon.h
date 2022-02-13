@@ -140,6 +140,12 @@ public:
      */
     virtual void getOptionChain( const QString& symbol ) override;
 
+    /// Retrieve quote.
+    /**
+     * @param[in] symbol  symbol
+     */
+    virtual void getQuote( const QString& symbol ) override;
+
     /// Wait for connected.
     /**
      * @param[in] timeout  time to wait (ms)

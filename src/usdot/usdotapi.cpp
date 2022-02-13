@@ -43,7 +43,7 @@ DeptOfTheTreasury::DeptOfTheTreasury( QObject *parent ) :
 
     loadEndpoints();
 
-    connect( this, &_Myt::processDocumentXml, this, &_Myt::onProcessDocumentXml );
+    connect( this, &_Myt::processDocumentXml, this, &_Myt::onProcessDocumentXml, Qt::DirectConnection );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -72,6 +72,8 @@ void DeptOfTheTreasury::getDailyTreasuryBillRates( int year, int month )
 
     const QUuid uuid( QUuid::createUuid() );
 
+    QMutexLocker guard( &m_ );
+
     pendingRequests_[uuid] = GET_DAILY_TREASURY_BILL_RATES;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
@@ -96,6 +98,8 @@ void DeptOfTheTreasury::getDailyTreasuryYieldCurveRates( int year, int month )
     url.setQuery( urlQuery );
 
     const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_DAILY_TREASURY_YIELD_CURVE_RATES;
     send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
@@ -123,12 +127,18 @@ void DeptOfTheTreasury::onProcessDocumentXml( const QUuid& uuid, const QByteArra
     Q_UNUSED( request )
     Q_UNUSED( requestType )
 
-    if ( !pendingRequests_.contains( uuid ) )
-        return;
+    Endpoint type;
 
-    const Endpoint type( pendingRequests_[uuid] );
+    {
+        QMutexLocker guard( &m_ );
 
-    pendingRequests_.remove( uuid );
+        if ( !pendingRequests_.contains( uuid ) )
+            return;
+
+        type = pendingRequests_[uuid];
+
+        pendingRequests_.remove( uuid );
+    }
 
     if ( 200 != status )
     {

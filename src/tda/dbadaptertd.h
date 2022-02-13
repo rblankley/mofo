@@ -115,36 +115,6 @@ public slots:
      */
     virtual bool transformQuotes( const QJsonObject& obj ) const;
 
-protected:
-
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Transform instruments to database format.
-    /**
-     * @param[in] obj  data
-     */
-    virtual void transformInstrumentsImpl( const QJsonObject *obj ) const;
-
-    /// Transform option chain to database format.
-    /**
-     * @param[in] obj  data
-     */
-    virtual void transformOptionChainImpl( const QJsonObject *obj ) const;
-
-    /// Transform price history to database format.
-    /**
-     * @param[in] obj  data
-     */
-    virtual void transformPriceHistoryImpl( const QJsonObject *obj ) const;
-
-    /// Transform quotes to database format.
-    /**
-     * @param[in] obj  data
-     */
-    virtual void transformQuotesImpl( const QJsonObject *obj ) const;
-
 private:
 
     /// Field map type.

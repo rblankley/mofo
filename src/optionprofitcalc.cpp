@@ -29,6 +29,7 @@
 
 #include "db/appdb.h"
 #include "db/optionchaintablemodel.h"
+#include "db/symboldbs.h"
 
 #include <cmath>
 
@@ -67,7 +68,7 @@ OptionProfitCalculator::OptionProfitCalculator( double underlying, const table_m
         tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
         tradingDaysToExpiry /= AppDatabase::instance()->numDays();
 
-        histVolatility_ = AppDatabase::instance()->historicalVolatility( chains_->symbol(), now, std::round( tradingDaysToExpiry ) );
+        histVolatility_ = SymbolDatabases::instance()->historicalVolatility( chains_->symbol(), now.date(), std::round( tradingDaysToExpiry ) );
 
         // risk free rate
         double timeToExpiryYears = daysToExpiry_;
@@ -82,8 +83,8 @@ OptionProfitCalculator::OptionProfitCalculator( double underlying, const table_m
         QDate divDate;
         double divFreq;
 
-        const double divAmount = AppDatabase::instance()->dividendAmount( chains_->symbol(), divDate, divFreq );
-        const double divYield = AppDatabase::instance()->dividendYield( chains_->symbol() );
+        const double divAmount = SymbolDatabases::instance()->dividendAmount( chains_->symbol(), divDate, divFreq );
+        const double divYield = SymbolDatabases::instance()->dividendYield( chains_->symbol() );
 
         if (( divDate.isValid() ) && ( 0.0 < divFreq ) && ( 0.0 < divYield ))
         {
@@ -316,13 +317,7 @@ void OptionProfitCalculator::populateResultModelSingle( int row, bool isCall, it
 
     result[item_model_type::STRIKE_PRICE] = chains_->tableData( row, table_model_type::STRIKE_PRICE );
 
-    // determine historical volatility
-    const QDateTime quoteTime( result[item_model_type::QUOTE_TIME].toDateTime() );
-
-    int tradingDaysToExpiry( daysToExpiry_ );
-    tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
-    tradingDaysToExpiry /= AppDatabase::instance()->numDays();
-
+    // historical volatility
     result[item_model_type::HIST_VOLATILITY] = 100.0 * histVolatility_;
 
     // expected dividend
@@ -501,13 +496,7 @@ void OptionProfitCalculator::populateResultModelVertical( int rowLong, int rowSh
 
     result[item_model_type::STRIKE_PRICE] = chains_->tableData( rowShort, table_model_type::STRIKE_PRICE ).toString() + "/" + chains_->tableData( rowLong, table_model_type::STRIKE_PRICE ).toString();
 
-    // determine historical volatility
-    const QDateTime quoteTime( result[item_model_type::QUOTE_TIME].toDateTime() );
-
-    int tradingDaysToExpiry( daysToExpiry_ );
-    tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
-    tradingDaysToExpiry /= AppDatabase::instance()->numDays();
-
+    // historical volatility
     result[item_model_type::HIST_VOLATILITY] = 100.0 * histVolatility_;
 
     // expected dividend

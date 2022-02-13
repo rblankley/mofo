@@ -49,7 +49,7 @@
 #include <QTimer>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.16" );
+static const QString applicationVersion( "0.0.17" );
 
 static const QString EQUITY_OPTION_PRODUCT( "EQO" );
 static const QString INDEX_OPTION_PRODUCT( "IND" );
@@ -61,7 +61,7 @@ MainWindow::MainWindow( QWidget *parent ) :
     db_( AppDatabase::instance() ),
     analysis_( nullptr ),
     analysisModel_( new OptionTradingItemModel( this ) )
-{    
+{
     // init
     initialize();
     createLayout();
@@ -90,7 +90,7 @@ MainWindow::MainWindow( QWidget *parent ) :
 
     connect( daemon_, &AbstractDaemon::statusMessageChanged, statusBar_, &QStatusBar::showMessage );
 
-    connect( db_, &AppDatabase::accountsChanged, this, &_Myt::onAccountsChanged );
+    connect( db_, &AppDatabase::accountsChanged, this, &_Myt::onAccountsChanged, Qt::QueuedConnection );
 
     connect( analysis_, &OptionAnalyzer::activeChanged, this, &_Myt::updateMenuState );
     connect( analysis_, &OptionAnalyzer::complete, this, &_Myt::updateMenuState );
@@ -113,7 +113,7 @@ QSize MainWindow::sizeHint() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void MainWindow::translate()
 {
-    setWindowTitle( QString( "%1 (mofo v%2)" ).arg( applicationName ).arg( applicationVersion ) );;
+    setWindowTitle( QString( "%1 (mofo v%2)" ).arg( applicationName, applicationVersion ) );
 
     fileMenu_->setTitle( tr( "&File" ) );
     exit_->setText( tr( "E&xit" ) );
@@ -182,19 +182,18 @@ void MainWindow::updateMarketHours()
         }
         else
         {
-            bool open;
             bool ext;
 
             // check open
-            if ( !(open = db_->isMarketOpen( now, market, QString(), &ext )) )
-            {
-                p.setColor( m->foregroundRole(), Qt::darkGray );
-                p.setColor( m->backgroundRole(), Qt::transparent );
-            }
-            else
+            if ( db_->isMarketOpen( now, market, QString(), &ext ) )
             {
                 p.setColor( m->foregroundRole(), ext ? Qt::black :Qt::white );
                 p.setColor( m->backgroundRole(), ext ? Qt::yellow : Qt::darkGreen );
+            }
+            else
+            {
+                p.setColor( m->foregroundRole(), Qt::darkGray );
+                p.setColor( m->backgroundRole(), Qt::transparent );
             }
         }
 
@@ -522,7 +521,7 @@ void MainWindow::onActionTriggered()
 
         // set central widget
         if ( !w )
-            setCentralWidget( w = new AnalysisWidget( analysisModel_, this ) );
+            setCentralWidget( new AnalysisWidget( analysisModel_, this ) );
     }
 
     // custom scan and analysis
@@ -563,7 +562,7 @@ void MainWindow::onActionTriggered()
                 .arg( db_->version() )
                 .arg( __DATE__ )
                 .arg( __TIME__ )
-                .arg( tr( "Copyright (C) 2021 Randy Blankley. All rights reserved." ) )
+                .arg( tr( "Copyright (C) 2022 Randy Blankley. All rights reserved." ) )
                 .arg( tr( "The program is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE." ) ) );
     }
 

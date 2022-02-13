@@ -28,6 +28,7 @@
 #include <db/optionchaintablemodel.h>
 #include <db/optiontradingitemmodel.h>
 #include <db/quotetablemodel.h>
+#include <db/symboldbs.h>
 
 #include <cmath>
 
@@ -785,6 +786,9 @@ bool OptionProfitCalculatorFilter::checkAdvancedFilters() const
 
         const QVariant v0( tableData( t0[0], t0[1] ) );
 
+        if ( v0.isNull() )
+            continue;
+
         // retrieve operand
         const QStringList op( filter[1].split( ":" ) );
 
@@ -806,6 +810,9 @@ bool OptionProfitCalculatorFilter::checkAdvancedFilters() const
             v1 = filter[2].toInt();
         else if ( DOUBLE_VALUE == t0[2] )
             v1 = filter[2].toDouble();
+
+        if ( v1.isNull() )
+            continue;
 
         // validate
 #if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
@@ -883,114 +890,330 @@ QVariant OptionProfitCalculatorFilter::tableData( const QString& t, const QStrin
         const QDateTime now( AppDatabase::instance()->currentDateTime() );
 
         const QString symbol( q_->data0( QuoteTableModel::SYMBOL ).toString() );
-        const QDate start( now.date().addDays( -5 ) );
+        const QDate start( now.date().addDays( -7 ) );
         const QDate end( now.date() );
 
-        // exponential moving average (from MACD)
-        if (( "EMA12" == col ) || ( "EMA26" == col ))
+        const QDate expiry( oc_ ? QDate::fromString( oc_->data( ocr_, OptionChainTableModel::EXPIRY_DATE ).toString(), Qt::ISODate ) : QDate() );
+
+        QString data( col );
+        bool slope( false );
+        bool vmin( false );
+        bool vmax( false );
+
+        if ( col.endsWith( "SLOPE" ) )
         {
+            data = col.chopped( 5 );
+            slope = true;
+        }
+        else if ( col.endsWith( "MIN" ) )
+        {
+            data = col.chopped( 3 );
+            vmin = true;
+        }
+        else if ( col.endsWith( "MAX" ) )
+        {
+            data = col.chopped( 3 );
+            vmax = true;
+        }
+
+        // for min/max need valid expiry date
+        if (( vmin ) || ( vmax ))
+            if (( !expiry.isValid() ) || ( expiry < end ))
+                return QVariant();
+
+        // exponential moving average (from MACD)
+        if (( "EMA12" == data ) || ( "EMA26" == data ))
+        {
+#if QT_VERSION_CHECK( 5, 15, 2 ) <= QT_VERSION
+            const int d( QStringView{ data }.mid( 3 ).toInt() );
+#else
+            const int d( data.midRef( 3 ).toInt() );
+#endif
+
             QList<MovingAveragesConvergenceDivergence> values;
 
-            AppDatabase::instance()->movingAveragesConvergenceDivergence( symbol, start, end, values );
-
-            if ( values.size() )
+            if (( vmin ) || ( vmax ))
             {
-#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
-                return values.last().ema[ QStringView{ col }.mid( 3 ).toInt() ];
-#else
-                return values.last().ema[ col.midRef( 3 ).toInt() ];
-#endif
+                const int dte( end.daysTo( expiry ) );
+
+                SymbolDatabases::instance()->movingAveragesConvergenceDivergence( symbol, end.addDays( -dte ), end, values );
+
+                if ( values.size() )
+                {
+                    double min;
+                    double max( min = values[0].ema[d] );
+
+                    foreach ( const MovingAveragesConvergenceDivergence& value, values )
+                    {
+                        min = qMin( min, value.ema[d] );
+                        max = qMax( max, value.ema[d] );
+                    }
+
+                    if ( vmin )
+                        return min;
+                    else if ( vmax )
+                        return max;
+                }
+            }
+            else
+            {
+                SymbolDatabases::instance()->movingAveragesConvergenceDivergence( symbol, start, end, values );
+
+                const int last( values.size() - 1 );
+
+                if ( slope )
+                {
+                    if ( 1 <= last )
+                        return values[last].ema[d] - values[last-1].ema[d];
+                }
+                else if ( 0 <= last )
+                    return values[last].ema[d];
             }
         }
         // simple moving average
         // exponential moving average
-        else if (( "SMA" == col.left( 3 ) ) || ( "EMA" == col.left( 3 ) ))
+        else if (( data.startsWith( "SMA" ) ) || ( data.startsWith( "EMA" ) ))
         {
+#if QT_VERSION_CHECK( 5, 15, 2 ) <= QT_VERSION
+            const int d( QStringView{ data }.mid( 3 ).toInt() );
+#else
+            const int d( data.midRef( 3 ).toInt() );
+#endif
+
             QList<MovingAverages> values;
 
-            AppDatabase::instance()->movingAverages( symbol, start, end, values );
-
-            if ( values.size() )
+            if (( vmin ) || ( vmax ))
             {
-                if ( "SMA" == col.left( 3 ) )
+                const int dte( end.daysTo( expiry ) );
+
+                SymbolDatabases::instance()->movingAverages( symbol, end.addDays( -dte ), end, values );
+
+                if ( values.size() )
                 {
-#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
-                    return values.last().sma[ QStringView{ col }.mid( 3 ).toInt() ];
-#else
-                    return values.last().sma[ col.midRef( 3 ).toInt() ];
-#endif
+                    double min( 999999.99 );
+                    double max( 0.0 );
+
+                    foreach ( const MovingAverages& value, values )
+                    {
+                        if ( data.startsWith( "SMA" ) )
+                        {
+                            min = qMin( min, value.sma[d] );
+                            max = qMax( max, value.sma[d] );
+                        }
+                        else if ( data.startsWith( "EMA" ) )
+                        {
+                            min = qMin( min, value.ema[d] );
+                            max = qMax( max, value.ema[d] );
+                        }
+                    }
+
+                    if ( vmin )
+                        return min;
+                    else if ( vmax )
+                        return max;
                 }
-                else if ( "EMA" == col.left( 3 ) )
+            }
+            else
+            {
+                SymbolDatabases::instance()->movingAverages( symbol, start, end, values );
+
+                const int last( values.size() - 1 );
+
+                if ( slope )
                 {
-#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
-                    return values.last().ema[ QStringView{ col }.mid( 3 ).toInt() ];
-#else
-                    return values.last().ema[ col.midRef( 3 ).toInt() ];
-#endif
+                    if ( 1 <= last )
+                    {
+                        if ( data.startsWith( "SMA" ) )
+                            return values[last].sma[d] - values[last-1].sma[d];
+                        else if ( data.startsWith( "EMA" ) )
+                            return values[last].ema[d] - values[last-1].ema[d];
+                    }
+                }
+                else if ( 0 <= last )
+                {
+                    if ( data.startsWith( "SMA" ) )
+                        return values[last].sma[d];
+                    else if ( data.startsWith( "EMA" ) )
+                        return values[last].ema[d];
                 }
             }
         }
         // relative strength index
-        else if ( "RSI" == col.left( 3 ) )
+        else if ( data.startsWith( "RSI" ) )
         {
+#if QT_VERSION_CHECK( 5, 15, 2 ) <= QT_VERSION
+            const int d( QStringView{ data }.mid( 3 ).toInt() );
+#else
+            const int d( data.midRef( 3 ).toInt() );
+#endif
+
             QList<RelativeStrengthIndexes> values;
 
-            AppDatabase::instance()->relativeStrengthIndex( symbol, start, end, values );
-
-            if ( values.size() )
+            if (( vmin ) || ( vmax ))
             {
-#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
-                return values.last().values[ QStringView{ col }.mid( 3 ).toInt() ];
-#else
-                return values.last().values[ col.midRef( 3 ).toInt() ];
-#endif
+                const int dte( end.daysTo( expiry ) );
+
+                SymbolDatabases::instance()->relativeStrengthIndex( symbol, end.addDays( -dte ), end, values );
+
+                if ( values.size() )
+                {
+                    double min;
+                    double max( min = values[0].values[d] );
+
+                    foreach ( const RelativeStrengthIndexes& value, values )
+                    {
+                        min = qMin( min, value.values[d] );
+                        max = qMax( max, value.values[d] );
+                    }
+
+                    if ( vmin )
+                        return min;
+                    else if ( vmax )
+                        return max;
+                }
+            }
+            else
+            {
+                SymbolDatabases::instance()->relativeStrengthIndex( symbol, start, end, values );
+
+                const int last( values.size() - 1 );
+
+                if ( slope )
+                {
+                    if ( 1 <= last )
+                        return values[last].values[d] - values[last-1].values[d];
+                }
+                else if ( 0 <= last )
+                    return values[last].values[d];
+            }
+        }
+        // historical volatility (depth of dte)
+        else if ( data.startsWith( "HVDTE" ) )
+        {
+            if (( !expiry.isValid() ) || ( expiry < end ))
+                return QVariant();
+
+            // depth is trading days to expiry
+            int d( end.daysTo( expiry ) );
+            d *= AppDatabase::instance()->numTradingDays();
+            d /= AppDatabase::instance()->numDays();
+
+            if (( vmin ) || ( vmax ))
+            {
+                const int dte( end.daysTo( expiry ) );
+
+                double min;
+                double max;
+
+                SymbolDatabases::instance()->historicalVolatilityRange( symbol, end.addDays( -dte ), end, d, min, max );
+
+                if ( vmin )
+                    return 100.0 * min;
+                else if ( vmax )
+                    return 100.0 * max;
+            }
+            else
+            {
+                double hvprev( 0.0 );
+
+                // find a recent hv
+                for ( int days( 0 ); days < 10; ++days )
+                {
+                    const double hv( SymbolDatabases::instance()->historicalVolatility( symbol, end.addDays( -days ), d ) );
+
+                    if ( 0.0 < hv )
+                    {
+                        if ( !slope )
+                            return 100.0 * hv;
+                        else if ( 0.0 < hvprev )
+                            return 100.0 * (hvprev - hv);
+
+                        hvprev = hv;
+                    }
+                }
             }
         }
         // historical volatility
-        else if ( "HV" == col.left( 2 ) )
+        else if ( data.startsWith( "HV" ) )
         {
-            QList<HistoricalVolatilities> values;
-
-            AppDatabase::instance()->historicalVolatilities( symbol, start, end, values );
-
-            if ( values.size() )
-            {
-#if QT_VERSION_CHECK( 6, 0, 0 ) <= QT_VERSION
-                return values.last().volatilities[ QStringView{ col }.mid( 2 ).toInt() ];
+#if QT_VERSION_CHECK( 5, 15, 2 ) <= QT_VERSION
+            const int d( QStringView{ data }.mid( 2 ).toInt() );
 #else
-                return values.last().volatilities[ col.midRef( 2 ).toInt() ];
+            const int d( data.midRef( 2 ).toInt() );
 #endif
+
+            if (( vmin ) || ( vmax ))
+            {
+                const int dte( end.daysTo( expiry ) );
+
+                double min;
+                double max;
+
+                SymbolDatabases::instance()->historicalVolatilityRange( symbol, end.addDays( -dte ), end, d, min, max );
+
+                if ( vmin )
+                    return 100.0 * min;
+                else if ( vmax )
+                    return 100.0 * max;
+            }
+            else
+            {
+                QList<HistoricalVolatilities> values;
+                SymbolDatabases::instance()->historicalVolatilities( symbol, start, end, values );
+
+                const int last( values.size() - 1 );
+
+                if ( slope )
+                {
+                    if ( 1 <= last )
+                        return 100.0 * (values[last].volatilities[d] - values[last-1].volatilities[d]);
+                }
+                else if ( 0 <= last )
+                    return 100.0 * values[last].volatilities[d];
             }
         }
         // macd
-        else if ( "MACD" == col.left( 4 ) )
+        else if ( data.startsWith( "MACD" ) )
         {
             QList<MovingAveragesConvergenceDivergence> values;
+            SymbolDatabases::instance()->movingAveragesConvergenceDivergence( symbol, start, end, values );
 
-            AppDatabase::instance()->movingAveragesConvergenceDivergence( symbol, start, end, values );
+            const int last( values.size() - 1 );
 
-            if (( "MACDBUYFLAG" == col ) && ( 2 <= values.size() ))
+            if (( "MACDBUYFLAG" == data ) && ( 1 <= last ))
             {
-                const double pval( values[values.size()-2].histogram );
-                const double val( values[values.size()-1].histogram );
+                const double pval( values[last-1].histogram );
+                const double val( values[last].histogram );
 
                 return ((( pval < 0.0 ) && ( 0.0 <= val )) ? 1 : 0);
             }
-            else if (( "MACDSELLFLAG" == col ) && ( 2 <= values.size() ))
+            else if (( "MACDSELLFLAG" == data ) && ( 1 <= last ))
             {
-                const double pval( values[values.size()-2].histogram );
-                const double val( values[values.size()-1].histogram );
+                const double pval( values[last-1].histogram );
+                const double val( values[last].histogram );
 
                 return ((( 0.0 <= pval ) && ( val < 0.0 )) ? 1 : 0);
             }
-            else if ( values.size() )
+            else if ( slope )
             {
-                if ( "MACD" == col )
-                    return values.last().macd;
-                else if ( "MACDSIG" == col )
-                    return values.last().signal;
-                else if ( "MACDH" == col )
-                    return values.last().histogram;
+                if ( 1 <= last )
+                {
+                    if ( "MACD" == data )
+                        return values[last].macd - values[last-1].macd;
+                    else if ( "MACDSIG" == data )
+                        return values[last].signal - values[last-1].signal;
+                    else if ( "MACDH" == data )
+                        return values[last].histogram - values[last-1].histogram;
+                }
+            }
+            else if ( 0 <= last )
+            {
+                if ( "MACD" == data )
+                    return values[last].macd;
+                else if ( "MACDSIG" == data )
+                    return values[last].signal;
+                else if ( "MACDH" == data )
+                    return values[last].histogram;
             }
         }
     }

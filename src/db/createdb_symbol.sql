@@ -1,7 +1,3 @@
-/* database pragmas */
-PRAGMA foreign_keys = ON;
-PRAGMA journal_mode = MEMORY;
-PRAGMA synchronous = OFF;
 
 /* ------------------------------------------------------------------------------------------------
  * settings

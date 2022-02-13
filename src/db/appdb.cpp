@@ -1,6 +1,5 @@
 /**
  * @file appdb.cpp
- * Application Database.
  *
  * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
  *
@@ -23,21 +22,17 @@
 #include "appdb.h"
 #include "common.h"
 #include "stringsdb.h"
-#include "symboldb.h"
 
 #include <QApplication>
 #include <QJsonArray>
 #include <QJsonObject>
 #include <QSqlError>
 #include <QSqlQuery>
-#include <QSqlQueryModel>
 #include <QSqlRecord>
 #include <QThread>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "9" );
-
-static const QString DAILY( "daily" );
+static const QString DB_VERSION( "10" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -46,9 +41,6 @@ AppDatabase *AppDatabase::instance_( nullptr );
 AppDatabase::AppDatabase() :
     _Mybase( DB_NAME, DB_VERSION )
 {
-    // register meta types
-    qRegisterMetaType<QList<CandleData>>();
-
     // open database
     if ( open() )
         readSettings();
@@ -87,11 +79,11 @@ QStringList AppDatabase::accounts() const
 
     QStringList result;
 
-    QSqlQuery query( db_ );
-    query.prepare( sql );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
 
     // exec sql
-    if ( !query.exec() )
+    if ( !query.exec( sql ) )
     {
         const QSqlError e( query.lastError() );
 
@@ -99,21 +91,14 @@ QStringList AppDatabase::accounts() const
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
 
             result.append(
-                QString( "%1 (%2)" )
-                    .arg( rec.value( "accountId" ).toString() )
-                    .arg( rec.value( "type" ).toString() ) );
+                QString( "%1 (%2)" ).arg(
+                    rec.value( "accountId" ).toString(),
+                    rec.value( "type" ).toString() ) );
         }
     }
 
@@ -143,62 +128,16 @@ QDateTime AppDatabase::currentDateTime() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QString AppDatabase::cusip( const QString& symbol ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->cusip();
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return QString();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double AppDatabase::dividendAmount( const QString& symbol, QDate& date, double& frequency ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->dividendAmount( date, frequency );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return false;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double AppDatabase::dividendYield( const QString& symbol ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->dividendYield();
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return false;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 QByteArray AppDatabase::filter( const QString& name ) const
 {
     static const QString sql( "SELECT * FROM filters WHERE name=:name" );
 
     QByteArray result;
 
-    // this method is used by background threads, need to open dedicated connection
-    QSqlDatabase conn( openDatabaseConnection() );
-
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":name", name );
 
     // exec sql
@@ -210,21 +149,15 @@ QByteArray AppDatabase::filter( const QString& name ) const
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        if ( !model.rowCount() )
-             LOG_WARN << "no row(s) found";
-        else
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( 0 ) );
+            const QSqlRecord rec( query.record() );
 
             result.append( rec.value( "value" ).toByteArray() );
         }
+
+        if ( result.isEmpty() )
+             LOG_WARN << "no row(s) found";
     }
 
     return result;
@@ -237,11 +170,11 @@ QStringList AppDatabase::filters() const
 
     QStringList result;
 
-    QSqlQuery query( db_ );
-    query.prepare( sql );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
 
     // exec sql
-    if ( !query.exec() )
+    if ( !query.exec( sql ) )
     {
         const QSqlError e( query.lastError() );
 
@@ -249,50 +182,15 @@ QStringList AppDatabase::filters() const
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
 
             result.append( rec.value( "name" ).toString() );
         }
     }
 
     return result;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-double AppDatabase::historicalVolatility( const QString& symbol, const QDateTime& dt, int depth ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->historicalVolatility( dt, depth );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return 0.0;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::historicalVolatilities( const QString& symbol, const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        child->historicalVolatilities( start, end, data );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -303,8 +201,10 @@ bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, 
     if ( product.length() )
         sql += " AND product=:product";
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":date", dt.date().toString( Qt::ISODate ) );
     query.bindValue( ":marketType", marketType );
 
@@ -320,14 +220,7 @@ bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, 
         return false;
     }
 
-    QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    model.setQuery( std::move( query ) );
-#else
-    model.setQuery( query );
-#endif
-
-    if ( !model.rowCount() )
+    if ( !query.next() )
         return false;
 
     // ---- //
@@ -335,47 +228,18 @@ bool AppDatabase::isMarketOpen( const QDateTime& dt, const QString& marketType, 
     if ( isExtended )
         (*isExtended) = false;
 
-    for ( int i( 0 ); i < model.rowCount(); ++i )
+    do
     {
-        const QSqlRecord rec( model.record( i ) );
+        const QSqlRecord rec( query.record() );
 
         if ( !rec.value( "isOpen" ).toBool() )
             return false;
         else if ( !checkSessionHours( dt, marketType, rec.value( "product" ).toString(), isExtended ) )
             return false;
-    }
+
+    } while ( query.next() );
 
     return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QDateTime AppDatabase::lastFundamentalProcessed( const QString& symbol ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->lastFundamentalProcessed();
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return QDateTime();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QDateTime AppDatabase::lastQuoteHistoryProcessed( const QString& symbol ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->lastQuoteHistoryProcessed();
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return QDateTime();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -386,8 +250,10 @@ bool AppDatabase::marketHoursExist( const QDate& date, const QString& marketType
     if ( marketType.length() )
         sql += " AND marketType=:marketType";
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":date", date.toString( Qt::ISODate ) );
 
     if ( marketType.length() )
@@ -402,7 +268,7 @@ bool AppDatabase::marketHoursExist( const QDate& date, const QString& marketType
         return false;
     }
 
-    return query.first();
+    return query.next();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -412,8 +278,10 @@ QMap<QString, MarketProductHours> AppDatabase::marketHours( const QDate& date, c
 
     QMap<QString, MarketProductHours> result;
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":date", date.toString( Qt::ISODate ) );
     query.bindValue( ":marketType", marketType );
 
@@ -425,16 +293,9 @@ QMap<QString, MarketProductHours> AppDatabase::marketHours( const QDate& date, c
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
             const QString p( rec.value( "product" ).toString() );
 
             if (( product.isEmpty() ) || ( product == p ))
@@ -489,87 +350,29 @@ QStringList AppDatabase::marketTypes( bool hasHours ) const
     if ( hasHours )
         sql += " WHERE 1=hasMarketHours";
 
-    QSqlQueryModel model;
-    model.setQuery( sql, db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
 
-    for ( int i( 0 ); i < model.rowCount(); ++i )
+    if ( !query.exec( sql ) )
     {
-        const QSqlRecord rec( model.record( i ) );
+        const QSqlError e( query.lastError() );
 
-        const QString type( rec.value( "type" ).toString() );
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        while ( query.next() )
+        {
+            const QSqlRecord rec( query.record() );
 
-        if ( types.contains( type ) )
-            result.append( type );
+            const QString type( rec.value( "type" ).toString() );
+
+            if ( types.contains( type ) )
+                result.append( type );
+        }
     }
 
     return result;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::movingAverages( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAverages>& data ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        child->movingAverages( start, end, data );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::movingAveragesConvergenceDivergence( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        child->movingAveragesConvergenceDivergence( start, end, data );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QSqlDatabase AppDatabase::openDatabaseConnection( const QString& symbol ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        return child->openDatabaseConnection();
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-
-    return QSqlDatabase();
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::quoteHistoryDateRange( const QString& symbol, QDate& start, QDate& end ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        child->quoteHistoryDateRange( start, end );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void AppDatabase::relativeStrengthIndex( const QString& symbol, const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const
-{
-    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
-
-    if ( child )
-        child->relativeStrengthIndex( start, end, data );
-    else
-    {
-        LOG_WARN << "could not find symbol " << qPrintable( symbol );
-    }
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -577,8 +380,11 @@ void AppDatabase::removeFilter( const QString& name )
 {
     static const QString sql( "DELETE FROM filters WHERE name=:name" );
 
-    QSqlQuery query( db_ );
+    QMutexLocker guard( &writer_ );
+
+    QSqlQuery query( connection() );
     query.prepare( sql );
+
     query.bindValue( ":name", name );
 
     // exec sql
@@ -595,14 +401,17 @@ void AppDatabase::removeWatchlist( const QString& name )
 {
     static const QString sql( "DELETE FROM %1 WHERE name=:name" );
 
+    QMutexLocker guard( &writer_ );
+
     QStringList tables;
     tables.append( "watchlist" );
     tables.append( "indices" );
 
     foreach ( const QString& table, tables )
     {
-        QSqlQuery query( db_ );
+        QSqlQuery query( connection() );
         query.prepare( sql.arg( table ) );
+
         query.bindValue( ":name", name );
 
         // exec sql
@@ -620,6 +429,8 @@ void AppDatabase::removeWidgetState( WidgetType type, const QString& groupName, 
 {
     static const QString sql( "DELETE FROM %1 WHERE groupName=:groupName AND name=:name" );
 
+    QMutexLocker guard( &writer_ );
+
     QString table;
 
     // determine table
@@ -633,8 +444,9 @@ void AppDatabase::removeWidgetState( WidgetType type, const QString& groupName, 
     if ( table.length() )
     {
         // create new filter
-        QSqlQuery query( db_ );
+        QSqlQuery query( connection() );
         query.prepare( sql.arg( table ) );
+
         query.bindValue( ":groupName", groupName );
         query.bindValue( ":name", name );
 
@@ -665,11 +477,10 @@ double AppDatabase::riskFreeRate( double term ) const
     double lowerTerm( 0.0 );
     double lowerRate( 0.0 );
 
-    // this method is used by background threads, need to open dedicated connection
-    QSqlDatabase conn( openDatabaseConnection() );
-
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":dateMin", dateMin.toString( Qt::ISODate ) );
     query.bindValue( ":dateMax", dateMax.toString( Qt::ISODate ) );
 
@@ -682,16 +493,9 @@ double AppDatabase::riskFreeRate( double term ) const
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
 
             const double upperTerm( rec.value( "term" ).toDouble() );
             const double upperRate( rec.value( "rate" ).toDouble() );
@@ -715,6 +519,19 @@ double AppDatabase::riskFreeRate( double term ) const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void AppDatabase::setConfigs( const QJsonObject& value )
 {
+    QMutexLocker guard( &writer_ );
+
+    // start transaction
+    QSqlDatabase conn( connection() );
+
+    if ( !conn.transaction() )
+    {
+        const QSqlError e( conn.lastError() );
+
+        LOG_ERROR << "failed to start transaction " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
     // write each value
     for ( QJsonObject::const_iterator i( value.constBegin() ); i != value.constEnd(); ++i )
     {
@@ -722,6 +539,19 @@ void AppDatabase::setConfigs( const QJsonObject& value )
 
         if ( !writeSetting( i.key(), v ) )
             LOG_ERROR << "failed to write setting " << qPrintable( i.key() ) << " '" << qPrintable( v ) << "'";
+    }
+
+    // commit to database
+    if ( !conn.commit() )
+    {
+        const QSqlError e( conn.lastError() );
+
+        LOG_ERROR << "commit failed " << e.type() << " " << qPrintable( e.text() );
+
+        if ( !conn.rollback() )
+            LOG_FATAL << "rollback failed";
+
+        return;
     }
 
     // refresh settings
@@ -737,12 +567,15 @@ void AppDatabase::setFilter( const QString& name, const QByteArray& value )
     static const QString sql( "INSERT INTO filters (name,value) "
             "VALUES (:name,:value)" );
 
+    QMutexLocker guard( &writer_ );
+
     // remove old filter
     removeFilter( name );
 
     // create new filter
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
     query.prepare( sql );
+
     query.bindValue( ":name", name );
     query.bindValue( ":value", value );
 
@@ -761,23 +594,49 @@ void AppDatabase::setWatchlist( const QString& name, const QStringList& symbols 
     static const QString sql( "INSERT INTO watchlist (name,symbol) "
             "VALUES (:name,:symbol)" );
 
+    QMutexLocker guard( &writer_ );
+
     // remove old list
     removeWatchlist( name );
 
-    // create new list
-    foreach ( const QString& symbol, symbols )
+    // start transaction
+    QSqlDatabase conn( connection() );
+
+    if ( !conn.transaction() )
     {
-        QSqlQuery query( db_ );
+        const QSqlError e( conn.lastError() );
+
+        LOG_ERROR << "failed to start transaction " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        // create new list
+        QSqlQuery query( conn );
         query.prepare( sql );
-        query.bindValue( ":name", name );
-        query.bindValue( ":symbol", symbol );
 
-        // exec sql
-        if ( !query.exec() )
+        foreach ( const QString& symbol, symbols )
         {
-            const QSqlError e( query.lastError() );
+            query.bindValue( ":name", name );
+            query.bindValue( ":symbol", symbol );
 
-            LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
+            // exec sql
+            if ( !query.exec() )
+            {
+                const QSqlError e( query.lastError() );
+
+                LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
+            }
+        }
+
+        // commit to database
+        if ( !conn.commit() )
+        {
+            const QSqlError e( conn.lastError() );
+
+            LOG_ERROR << "commit failed " << e.type() << " " << qPrintable( e.text() );
+
+            if ( !conn.rollback() )
+                LOG_FATAL << "rollback failed";
         }
     }
 }
@@ -787,6 +646,8 @@ void AppDatabase::setWidgetState( WidgetType type, const QString& groupName, con
 {
     static const QString sql( "REPLACE INTO %1 (groupName,name,state) "
             "VALUES (:groupName,:name,:state)" );
+
+    QMutexLocker guard( &writer_ );
 
     QString table;
 
@@ -801,8 +662,9 @@ void AppDatabase::setWidgetState( WidgetType type, const QString& groupName, con
     if ( table.length() )
     {
         // create new filter
-        QSqlQuery query( db_ );
+        QSqlQuery query( connection() );
         query.prepare( sql.arg( table ) );
+
         query.bindValue( ":groupName", groupName );
         query.bindValue( ":name", name );
         query.bindValue( ":state", state );
@@ -823,26 +685,38 @@ void AppDatabase::treasuryYieldCurveDateRange( QDate& start, QDate& end ) const
     const QString sql( "SELECT date FROM riskFreeInterestRates WHERE "
         "source='" + DB_TREAS_YIELD_CURVE + "' ORDER BY DATE(date) %1 LIMIT 5" );
 
-    QSqlQueryModel modelEnd;
-    modelEnd.setQuery( sql.arg( "DESC" ), db_ );
+    // end date
+    QSqlQuery queryEnd( connection() );
+    queryEnd.setForwardOnly( true );
 
-    for ( int i( 0 ); i < modelEnd.rowCount(); ++i )
+    if ( !queryEnd.exec( sql.arg( "DESC" ) ) )
     {
-        const QSqlRecord rec( modelEnd.record( i ) );
+        const QSqlError e( queryEnd.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else if ( queryEnd.next() )
+    {
+        const QSqlRecord rec( queryEnd.record() );
 
         end = QDate::fromString( rec.value( "date" ).toString(), Qt::ISODate );
-        break;
     }
 
-    QSqlQueryModel modelStart;
-    modelStart.setQuery( sql.arg( "ASC" ), db_ );
+    // start date
+    QSqlQuery queryStart( connection() );
+    queryStart.setForwardOnly( true );
 
-    for ( int i( 0 ); i < modelStart.rowCount(); ++i )
+    if ( !queryStart.exec( sql.arg( "ASC" ) ) )
     {
-        const QSqlRecord rec( modelStart.record( i ) );
+        const QSqlError e( queryStart.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else if ( queryStart.next() )
+    {
+        const QSqlRecord rec( queryStart.record() );
 
         start = QDate::fromString( rec.value( "date" ).toString(), Qt::ISODate );
-        break;
     }
 }
 
@@ -853,8 +727,10 @@ QStringList AppDatabase::watchlist( const QString& name ) const
 
     QStringList result;
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":name", name );
 
     // exec sql
@@ -866,16 +742,9 @@ QStringList AppDatabase::watchlist( const QString& name ) const
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
 
             result.append( rec.value( "symbol" ).toString() );
         }
@@ -891,11 +760,11 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
 
     QStringList result;
 
-    QSqlQuery query( db_ );
-    query.prepare( sql.arg( "watchlist" ) );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
 
     // exec sql
-    if ( !query.exec() )
+    if ( !query.exec( sql.arg( "watchlist" ) ) )
     {
         const QSqlError e( query.lastError() );
 
@@ -903,16 +772,9 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
     }
     else
     {
-        QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        model.setQuery( std::move( query ) );
-#else
-        model.setQuery( query );
-#endif
-
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        while ( query.next() )
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
 
             result.append( rec.value( "name" ).toString() );
         }
@@ -921,11 +783,11 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
     // remove each index from list
     if ( !includeIndices )
     {
-        QSqlQuery indicesQuery( db_ );
-        indicesQuery.prepare( sql.arg( "indices" ) );
+        QSqlQuery indicesQuery( connection() );
+        indicesQuery.setForwardOnly( true );
 
         // exec sql
-        if ( !indicesQuery.exec() )
+        if ( !indicesQuery.exec( sql.arg( "indices" ) ) )
         {
             const QSqlError e( indicesQuery.lastError() );
 
@@ -933,16 +795,9 @@ QStringList AppDatabase::watchlists( bool includeIndices ) const
         }
         else
         {
-            QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-            model.setQuery( std::move( indicesQuery ) );
-#else
-            model.setQuery( indicesQuery );
-#endif
-
-            for ( int i( 0 ); i < model.rowCount(); ++i )
+            while ( indicesQuery.next() )
             {
-                const QSqlRecord rec( model.record( i ) );
+                const QSqlRecord rec( indicesQuery.record() );
                 const QString name( rec.value( "name" ).toString() );
 
                 if ( result.contains( name ) )
@@ -972,11 +827,11 @@ QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
 
     if ( table.length() )
     {
-        QSqlQuery query( db_ );
-        query.prepare( sql.arg( table ) );
+        QSqlQuery query( connection() );
+        query.setForwardOnly( true );
 
         // exec sql
-        if ( !query.exec() )
+        if ( !query.exec( sql.arg( table ) ) )
         {
             const QSqlError e( query.lastError() );
 
@@ -984,16 +839,9 @@ QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
         }
         else
         {
-            QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-            model.setQuery( std::move( query ) );
-#else
-            model.setQuery( query );
-#endif
-
-            for ( int i( 0 ); i < model.rowCount(); ++i )
+            while ( query.next() )
             {
-                const QSqlRecord rec( model.record( i ) );
+                const QSqlRecord rec( query.record() );
 
                 result.append( rec.value( "groupName" ).toString() );
             }
@@ -1021,8 +869,10 @@ QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, 
 
     if ( table.length() )
     {
-        QSqlQuery query( db_ );
+        QSqlQuery query( connection() );
+        query.setForwardOnly( true );
         query.prepare( sql.arg( table ) );
+
         query.bindValue( ":groupName", groupName );
         query.bindValue( ":name", name );
 
@@ -1033,23 +883,13 @@ QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, 
 
             LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         }
+        else if ( !query.next() )
+             LOG_WARN << "no row(s) found";
         else
         {
-            QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-            model.setQuery( std::move( query ) );
-#else
-            model.setQuery( query );
-#endif
+            const QSqlRecord rec( query.record() );
 
-            if ( !model.rowCount() )
-                 LOG_WARN << "no row(s) found";
-            else
-            {
-                const QSqlRecord rec( model.record( 0 ) );
-
-                result = rec.value( "state" ).toByteArray();
-            }
+            result = rec.value( "state" ).toByteArray();
         }
     }
 
@@ -1074,8 +914,10 @@ QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName
 
     if ( table.length() )
     {
-        QSqlQuery query( db_ );
+        QSqlQuery query( connection() );
+        query.setForwardOnly( true );
         query.prepare( sql.arg( table ) );
+
         query.bindValue( ":groupName", groupName );
 
         // exec sql
@@ -1087,16 +929,9 @@ QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName
         }
         else
         {
-            QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-            model.setQuery( std::move( query ) );
-#else
-            model.setQuery( query );
-#endif
-
-            for ( int i( 0 ); i < model.rowCount(); ++i )
+            while ( query.next() )
             {
-                const QSqlRecord rec( model.record( i ) );
+                const QSqlRecord rec( query.record() );
 
                 result.append( rec.value( "name" ).toString() );
             }
@@ -1121,195 +956,41 @@ AppDatabase *AppDatabase::instance()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::removeConnection()
+{
+    const QString cname( connectionNameThread() );
+
+    // do not remove application thread connection
+    if ( cname == connectionName() )
+        return;
+
+    LOG_TRACE << "remove database " << qPrintable( cname );
+    QSqlDatabase::removeDatabase( cname );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 bool AppDatabase::processData( const QJsonObject& obj )
 {
-    const bool mt( QApplication::instance()->thread() == QThread::currentThread() );
     const QDateTime now( currentDateTime() );
 
     bool accountsProcessed( false );
-    bool instrumentsProcessed( false );
     bool marketHoursProcessed( false );
-    bool quoteHistoryProcessed( false );
-    bool quotesProcessed( false );
-    bool optionChainProcessed( false );
     bool treasBillRatesProcessed( false );
     bool treasYieldCurveRatesProcessed( false );
 
-    QString quoteHistorySymbol;
-    QStringList quoteSymbols;
-    QList<QDate> optionChainExpiryDates;
-    QString optionChainSymbol;
-
     bool result( true );
-    QStringList cnames;
-
-    // ---- //
-
-    // iterate instruments
-    const QJsonObject::const_iterator instruments( obj.constFind( DB_INSTRUMENTS ) );
-
-    if (( obj.constEnd() != instruments ) && ( instruments->isArray() ))
-    {
-        foreach ( const QJsonValue& instrumentVal, instruments->toArray() )
-            if ( instrumentVal.isObject() )
-            {
-                const QJsonObject instrument( instrumentVal.toObject() );
-
-                const QString symbol( instrument[DB_SYMBOL].toString() );
-
-                SymbolDatabase *child( findSymbol( symbol ) );
-
-                if ( child )
-                {
-                    result &= child->processInstrument( now, instrument );
-
-                    // track connections
-                    cnames.append( openDatabaseConnection( symbol ).connectionName() );
-                }
-            }
-
-        instrumentsProcessed = result;
-    }
-
-    // process quote history
-    const QJsonObject::const_iterator quoteHistoryIt( obj.constFind( DB_QUOTE_HISTORY ) );
-
-    if (( obj.constEnd() != quoteHistoryIt ) && ( quoteHistoryIt->isObject() ))
-    {
-        const QJsonObject quoteHistory( quoteHistoryIt->toObject() );
-
-        const QString symbol( quoteHistory[DB_SYMBOL].toString() );
-
-        const QJsonObject::const_iterator history( quoteHistory.constFind( DB_HISTORY ) );
-
-        if (( symbol.length() ) && ( history->isArray() ))
-        {
-            const QDateTime start( QDateTime::fromString( quoteHistory[DB_START_DATE].toString(), Qt::ISODateWithMs ) );
-            const QDateTime stop( QDateTime::fromString( quoteHistory[DB_END_DATE].toString(), Qt::ISODateWithMs ) );
-
-            const int period( quoteHistory[DB_PERIOD].toInt() );
-            const QString periodType( quoteHistory[DB_PERIOD_TYPE].toString() );
-            const int freq( quoteHistory[DB_FREQUENCY].toInt() );
-            const QString freqType( quoteHistory[DB_FREQUENCY_TYPE].toString() );
-
-            // for daily, process as quote history
-            if ( DAILY == freqType )
-            {
-                SymbolDatabase *child( findSymbol( symbol ) );
-
-                if ( child )
-                {
-                    result &= child->processQuoteHistory( quoteHistory );
-
-                    // track connections
-                    cnames.append( openDatabaseConnection( symbol ).connectionName() );
-                }
-
-                quoteHistoryProcessed = result;
-                quoteHistorySymbol = symbol;
-            }
-
-            LOG_TRACE << "parse candles";
-
-            // parse out candles
-            QList<CandleData> candles;
-
-            foreach ( const QJsonValue& candleVal, history->toArray() )
-               if ( candleVal.isObject() )
-               {
-                   const QJsonObject candle( candleVal.toObject() );
-
-                   CandleData data;
-                   data.stamp = QDateTime::fromString( candle[DB_DATETIME].toString(), Qt::ISODateWithMs );
-
-                   data.openPrice = candle[DB_OPEN_PRICE].toDouble();
-                   data.highPrice = candle[DB_HIGH_PRICE].toDouble();
-                   data.lowPrice = candle[DB_LOW_PRICE].toDouble();
-                   data.closePrice = candle[DB_CLOSE_PRICE].toDouble();
-                   data.totalVolume = candle[DB_TOTAL_VOLUME].toVariant().toULongLong();
-
-                   // append candle
-                   candles.append( data );
-               }
-
-            LOG_TRACE << "candle data changed...";
-
-            // emit signal
-            emit candleDataChanged( symbol, start, stop, period, periodType, freq, freqType, candles );
-            LOG_TRACE << "candle data changed... done";
-        }
-    }
-
-    // process quotes
-    const QJsonObject::const_iterator quotes( obj.constFind( DB_QUOTES ) );
-
-    if (( obj.constEnd() != quotes ) && ( quotes->isArray() ))
-    {
-        foreach ( const QJsonValue& quoteVal, quotes->toArray() )
-            if ( quoteVal.isObject() )
-            {
-                const QJsonObject quote( quoteVal.toObject() );
-
-                QString symbol( quote[DB_SYMBOL].toString() );
-
-                // check for option
-                const QString underlying( quote[DB_UNDERLYING].toString() );
-
-                if ( underlying.length() )
-                {
-                    LOG_DEBUG << "processing option quote " << qPrintable( underlying );
-                    symbol = underlying;
-                }
-
-                SymbolDatabase *child( findSymbol( symbol ) );
-
-                if ( child )
-                {
-                    result &= child->processQuote( now, quote );
-
-                    // track connections
-                    cnames.append( openDatabaseConnection( symbol ).connectionName() );
-                }
-
-                quotesProcessed = result;
-                quoteSymbols.append( symbol );
-            }
-    }
-
-    // process option chain
-    const QJsonObject::const_iterator optionChainIt( obj.constFind( DB_OPTION_CHAIN ) );
-
-    if (( obj.constEnd() != optionChainIt ) && ( optionChainIt->isObject() ))
-    {
-        const QJsonObject optionChain( optionChainIt->toObject() );
-
-        const QString symbol( optionChain[DB_UNDERLYING].toString() );
-
-        SymbolDatabase *child( findSymbol( symbol ) );
-
-        if ( child )
-        {
-            result &= child->processOptionChain( now, optionChain, optionChainExpiryDates );
-
-            // track connections
-            cnames.append( openDatabaseConnection( symbol ).connectionName() );
-        }
-
-        optionChainProcessed = result;
-        optionChainSymbol = symbol;
-    }
-
-    // ---- //
 
     {
-        QSqlDatabase conn( openDatabaseConnection() );
-        cnames.append( conn.connectionName() );
+        QMutexLocker guard( &writer_ );
 
         // START DB TRANSACION
+        QSqlDatabase conn( connection() );
+
         if ( !conn.transaction() )
         {
-            LOG_ERROR << "failed to start transaction";
-            result = false;
+            const QSqlError e( conn.lastError() );
+
+            LOG_ERROR << "failed to start transaction " << e.type() << " " << qPrintable( e.text() );
         }
         else
         {
@@ -1320,7 +1001,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
             {
                 foreach ( const QJsonValue& accountVal, accounts->toArray() )
                    if ( accountVal.isObject() )
-                      result &= addAccount( conn, now, accountVal.toObject() );
+                      result &= addAccount( now, accountVal.toObject() );
 
                 accountsProcessed = result;
             }
@@ -1332,11 +1013,10 @@ bool AppDatabase::processData( const QJsonObject& obj )
             {
                 foreach ( const QJsonValue& hoursVal, marketHours->toArray() )
                    if ( hoursVal.isObject() )
-                      result &= addMarketHours( conn, hoursVal.toObject() );
+                      result &= addMarketHours( hoursVal.toObject() );
 
                 marketHoursProcessed = result;
             }
-
 
             // process treasury bill rates
             const QJsonObject::const_iterator treasBillRatesIt( obj.constFind( DB_TREAS_BILL_RATES ) );
@@ -1354,7 +1034,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
 
                     foreach ( const QJsonValue& rateVal, rates->toArray() )
                        if ( rateVal.isObject() )
-                          result &= addTreasuryBillRate( conn, QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
+                          result &= addTreasuryBillRate( QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
 
                     treasBillRatesProcessed = result;
                 }
@@ -1376,7 +1056,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
 
                     foreach ( const QJsonValue& rateVal, rates->toArray() )
                        if ( rateVal.isObject() )
-                          result &= addTreasuryYieldCurveRate( conn, QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
+                          result &= addTreasuryYieldCurveRate( QDateTime::fromString( updated, Qt::ISODate ), rateVal.toObject() );
 
                     treasYieldCurveRatesProcessed = result;
                 }
@@ -1386,20 +1066,15 @@ bool AppDatabase::processData( const QJsonObject& obj )
 
             // commit to database
             if (( result ) && ( !(result = conn.commit()) ))
-                LOG_ERROR << "commit failed";
+            {
+                const QSqlError e( conn.lastError() );
+
+                LOG_ERROR << "commit failed " << e.type() << " " << qPrintable( e.text() );
+            }
 
             if (( !result ) && ( !conn.rollback() ))
                 LOG_FATAL << "rollback failed";
         }
-    }
-
-    // remove databases
-    if (( cnames.length() ) && ( !mt ))
-    {
-        cnames.removeDuplicates();
-
-        foreach ( const QString& cname, cnames )
-            QSqlDatabase::removeDatabase( cname );
     }
 
     // EMIT SIGNALS
@@ -1407,26 +1082,17 @@ bool AppDatabase::processData( const QJsonObject& obj )
     if ( accountsProcessed )
         emit accountsChanged();
 
-    if ( instrumentsProcessed )
-        emit instrumentsChanged();
-
     if ( marketHoursProcessed )
         emit marketHoursChanged();
-
-    if ( quoteHistoryProcessed )
-        emit quoteHistoryChanged( quoteHistorySymbol );
-
-    if ( quotesProcessed )
-        emit quotesChanged( quoteSymbols );
-
-    if ( optionChainProcessed )
-        emit optionChainChanged( optionChainSymbol, optionChainExpiryDates );
 
     if ( treasBillRatesProcessed )
         emit treasuryBillRatesChanged();
 
     if ( treasYieldCurveRatesProcessed )
         emit treasuryYieldCurveRatesChanged();
+
+    // remove database connection
+    removeConnection();
 
     return result;
 }
@@ -1459,7 +1125,7 @@ QStringList AppDatabase::upgradeFiles( const QString& fromStr, const QString& to
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addAccount( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
+bool AppDatabase::addAccount( const QDateTime& stamp, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO accounts (accountId,"
         "type,isClosingOnlyRestricted,isDayTrader,roundTrips) "
@@ -1471,7 +1137,7 @@ bool AppDatabase::addAccount( const QSqlDatabase& conn, const QDateTime& stamp, 
     if ( accountId.isEmpty() )
         return false;
 
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
     query.prepare( sql );
 
     bindQueryValues( query, obj );
@@ -1486,14 +1152,14 @@ bool AppDatabase::addAccount( const QSqlDatabase& conn, const QDateTime& stamp, 
     }
 
     // parse account balances
-    if ( !parseAccountBalances( conn, stamp, accountId, obj ) )
+    if ( !parseAccountBalances( stamp, accountId, obj ) )
         return false;
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj )
+bool AppDatabase::addAccountBalances( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO balances (stamp,accountId,type,"
         "accruedInterest,cashBalance,cashReceipts,longOptionMarketValue,liquidationValue,longMarketValue,moneyMarketFund,savings,shortMarketValue,pendingDeposits,"
@@ -1508,8 +1174,9 @@ bool AppDatabase::addAccountBalances( const QSqlDatabase& conn, const QDateTime&
                 ":equityPercentage,:longMarginValue,:maintenanceCall,:maintenanceRequirement,:marginBalance,:regTCall,:shortBalance,:shortMarginValue,:sma,:isInCall,"
                 ":stockBuyingPower,:optionBuyingPower,:dayTradingEquityCall,:margin,:marginEquity)" );
 
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
     query.prepare( sql );
+
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
     query.bindValue( ":" + DB_ACCOUNT_ID, accountId );
     query.bindValue( ":" + DB_TYPE, type );
@@ -1529,7 +1196,7 @@ bool AppDatabase::addAccountBalances( const QSqlDatabase& conn, const QDateTime&
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addMarketHours( const QSqlDatabase& conn, const QJsonObject& obj )
+bool AppDatabase::addMarketHours( const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO marketHours (date,marketType,product,"
         "isOpen,category,exchange) "
@@ -1547,11 +1214,11 @@ bool AppDatabase::addMarketHours( const QSqlDatabase& conn, const QJsonObject& o
     QJsonObject::const_iterator productName( obj.constFind( DB_PRODUCT_NAME ) );
 
     if (( obj.constEnd() != productName ) && ( productName->isString() ))
-        if ( !addProductType( conn, product, productName->toString() ) )
+        if ( !addProductType( product, productName->toString() ) )
             return false;
 
     // add market hours
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
     query.prepare( sql );
 
     bindQueryValues( query, obj );
@@ -1569,14 +1236,14 @@ bool AppDatabase::addMarketHours( const QSqlDatabase& conn, const QJsonObject& o
     QJsonObject::const_iterator sessionHours( obj.constFind( DB_SESSION_HOURS ) );
 
     if (( obj.constEnd() != sessionHours ) && ( sessionHours->isObject() ))
-        if ( !parseSessionHours( conn, date, marketType, product, sessionHours->toObject() ) )
+        if ( !parseSessionHours( date, marketType, product, sessionHours->toObject() ) )
             return false;
 
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addProductType( const QSqlDatabase& conn, const QString& type, const QString& description )
+bool AppDatabase::addProductType( const QString& type, const QString& description )
 {
     static const QString sql( "REPLACE INTO productType (type,"
         "name) "
@@ -1587,8 +1254,9 @@ bool AppDatabase::addProductType( const QSqlDatabase& conn, const QString& type,
         return false;
     else if ( description.length() )
     {
-        QSqlQuery query( conn );
+        QSqlQuery query( connection() );
         query.prepare( sql );
+
         query.addBindValue( type );
         query.addBindValue( description );
 
@@ -1606,7 +1274,7 @@ bool AppDatabase::addProductType( const QSqlDatabase& conn, const QString& type,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj )
+bool AppDatabase::addSessionHours( const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO sessionHours (date,marketType,product,sessionHoursType,"
         "start,end) "
@@ -1619,8 +1287,9 @@ bool AppDatabase::addSessionHours( const QSqlDatabase& conn, const QDate& date, 
     if (( !start.isValid() ) || ( !end.isValid() ) || ( end <= start ))
         return false;
 
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
     query.prepare( sql );
+
     query.bindValue( ":" + DB_DATE, date.toString( Qt::ISODate ) );
     query.bindValue( ":" + DB_MARKET_TYPE, marketType );
     query.bindValue( ":" + DB_PRODUCT, product );
@@ -1641,7 +1310,7 @@ bool AppDatabase::addSessionHours( const QSqlDatabase& conn, const QDate& date, 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
+bool AppDatabase::addTreasuryBillRate( const QDateTime& stamp, const QJsonObject& obj )
 {
     Q_UNUSED( stamp )
 
@@ -1659,8 +1328,9 @@ bool AppDatabase::addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime
 
     const double daysToMaturity( date.daysTo( maturityDate ) );
 
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
     query.prepare( sql );
+
     query.bindValue( ":date", date.date().toString( Qt::ISODate ) );
     query.bindValue( ":term", (daysToMaturity / numDays_) );
     query.bindValue( ":source", DB_TREAS_BILL );
@@ -1679,7 +1349,7 @@ bool AppDatabase::addTreasuryBillRate( const QSqlDatabase& conn, const QDateTime
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addTreasuryYieldCurveRate( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj )
+bool AppDatabase::addTreasuryYieldCurveRate( const QDateTime& stamp, const QJsonObject& obj )
 {
     Q_UNUSED( stamp )
 
@@ -1695,8 +1365,9 @@ bool AppDatabase::addTreasuryYieldCurveRate( const QSqlDatabase& conn, const QDa
     if (( !date.isValid() ) || ( months <= 0.0 ))
         return false;
 
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
     query.prepare( sql );
+
     query.bindValue( ":date", date.date().toString( Qt::ISODate ) );
     query.bindValue( ":term", (months / 12.0) );
     query.bindValue( ":source", DB_TREAS_YIELD_CURVE );
@@ -1742,7 +1413,7 @@ void AppDatabase::readSettings()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::parseAccountBalances( const QSqlDatabase& conn, const QDateTime& stamp, const QString& accountId, const QJsonObject& obj )
+bool AppDatabase::parseAccountBalances( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj )
 {
     QStringList balanceKeys;
     balanceKeys.append( DB_INITIAL_BALANCES );
@@ -1754,7 +1425,7 @@ bool AppDatabase::parseAccountBalances( const QSqlDatabase& conn, const QDateTim
         const QJsonObject::const_iterator it( obj.constFind( key ) );
 
         if (( obj.constEnd() != it ) && ( it->isObject() ))
-            if ( !addAccountBalances( conn, stamp, accountId, key, it->toObject() ) )
+            if ( !addAccountBalances( stamp, accountId, key, it->toObject() ) )
                 return false;
     }
 
@@ -1762,36 +1433,14 @@ bool AppDatabase::parseAccountBalances( const QSqlDatabase& conn, const QDateTim
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::parseSessionHours( const QSqlDatabase& conn, const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj )
+bool AppDatabase::parseSessionHours( const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj )
 {
     for ( QJsonObject::const_iterator i( obj.constBegin() ); i != obj.constEnd(); ++i )
         if ( i->isObject() )
-            if ( !addSessionHours( conn, date, marketType, product, i.key(), i->toObject() ) )
+            if ( !addSessionHours( date, marketType, product, i.key(), i->toObject() ) )
                 return false;
 
     return true;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-SymbolDatabase *AppDatabase::findSymbol( const QString& symbol )
-{
-    if ( symbol.isEmpty() )
-        return nullptr;
-
-    SymbolDatabase *child( findChild<SymbolDatabase*>( symbol ) );
-
-    if ( !child )
-    {
-        child = new SymbolDatabase( symbol, this );
-
-        if ( !child->isReady() )
-        {
-            LOG_WARN << "failed to create symbol db " << qPrintable( symbol );
-            return nullptr;
-        }
-    }
-
-    return child;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1799,8 +1448,10 @@ bool AppDatabase::checkSessionHours( const QDateTime& dt, const QString& marketT
 {
     static const QString sql( "SELECT sessionHoursType FROM sessionHours WHERE DATETIME(start)<=DATETIME(:dt) AND DATETIME(:dt)<=DATETIME(end) AND marketType=:marketType AND product=:product" );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":dt", dt.toString( Qt::ISODate ) );
     query.bindValue( ":marketType", marketType );
     query.bindValue( ":product", product );
@@ -1812,26 +1463,19 @@ bool AppDatabase::checkSessionHours( const QDateTime& dt, const QString& marketT
         LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
-
-    QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    model.setQuery( std::move( query ) );
-#else
-    model.setQuery( query );
-#endif
-
-    if ( !model.rowCount() )
+    else if ( !query.next() )
         return false;
 
     // check extended hours
     if ( isExtended )
     {
-        for ( int i( 0 ); i < model.rowCount(); ++i )
+        do
         {
-            const QSqlRecord rec( model.record( i ) );
+            const QSqlRecord rec( query.record() );
 
             (*isExtended) |= isExtendedHours( rec.value( "sessionHoursType" ).toString() );
-        }
+
+        } while ( query.next() );
     }
 
     return true;
@@ -1842,8 +1486,10 @@ bool AppDatabase::isExtendedHours( const QString& sessionHoursType ) const
 {
     static const QString sql( "SELECT isExtendedHours FROM sessionHoursType WHERE :type=type" );
 
-    QSqlQuery query( db_ );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
+
     query.bindValue( ":type", sessionHoursType );
 
     if ( !query.exec() )
@@ -1854,18 +1500,17 @@ bool AppDatabase::isExtendedHours( const QString& sessionHoursType ) const
         return false;
     }
 
-    QSqlQueryModel model;
-#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-    model.setQuery( std::move( query ) );
-#else
-    model.setQuery( query );
-#endif
+    if ( query.next() )
+    {
+        const QSqlRecord rec( query.record() );
 
-    if ( 1 != model.rowCount() )
-        return false;
+        // should only be one record
+        if ( query.next() )
+            return false;
 
-    const QSqlRecord rec( model.record( 0 ) );
+        return rec.value( "isExtendedHours" ).toBool();
+    }
 
-    return rec.value( "isExtendedHours" ).toBool();
+    return false;
 }
 

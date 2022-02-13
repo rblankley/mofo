@@ -55,9 +55,11 @@ QVariant SqlTableModel::data0( int col, int role ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SqlTableModel::refreshTableData()
+bool SqlTableModel::refreshData()
 {
     size_t attempts( 3 );
+
+    LOG_TRACE << "sql statement " << qPrintable( selectStatement() );
 
     do
     {

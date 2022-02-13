@@ -51,7 +51,7 @@ FundamentalsViewerWidget::FundamentalsViewerWidget( const QString& symbol, doubl
     translate();
 
     // refresh model
-    model_->refreshTableData();
+    model_->refreshData();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

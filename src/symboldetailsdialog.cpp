@@ -26,6 +26,7 @@
 #include "symbolpricehistorywidget.h"
 
 #include "db/appdb.h"
+#include "db/symboldbs.h"
 
 #include <QHBoxLayout>
 
@@ -65,7 +66,14 @@ QSize SymbolDetailsDialog::sizeHint() const
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDetailsDialog::translate()
 {
-    setWindowTitle( symbol() + " " + tr( "Details" ) );
+    const QString desc( SymbolDatabases::instance()->description( symbol() ) );
+
+    QString title( symbol() + " " + tr( "Details" ) );
+
+    if ( desc.length() )
+        title += " - " + desc;
+
+    setWindowTitle( title );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

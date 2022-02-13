@@ -25,6 +25,8 @@
 
 #include "tdoauthapi.h"
 
+#include <QMutex>
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// TD Ameritrade API implementation.
@@ -267,6 +269,8 @@ private:
     EndpointMap endpoints_;
 
     using PendingRequestsMap = QMap<QUuid, Endpoint>;
+
+    mutable QMutex m_;
 
     PendingRequestsMap pendingRequests_;
 

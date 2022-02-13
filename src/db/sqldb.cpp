@@ -35,16 +35,21 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SqlDatabase::SqlDatabase( const QString& name, const QString& version, QObject *parent ) :
     _Mybase( parent ),
+#if QT_VERSION < QT_VERSION_CHECK( 5, 14, 0 )
+    writer_( QMutex::Recursive ),
+#endif
     name_( USER_CACHE_DIR + name ),
     version_( version ),
-    backupName_( USER_CACHE_DIR + name + ".old" )
+    backupName_( USER_CACHE_DIR + name + ".old" ),
+    ready_( false )
 {
+    // this object should only be created by application thread
+    assert( QApplication::instance()->thread() == QThread::currentThread() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SqlDatabase::~SqlDatabase()
 {
-    db_.close();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -57,60 +62,101 @@ QString SqlDatabase::version() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QSqlDatabase SqlDatabase::connection() const
+{
+    const QString cname( connectionNameThread() );
+
+    // check existing connection
+    QSqlDatabase db( QSqlDatabase::database( cname ) );
+
+    if ( db.isOpen() )
+        return db;
+
+    // create new connection
+    if ( !db.isValid() )
+    {
+        db = QSqlDatabase::addDatabase( "QSQLITE", cname );
+        db.setConnectOptions( "QSQLITE_ENABLE_SHARED_CACHE" );
+        db.setDatabaseName( name_ );
+    }
+
+    // open database
+    if ( !db.open() )
+    {
+        LOG_FATAL << "failed to open db connection";
+        return QSqlDatabase();
+    }
+
+    LOG_DEBUG << "new connection " << qPrintable( cname );
+
+    // execute pragmas
+    QStringList pragmas;
+    pragmas.append( "PRAGMA foreign_keys = ON" );
+    pragmas.append( "PRAGMA journal_mode = WAL" );
+    pragmas.append( "PRAGMA synchronous = OFF" );
+    pragmas.append( "PRAGMA temp_store = MEMORY" );
+
+    QSqlQuery query( db );
+
+    foreach ( const QString& pragma, pragmas )
+        if ( !query.exec( pragma ) )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        }
+
+    return db;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QString SqlDatabase::connectionNameThread() const
+{
+    static const QString CONN_NAME( "%1_%2" );
+
+    if ( !QApplication::instance() )
+        return QString();
+
+    // for application thread use connection name
+    if ( QApplication::instance()->thread() == QThread::currentThread() )
+        connectionName();
+
+    // return unique connection name
+    return CONN_NAME
+        .arg( connectionName() )
+        .arg( (quintptr) QThread::currentThreadId() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void SqlDatabase::setVersion( const QString &version )
 {
     writeSetting( "dbversion", version );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QSqlDatabase SqlDatabase::openDatabaseConnection() const
-{
-    static const QString SUFFIX( "_%1" );
-
-    const bool mt( QApplication::instance()->thread() == QThread::currentThread() );
-    const QString cname( connectionName() + (mt ? QString() : SUFFIX.arg( (quintptr) QThread::currentThreadId() ) ) );
-
-    QSqlDatabase db( QSqlDatabase::database( cname ) );
-
-    if (( !db.isOpen() ) || ( !db.isValid() ))
-    {
-       db = QSqlDatabase::cloneDatabase( db_, cname );
-
-       if ( !db.open() )
-           LOG_FATAL << "failed to open db connection";
-    }
-
-    return db;
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SqlDatabase::readSetting( const QString& key, QVariant& value ) const
 {
-    return readSetting( key, value, db_ );
-}
+    static const QString sql( "SELECT value FROM settings WHERE key=:key" );
 
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SqlDatabase::readSetting( const QString& key, QVariant& value, const QSqlDatabase& conn ) const
-{
-    static const QString sql( "SELECT value FROM settings WHERE ?=key" );
-
-    QSqlQuery query( conn );
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
     query.prepare( sql );
-    query.addBindValue( key );
+
+    query.bindValue( ":key", key );
 
     LOG_TRACE << "read setting " << qPrintable( key );
 
     // exec sql
     if ( !query.exec() )
     {
-        const QSqlError e( db_.lastError() );
+        const QSqlError e( query.lastError() );
 
         LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
         return false;
     }
     else if ( !query.next() )
     {
-        LOG_WARN << "missing setting " << qPrintable( key );
+        LOG_DEBUG << "missing setting " << qPrintable( key );
         return false;
     }
 
@@ -121,32 +167,30 @@ bool SqlDatabase::readSetting( const QString& key, QVariant& value, const QSqlDa
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SqlDatabase::writeSetting( const QString& key, const QVariant& value )
 {
-    return writeSetting( key, value, db_ );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SqlDatabase::writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& conn )
-{
     static const QString sql( "REPLACE INTO settings (key,value) "
-        "VALUES(?,?);" );
+        "VALUES (:key,:value)" );
 
-    QSqlQuery query( conn );
+    QMutexLocker guard( &writer_ );
+
+    QSqlQuery query( connection() );
     query.prepare( sql );
-    query.addBindValue( key );
-    query.addBindValue( value );
+
+    query.bindValue( ":key", key );
+    query.bindValue( ":value", value );
 
     LOG_TRACE << "write setting " << qPrintable( key ) << " " << qPrintable( value.toString() );
 
     // exec sql
-    if ( !query.exec() )
+    bool result;
+
+    if ( !(result = query.exec()) )
     {
         const QSqlError e( query.lastError() );
 
         LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
-        return false;
     }
 
-    return true;
+    return result;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -173,12 +217,12 @@ bool SqlDatabase::open()
     bool exists( QFile::exists( name_ ) );
 
     // open database
-    db_ = QSqlDatabase::addDatabase( "QSQLITE", connectionName() );
-    db_.setDatabaseName( name_ );
+    QSqlDatabase db( QSqlDatabase::addDatabase( "QSQLITE", connectionNameThread() ) );
+    db.setDatabaseName( name_ );
 
-    if ( !db_.open() )
+    if ( !db.open() )
     {
-        const QSqlError e0( db_.lastError() );
+        const QSqlError e0( db.lastError() );
 
         LOG_ERROR << "failed to open database " << qPrintable( name_ ) << " " << e0.type() << " " << qPrintable( e0.text() );
 
@@ -186,7 +230,7 @@ bool SqlDatabase::open()
         {
             LOG_INFO << "removing bad database...";
 
-            db_.close();
+            db.close();
 
             // rename bad db
             QFile f( backupName_ );
@@ -195,9 +239,9 @@ bool SqlDatabase::open()
             QFile::rename( name_, backupName_ );
             exists = false;
 
-            if ( !db_.open() )
+            if ( !db.open() )
             {
-                const QSqlError e1( db_.lastError() );
+                const QSqlError e1( db.lastError() );
 
                 LOG_FATAL << "failed to open database (second try!) " << qPrintable( name_ ) << " " << e1.type() << " " << qPrintable( e1.text() );
                 return false;
@@ -215,7 +259,7 @@ bool SqlDatabase::open()
         else
         {
             LOG_FATAL << "failed to create database";
-            db_.close();
+            db.close();
 
             return false;
         }
@@ -231,23 +275,20 @@ bool SqlDatabase::open()
         else
         {
             LOG_FATAL << "database upgrade failed!";
-            db_.close();
+            db.close();
 
             return false;
         }
     }
 
-    return writeSetting( "accessed", now.toString( Qt::ISODateWithMs ) );
+    if ( !writeSetting( "accessed", now.toString( Qt::ISODateWithMs ) ) )
+        return false;
+
+    return (ready_ = true);
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field )
-{
-    updateDefaultValue( query, obj, field, db_ );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field, const QSqlDatabase& conn )
 {
     QJsonValue value;
 
@@ -259,14 +300,14 @@ void SqlDatabase::updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, 
     {
         QVariant v;
 
-        if ( readSetting( field, v, conn ) )
+        if ( readSetting( field, v ) )
             query.bindValue( ":" + field, v.toString() );
     }
 
     // set default value
     else
     {
-        writeSetting( field, value.toVariant(), conn );
+        writeSetting( field, value.toVariant() );
     }
 }
 
@@ -312,7 +353,7 @@ bool SqlDatabase::execute( const QStringList& files )
 
             if ( sqlTrimmed.length() )
             {
-                QSqlQuery query( db_ );
+                QSqlQuery query( connection() );
 
                 LOG_DEBUG << "exec " << qPrintable( sqlTrimmed );
 
@@ -331,4 +372,3 @@ bool SqlDatabase::execute( const QStringList& files )
 
     return true;
 }
-

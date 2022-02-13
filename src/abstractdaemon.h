@@ -30,6 +30,7 @@
 #include <QObject>
 
 class AppDatabase;
+class SymbolDatabases;
 
 class QTimer;
 
@@ -160,6 +161,12 @@ public:
      */
     virtual void getOptionChain( const QString& symbol );
 
+    /// Retrieve quote.
+    /**
+     * @param[in] symbol  symbol
+     */
+    virtual void getQuote( const QString& symbol );
+
     /// Wait for connected.
     /**
      * @param[in] timeout  time to wait (ms)
@@ -274,7 +281,8 @@ signals:
 
 protected:
 
-    AppDatabase *db_;                               ///< Database.
+    AppDatabase *adb_;                              ///< Database.
+    SymbolDatabases *sdbs_;                         ///< Symbols Database.
 
     QJsonObject configs_;                           ///< Configuration.
 

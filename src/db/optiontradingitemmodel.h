@@ -202,7 +202,7 @@ public slots:
     /**
      * @param[in] values  values
      */
-    virtual void addRow( const ColumnValueMap& values );
+    virtual void addRow( const OptionTradingItemModel::ColumnValueMap& values );
 
 private:
 

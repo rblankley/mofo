@@ -19,13 +19,13 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "appdb.h"
 #include "common.h"
 #include "fundamentalstablemodel.h"
+#include "symboldbs.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FundamentalsTableModel::FundamentalsTableModel( const QString& symbol, const QDateTime& stamp, QObject *parent ) :
-    _Mybase( _NUM_COLUMNS, parent, AppDatabase::instance()->openDatabaseConnection( symbol ) ),
+    _Mybase( _NUM_COLUMNS, parent, SymbolDatabases::instance()->openDatabaseConnection( symbol ) ),
     symbol_( symbol )
 {
     // setup filter
@@ -107,6 +107,8 @@ FundamentalsTableModel::FundamentalsTableModel( const QString& symbol, const QDa
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FundamentalsTableModel::~FundamentalsTableModel()
 {
+    // remove reference
+    SymbolDatabases::instance()->removeRef( symbol_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -214,6 +214,12 @@ inline static const QString DB_IS_INDEX                             = "isIndex";
 inline static const QString DB_NUM_CONTRACTS                        = "numberOfContracts";
 inline static const QString DB_UNDERLYING_PRICE                     = "underlyingPrice";
 
+inline static const QString DB_CALL_VOLATILITY                      = "callVolatility";
+inline static const QString DB_PUT_VOLATILITY                       = "putVolatility";
+
+inline static const QString DB_ITM_PROBABILITY                      = "itmProbability";
+inline static const QString DB_OTM_PROBABILITY                      = "otmProbability";
+
 inline static const QString DB_OPTIONS                              = "options";
 
 // Options

@@ -24,9 +24,13 @@
 #define SYMBOLDB_H
 
 #include "candledata.h"
+#include "optiondata.h"
 #include "sqldb.h"
 
 #include <QDate>
+#include <QMutex>
+
+class SymbolDatabases;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
@@ -35,13 +39,17 @@ class SymbolDatabase : public SqlDatabase
 {
     Q_OBJECT
     Q_PROPERTY( QString cusip READ cusip STORED true )
+    Q_PROPERTY( QString description READ description STORED true )
     Q_PROPERTY( double dividendYield READ dividendYield STORED true )
     Q_PROPERTY( QDateTime lastFundamentalProcessed READ lastFundamentalProcessed STORED true )
     Q_PROPERTY( QDateTime lastQuoteHistoryProcessed READ lastQuoteHistoryProcessed STORED true )
+    Q_PROPERTY( bool locked READ isLocked )
     Q_PROPERTY( QString symbol READ symbol )
 
     using _Myt = SymbolDatabase;
     using _Mybase = SqlDatabase;
+
+    friend class SymbolDatabases;
 
 public:
 
@@ -69,6 +77,12 @@ public:
      */
     virtual QString cusip() const;
 
+    /// Retrieve description.
+    /**
+     * @return  description or empty string if not known.
+     */
+    virtual QString description() const;
+
     /// Retrieve dividend date and amount.
     /**
      * @param[out] date  dividend date
@@ -85,11 +99,21 @@ public:
 
     /// Retrieve historical volatility.
     /**
-     * @param[in] dt  date to retrieve
+     * @param[in] date  date to retrieve
      * @param[in] depth  depth in days
      * @return  historical volatility
      */
-    virtual double historicalVolatility( const QDateTime& dt, int depth ) const;
+    virtual double historicalVolatility( const QDate& date, int depth ) const;
+
+    /// Retrieve historical volatility range.
+    /**
+     * @param[in] start  starting date to retrieve
+     * @param[in] end  ending date to retrieve
+     * @param[in] depth  depth in days
+     * @param[out] min  minimum historic volatility
+     * @param[out] min  minimum historic volatility
+     */
+    virtual void historicalVolatilityRange( const QDate& start, const QDate& end, int depth, double& min, double& max ) const;
 
     /// Retrieve historical volatilities
     /**
@@ -98,6 +122,12 @@ public:
      * @param[out] data  volatilities
      */
     virtual void historicalVolatilities( const QDate& start, const QDate& end, QList<HistoricalVolatilities>& data ) const;
+
+    /// Check if symbol is in use (references exist).
+    /**
+     * @return  @c true if locked, @c false otherwise
+     */
+    virtual bool isLocked() const;
 
     /// Retrieve last fundamental processed stamp.
     /**
@@ -127,6 +157,14 @@ public:
      */
     virtual void movingAveragesConvergenceDivergence( const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const;
 
+    /// Retrieve option chain curves.
+    /**
+     * @param[in] expiryDate  option chain expiration date
+     * @param[in] stamp  option chain stamp
+     * @param[out] data  curve data
+     */
+    virtual void optionChainCurves( const QDate& expiryDate, const QDateTime& stamp, OptionChainCurves& data ) const;
+
     /// Retrieve quote history date range.
     /**
      * @param[out] start  start date
@@ -142,11 +180,29 @@ public:
      */
     virtual void relativeStrengthIndex( const QDate& start, const QDate& end, QList<RelativeStrengthIndexes>& data ) const;
 
+    /// Set option chain curves.
+    /**
+     * @param[in] expiryDate  option chain expiration date
+     * @param[in] stamp  option chain stamp
+     * @param[in] data  curve data
+     */
+    virtual void setOptionChainCurves( const QDate& expiryDate, const QDateTime& stamp, const OptionChainCurves& data );
+
     /// Retrieve symbol.
     /**
      * @return  stock symbol
      */
     virtual QString symbol() const {return symbol_;}
+
+    // ========================================================================
+    // Methods
+    // ========================================================================
+
+    /// Add reference to symbol.
+    virtual void addRef();
+
+    /// Remove reference to symbol.
+    virtual void removeRef();
 
 public slots:
 
@@ -227,34 +283,30 @@ protected:
 
     /// Add fundamental to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  date time
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addFundamental( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj );
+    virtual bool addFundamental( const QDateTime& stamp, const QJsonObject& obj );
 
     /// Add option to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addOption( const QSqlDatabase& conn, const QJsonObject& obj );
+    virtual bool addOption( const QJsonObject& obj );
 
     /// Add option chain to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  date time
      * @param[in] obj  data
      * @param[out] expiryDates  expiration dates added
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addOptionChain( const QSqlDatabase& conn, const QDateTime& stamp, const QJsonObject& obj, QList<QDate>& expiryDates );
+    virtual bool addOptionChain( const QDateTime& stamp, const QJsonObject& obj, QList<QDate>& expiryDates );
 
     /// Add option chain strike price to database.
     /**
-     * @param[in] conn  database connection
      * @param[in] stamp  date time
      * @param[in] optionStamp  option date time
      * @param[in] optionSymbol  option symbol
@@ -263,23 +315,21 @@ protected:
      * @param[in] strikePrice  strike price
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addOptionChainStrikePrice( const QSqlDatabase& conn, const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice );
+    virtual bool addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice );
 
     /// Add quote information.
     /**
-     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addQuote( const QSqlDatabase& conn, const QJsonObject& obj );
+    virtual bool addQuote( const QJsonObject& obj );
 
     /// Add quote history.
     /**
-     * @param[in] conn  database connection
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addQuoteHistory( const QSqlDatabase& conn, const QJsonObject& obj );
+    virtual bool addQuoteHistory( const QJsonObject& obj );
 
     /// Write setting to db.
     /**
@@ -289,39 +339,41 @@ protected:
      */
     virtual bool writeSetting( const QString& key, const QVariant& value ) override;
 
-    /// Write setting to db.
-    /**
-     * @param[in] key  setting to write
-     * @param[in] value  setting value
-     * @param[in] db  sql database
-     * @return  @c true upon success, @c false otherwise
-     */
-    virtual bool writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& db ) override;
-
 private:
 
     static const int FORCED_UPDATE = 5;
 
+#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
+    mutable QRecursiveMutex m_;
+#else
+    mutable QMutex m_;
+#endif
+
+    int ref_;
+
+    /// Retrieve number of rows in quote history.
+    int quoteHistoryRowCount() const;
+
     /// Calculate historical volatility (standard deviation).
-    void calcHistoricalVolatility( const QSqlDatabase& conn );
+    void calcHistoricalVolatility();
 
     /// Calculate moving averages.
-    void calcMovingAverage( const QSqlDatabase& conn );
+    void calcMovingAverage();
 
     /// Calculate relative strength index.
-    void calcRelativeStrengthIndex( const QSqlDatabase& conn );
+    void calcRelativeStrengthIndex();
 
     /// Calculate moving average convergence/divergence (MACD).
-    void calcMovingAverageConvergenceDivergence( const QSqlDatabase& conn );
+    void calcMovingAverageConvergenceDivergence();
 
     /// Calculate dividend frequency.
-    void calcDividendFrequencyFromDate( const QSqlDatabase& conn, const QJsonValue& date );
+    void calcDividendFrequencyFromDate( const QJsonValue& date );
 
     /// Calculate dividend frequency.
-    void calcDividendFrequencyFromPayAmount( const QSqlDatabase& conn, const QJsonValue& payAmount, const QJsonValue& amount );
+    void calcDividendFrequencyFromPayAmount( const QJsonValue& payAmount, const QJsonValue& amount );
 
     /// Calculate dividend frequency.
-    void calcDividendFrequencyFromPayDate( const QSqlDatabase& conn, const QJsonValue& date );
+    void calcDividendFrequencyFromPayDate( const QJsonValue& date );
 
     // not implemented
     SymbolDatabase( const _Myt& ) = delete;

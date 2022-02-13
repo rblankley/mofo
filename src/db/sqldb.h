@@ -23,6 +23,7 @@
 #ifndef SQLDB_H
 #define SQLDB_H
 
+#include <QMutex>
 #include <QObject>
 #include <QSqlDatabase>
 
@@ -32,6 +33,8 @@
 class SqlDatabase : public QObject
 {
     Q_OBJECT
+    Q_PROPERTY( bool ready READ isReady )
+    Q_PROPERTY( QString version READ version STORED true )
 
     using _Myt = SqlDatabase;
     using _Mybase = QObject;
@@ -46,7 +49,7 @@ public:
     /**
      * @return  @c true if ready, @c false otherwise
      */
-    virtual bool isReady() const {return (( db_.isValid() ) && ( db_.isOpen() ));}
+    virtual bool isReady() const {return ready_;}
 
     /// Retrieve database version.
     /**
@@ -54,24 +57,20 @@ public:
      */
     virtual QString version() const;
 
-    // ========================================================================
-    // Methods
-    // ========================================================================
-
-    /// Open database connection.
-    /**
-     * @return  connection to database
-     */
-    virtual QSqlDatabase openDatabaseConnection() const;
-
 protected:
 
-    QSqlDatabase db_;                               ///< Database.
+#if QT_VERSION_CHECK( 5, 14, 0 ) <= QT_VERSION
+    QRecursiveMutex writer_;                        ///< Mutex for database writes.
+#else
+    QMutex writer_;                                 ///< Mutex for database writes.
+#endif
 
     QString name_;                                  ///< Database name.
     QString version_;                               ///< Database version.
 
     QString backupName_;                            ///< Database backup name.
+
+    bool ready_;                                    ///< Database ready flag.
 
     // ========================================================================
     // CTOR / DTOR
@@ -92,11 +91,23 @@ protected:
     // Properties
     // ========================================================================
 
+    /// Retrieve database connection.
+    /**
+     * @return  connection
+     */
+    virtual QSqlDatabase connection() const;
+
     /// Retrieve database connection name.
     /**
      * @return  connection name
      */
     virtual QString connectionName() const {return "default";}
+
+    /// Retrieve thread specific connection name.
+    /**
+     * @return  thread specific connection name
+     */
+    virtual QString connectionNameThread() const;
 
     /// Retrieve sql files to create database.
     /**
@@ -156,15 +167,6 @@ protected:
      */
     virtual bool readSetting( const QString& key, QVariant& value ) const;
 
-    /// Read setting from db.
-    /**
-     * @param[in] key  setting to read
-     * @param[out] value  setting value
-     * @param[in] db  sql database
-     * @return  @c true upon success, @c false otherwise
-     */
-    virtual bool readSetting( const QString& key, QVariant& value, const QSqlDatabase& db ) const;
-
     /// Update default field value.
     /**
      * Set global default value when @a field is populated, otherwise take value from global default.
@@ -173,16 +175,6 @@ protected:
      * @param[in] field  field to populate
      */
     virtual void updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field );
-
-    /// Update default field value.
-    /**
-     * Set global default value when @a field is populated, otherwise take value from global default.
-     * @param[in,out] query to update
-     * @param[in] obj  object to parse
-     * @param[in] field  field to populate
-     * @param[in] db  sql database
-     */
-    virtual void updateDefaultValue( QSqlQuery& query, const QJsonObject& obj, const QString& field, const QSqlDatabase& db );
 
     /// Upgrade database.
     /**
@@ -197,15 +189,6 @@ protected:
      * @return  @c true upon success, @c false otherwise
      */
     virtual bool writeSetting( const QString& key, const QVariant& value );
-
-    /// Write setting to db.
-    /**
-     * @param[in] key  setting to write
-     * @param[in] value  setting value
-     * @param[in] db  sql database
-     * @return  @c true upon success, @c false otherwise
-     */
-    virtual bool writeSetting( const QString& key, const QVariant& value, const QSqlDatabase& db );
 
 private:
 

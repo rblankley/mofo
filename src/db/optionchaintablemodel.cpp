@@ -22,12 +22,13 @@
 #include "appdb.h"
 #include "common.h"
 #include "optionchaintablemodel.h"
+#include "symboldbs.h"
 
 #include <QPalette>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionChainTableModel::OptionChainTableModel( const QString& symbol, const QDate& expiryDate, const QDateTime& stamp, QObject *parent ) :
-    _Mybase( _NUM_COLUMNS, parent, AppDatabase::instance()->openDatabaseConnection( symbol ) ),
+    _Mybase( _NUM_COLUMNS, parent, SymbolDatabases::instance()->openDatabaseConnection( symbol ) ),
     symbol_( symbol ),
     expiryDate_( expiryDate )
 {
@@ -45,6 +46,7 @@ OptionChainTableModel::OptionChainTableModel( const QString& symbol, const QDate
     // setup view
     setTable( "optionChainView" );
     setFilter( filter );
+    setSort( STRIKE_PRICE, Qt::AscendingOrder );
 
     // text columns
     columnIsText_[STAMP] = true;
@@ -122,6 +124,8 @@ OptionChainTableModel::OptionChainTableModel( const QString& symbol, const QDate
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 OptionChainTableModel::~OptionChainTableModel()
 {
+    // remove reference
+    SymbolDatabases::instance()->removeRef( symbol_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -122,7 +122,7 @@ void ConfigurationDialog::translate()
     equityTradeCostNonExchange_->setToolTip( tr( "Cost to trade a non-exchange traded fund." ) );
 
     equityWatchListsLabel_->setText( tr( "Equity Watchlists (comma separated)" ) );
-    equityWatchLists_->setToolTip( tr( "Watchlist(s) of symbols to refresh." ) );
+    equityWatchLists_->setToolTip( tr( "Watchlist(s) of symbols to refresh. Leave blank to not fetch equity information in background." ) );
     equityWatchListsDialog_->setText( "..." );
 
     historyLabel_->setText( tr( "Keep History (days)" ) );
@@ -154,7 +154,7 @@ void ConfigurationDialog::translate()
     optionChainExpiryEndDate_->setToolTip( tr( "Maximum option chain expiration to retrieve. Expiration dates past this are not retrieved." ) );
 
     optionChainWatchListsLabel_->setText( tr( "Option Chain Watchlists (comma separated)" ) );
-    optionChainWatchLists_->setToolTip( tr( "Watchlist(s) of symbols to refresh." ) );
+    optionChainWatchLists_->setToolTip( tr( "Watchlist(s) of symbols to refresh. Leave blank to not fetch option information in background." ) );
     optionChainWatchListsDialog_->setText( "..." );
 
     optionTradeCostLabel_->setText( tr( "Option Trading Cost" ) );

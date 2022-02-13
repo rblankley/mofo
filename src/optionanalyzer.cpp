@@ -28,6 +28,7 @@
 #include "db/optiontradingitemmodel.h"
 
 #include <QApplication>
+#include <QThread>
 
 #ifdef Q_OS_WINDOWS
 #include <Windows.h>
@@ -39,13 +40,14 @@ OptionAnalyzer::OptionAnalyzer( model_type *model, QObject *parent ) :
     active_( false ),
     analysis_( model ),
     halt_( false ),
+    throttle_( false ),
 #ifdef Q_OS_WINDOWS
     prevIdleTime_( 0 ),
     prevKernelTime_( 0 ),
     prevUserTime_( 0 ),
 #endif
     workers_( 0 ),
-    maxWorkers_( std::thread::hardware_concurrency() )
+    maxWorkers_( 4 * QThread::idealThreadCount() )
 {
     // connect signals/slots
     connect( AbstractDaemon::instance(), &AbstractDaemon::optionChainBackgroundProcess, this, &_Myt::onOptionChainBackgroundProcess );
@@ -143,22 +145,11 @@ void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QD
     else if ( !symbols_.contains( symbol ) )
         return;
 
-    // throttle cpu to max worker limit
-    while (( THROTTLE ) && ( maxWorkers_ <= workers_ ) && ( THROTTLE_CPU_THRESHOLD < cpuUsage() ))
+    // throttle cpu
+    if (( THROTTLE ) && ( needToThrottle() ))
     {
-        const QList<OptionAnalyzerThread*> threads( findChildren<OptionAnalyzerThread*>() );
-
-        int finished( 0 );
-
-        foreach ( OptionAnalyzerThread *t, threads )
-            if ( t->isFinished() )
-                ++finished;
-
-        if ( (workers_ - finished) < maxWorkers_ )
-            break;
-
         LOG_TRACE << "throttle workers...";
-        QThread::msleep( THROTTLE_YIELD_TIME );
+        AbstractDaemon::instance()->setPaused( (throttle_ = true) );
     }
 
     symbols_.removeOne( symbol );
@@ -167,10 +158,13 @@ void OptionAnalyzer::onOptionChainUpdated( const QString& symbol, const QList<QD
     LOG_INFO << "processing " << qPrintable( symbol ) << " " << expiryDates.size() << " chains...";
     LOG_DEBUG << symbols_.size() << " symbols remaining...";
 
-    foreach ( const QDate& d, expiryDates )
+    // force refresh status when no option data
+    if ( expiryDates.isEmpty() )
+        updateStatus( false );
+    else
     {
         // create worker thread
-        OptionAnalyzerThread *worker( new OptionAnalyzerThread( symbol, d, analysis_, this ) );
+        OptionAnalyzerThread *worker( new OptionAnalyzerThread( symbol, expiryDates, analysis_, this ) );
         worker->setFilter( filter() );
 
         connect( worker, &QThread::finished, this, &_Myt::onWorkerFinished );
@@ -192,6 +186,14 @@ void OptionAnalyzer::onWorkerFinished()
     --workers_;
 
     ++numThreadsComplete_;
+
+    // unthrottle cpu
+    if (( THROTTLE ) && ( throttle_ ))
+        if (( workers_ < QThread::idealThreadCount() ) || ( !needToThrottle() ))
+        {
+            LOG_TRACE << "restore workers...";
+            AbstractDaemon::instance()->setPaused( (throttle_ = false) );
+        }
 
     // refresh status
     updateStatus( false );
@@ -251,10 +253,23 @@ void OptionAnalyzer::updateStatus( bool force )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+bool OptionAnalyzer::needToThrottle() const
+{
+    if ( workers_ < QThread::idealThreadCount() )
+        return false;
+
+#ifdef Q_OS_WINDOWS
+    if ( THROTTLE_CPU_THRESHOLD < cpuUsage() )
+        return true;
+#endif
+
+    return ( maxWorkers_ <= workers_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double OptionAnalyzer::cpuUsage() const
 {
-    // default to 100% cpu usage
-    double result( 100.0 );
+    double result( 0.0 );
 
 #ifdef Q_OS_WINDOWS
     FILETIME idleTime;

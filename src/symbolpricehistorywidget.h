@@ -178,7 +178,7 @@ private:
 
     /// Calculate min/max values from list data.
     template <class T>
-    void calcMinMaxValues( const QList<T>& values, double& min, double& max, unsigned long long& vmax ) const;
+    bool calcMinMaxValues( const QList<T>& values, double& min, double& max, unsigned long long& vmax ) const;
 
     /// Calculate interval values.
     void calcIntervalValues( double min, double max, double h, double div, double& interval, int& numDecimals ) const;

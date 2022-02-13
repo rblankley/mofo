@@ -50,7 +50,7 @@ TDOpenAuthInterface::TDOpenAuthInterface( QObject *parent ) :
     timerRefreshAccessToken_( nullptr ),
     state_( Offline )
 {
-    connect( this, &_Myt::processDocumentJson, this, &_Myt::onProcessDocumentJson );
+    connect( this, &_Myt::processDocumentJson, this, &_Myt::onProcessDocumentJson, Qt::QueuedConnection );
 
     // create timer for auth timeout
     timerAuthTimeout_ = new QTimer( this );

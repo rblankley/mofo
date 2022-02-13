@@ -29,6 +29,8 @@
 #include <QNetworkRequest>
 #include <QTimer>
 
+#include <QtConcurrent>
+
 // uncomment to debug content data
 //#define DEBUG_CONTENT_DATA
 //#define DEBUG_CONTENT_DATA_SAVE
@@ -97,10 +99,14 @@ void AbstractWebInterface::onFinished()
         return;
     }
 
-    // process reply    
-    parseNetworkReply( reply );
+    // process reply
+    QFuture<void> f;
 
-    reply->deleteLater();
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+    f = QtConcurrent::run( &_Myt::parseNetworkReply, this, reply, true );
+#else
+    f = QtConcurrent::run( this, &_Myt::parseNetworkReply, reply, true );
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -253,7 +259,7 @@ QNetworkReply *AbstractWebInterface::handleRequest( Method m, const QUrl &url, b
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void AbstractWebInterface::parseNetworkReply( QNetworkReply *reply )
+void AbstractWebInterface::parseNetworkReply( QNetworkReply *reply, bool deleteReply )
 {
     const RequestControl rc( destroyRequestControl( reply ) );
 
@@ -296,6 +302,10 @@ void AbstractWebInterface::parseNetworkReply( QNetworkReply *reply )
     emit replyReceived( reply, valid, statusCode, content, contentType, elapsed );
 
     LOG_TRACE << "reply received... done";
+
+    // delete reply
+    if ( deleteReply )
+        reply->deleteLater();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

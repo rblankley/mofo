@@ -12,7 +12,8 @@ BUILT_SOURCES = \
 	moc_quotetablemodel.cpp \
 	moc_sqldb.cpp \
 	moc_sqltablemodel.cpp \
-	moc_symboldb.cpp
+	moc_symboldb.cpp \
+	moc_symboldbs.cpp
 
 lib_mofo_db_a_SOURCES = \
 	$(BUILT_SOURCES) \
@@ -24,6 +25,7 @@ lib_mofo_db_a_SOURCES = \
 	quotetablemodel.cpp \
 	sqldb.cpp \
 	sqltablemodel.cpp \
-	symboldb.cpp
+	symboldb.cpp \
+	symboldbs.cpp
 
 CLEANFILES = $(BUILT_SOURCES)

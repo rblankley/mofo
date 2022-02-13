@@ -19,13 +19,13 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "appdb.h"
 #include "common.h"
 #include "quotetablemodel.h"
+#include "symboldbs.h"
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QuoteTableModel::QuoteTableModel( const QString& symbol, const QDateTime& stamp, QObject *parent ) :
-    _Mybase( _NUM_COLUMNS, parent, AppDatabase::instance()->openDatabaseConnection( symbol ) ),
+    _Mybase( _NUM_COLUMNS, parent, SymbolDatabases::instance()->openDatabaseConnection( symbol ) ),
     symbol_( symbol )
 {
     // setup filter
@@ -117,6 +117,8 @@ QuoteTableModel::QuoteTableModel( const QString& symbol, const QDateTime& stamp,
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QuoteTableModel::~QuoteTableModel()
 {
+    // remove reference
+    SymbolDatabases::instance()->removeRef( symbol_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
