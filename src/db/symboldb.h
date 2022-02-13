@@ -296,6 +296,14 @@ protected:
      */
     virtual bool addOption( const QJsonObject& obj );
 
+    /// Add option to database using prepared query.
+    /**
+     * @param[in] obj  data
+     * @param[in] query  prepared query
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool addOption( const QJsonObject& obj, QSqlQuery& query );
+
     /// Add option chain to database.
     /**
      * @param[in] stamp  date time
@@ -316,6 +324,18 @@ protected:
      * @return  @c true upon success, @c false otherwise
      */
     virtual bool addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice );
+
+    /// Add option chain strike price to database using prepared query
+    /**
+     * @param[in] stamp  date time
+     * @param[in] optionStamp  option date time
+     * @param[in] optionSymbol  option symbol
+     * @param[in] expiryDate  expiration date
+     * @param[in] strikePrice  strike price
+     * @param[in] query  prepared query
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& expiryDate, double strikePrice, QSqlQuery& query );
 
     /// Add quote information.
     /**

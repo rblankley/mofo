@@ -50,6 +50,36 @@ static const QString DESCRIPTION( "description" );
 static const QString LAST_FUNDAMENTAL( "lastFundamental" );
 static const QString LAST_QUOTE_HISTORY( "lastQuoteHistory" );
 
+// sql statement for prepared query
+static const QString SQL_OPTION( "REPLACE INTO options (stamp,symbol,"
+    "underlying,type,strikePrice,description,bidAskSize,bidPrice,bidSize,askPrice,askSize,lastPrice,"
+    "lastSize,breakEvenPrice,intrinsicValue,openPrice,highPrice,lowPrice,closePrice,change,percentChange,totalVolume,"
+    "quoteTime,tradeTime,mark,markChange,markPercentChange,exchangeName,volatility,delta,gamma,theta,"
+    "vega,rho,timeValue,openInterest,isInTheMoney,theoreticalOptionValue,theoreticalVolatility,isMini,isNonStandard,isIndex,"
+    "isWeekly,isQuarterly,expirationDate,expirationType,daysToExpiration,lastTradingDay,multiplier,settlementType,deliverableNote) "
+        "VALUES (:stamp,:symbol,"
+            ":underlying,:type,:strikePrice,:description,:bidAskSize,:bidPrice,:bidSize,:askPrice,:askSize,:lastPrice,"
+            ":lastSize,:breakEvenPrice,:intrinsicValue,:openPrice,:highPrice,:lowPrice,:closePrice,:change,:percentChange,:totalVolume,"
+            ":quoteTime,:tradeTime,:mark,:markChange,:markPercentChange,:exchangeName,:volatility,:delta,:gamma,:theta,"
+            ":vega,:rho,:timeValue,:openInterest,:isInTheMoney,:theoreticalOptionValue,:theoreticalVolatility,:isMini,:isNonStandard,:isIndex,"
+            ":isWeekly,:isQuarterly,:expirationDate,:expirationType,:daysToExpiration,:lastTradingDay,:multiplier,:settlementType,:deliverableNote) " );
+
+// sql statement for prepared query
+static const QString SQL_OPTION_CHAIN_STRIKES_CALL( "INSERT INTO optionChainStrikePrices (stamp,underlying,expirationDate,strikePrice,"
+    "callStamp,callSymbol) "
+        "VALUES (:stamp,:underlying,:expirationDate,:strikePrice,"
+            ":optionStamp,:optionSymbol) "
+        "ON CONFLICT (stamp,underlying,expirationDate,strikePrice) DO UPDATE SET "
+            "callStamp=:optionStamp,callSymbol=:optionSymbol " );
+
+// sql statement for prepared query
+static const QString SQL_OPTION_CHAIN_STRIKES_PUT( "INSERT INTO optionChainStrikePrices (stamp,underlying,expirationDate,strikePrice,"
+    "putStamp,putSymbol) "
+        "VALUES (:stamp,:underlying,:expirationDate,:strikePrice,"
+            ":optionStamp,:optionSymbol) "
+        "ON CONFLICT (stamp,underlying,expirationDate,strikePrice) DO UPDATE SET "
+            "putStamp=:optionStamp,putSymbol=:optionSymbol " );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolDatabase::SymbolDatabase( const QString& symbol, QObject *parent ) :
     _Mybase( DB_NAME.arg( symbol ), DB_VERSION, parent ),
@@ -979,25 +1009,19 @@ bool SymbolDatabase::addFundamental( const QDateTime& stamp, const QJsonObject& 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SymbolDatabase::addOption( const QJsonObject& obj )
 {
-    static const QString sql( "REPLACE INTO options (stamp,symbol,"
-        "underlying,type,strikePrice,description,bidAskSize,bidPrice,bidSize,askPrice,askSize,lastPrice,"
-        "lastSize,breakEvenPrice,intrinsicValue,openPrice,highPrice,lowPrice,closePrice,change,percentChange,totalVolume,"
-        "quoteTime,tradeTime,mark,markChange,markPercentChange,exchangeName,volatility,delta,gamma,theta,"
-        "vega,rho,timeValue,openInterest,isInTheMoney,theoreticalOptionValue,theoreticalVolatility,isMini,isNonStandard,isIndex,"
-        "isWeekly,isQuarterly,expirationDate,expirationType,daysToExpiration,lastTradingDay,multiplier,settlementType,deliverableNote) "
-            "VALUES (:stamp,:symbol,"
-                ":underlying,:type,:strikePrice,:description,:bidAskSize,:bidPrice,:bidSize,:askPrice,:askSize,:lastPrice,"
-                ":lastSize,:breakEvenPrice,:intrinsicValue,:openPrice,:highPrice,:lowPrice,:closePrice,:change,:percentChange,:totalVolume,"
-                ":quoteTime,:tradeTime,:mark,:markChange,:markPercentChange,:exchangeName,:volatility,:delta,:gamma,:theta,"
-                ":vega,:rho,:timeValue,:openInterest,:isInTheMoney,:theoreticalOptionValue,:theoreticalVolatility,:isMini,:isNonStandard,:isIndex,"
-                ":isWeekly,:isQuarterly,:expirationDate,:expirationType,:daysToExpiration,:lastTradingDay,:multiplier,:settlementType,:deliverableNote) " );
+    QSqlQuery query( connection() );
+    query.prepare( SQL_OPTION );
 
+    return addOption( obj, query );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolDatabase::addOption( const QJsonObject& obj, QSqlQuery& query )
+{
     const double strikePrice( obj[DB_STRIKE_PRICE].toDouble() );
     const QString type( obj[DB_TYPE].toString() );
 
-    QSqlQuery query( connection() );
-    query.prepare( sql );
-
+    // bind values to query
     query.bindValue( ":" + DB_UNDERLYING, symbol() );
 
     bindQueryValues( query, obj );
@@ -1064,6 +1088,17 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
 
     if (( obj.constEnd() != options ) && ( options->isArray() ))
     {
+        // prepare query objects
+        QSqlQuery queryOption( connection() );
+        queryOption.prepare( SQL_OPTION );
+
+        QSqlQuery queryOptionChainStrikesCall( connection() );
+        queryOptionChainStrikesCall.prepare( SQL_OPTION_CHAIN_STRIKES_CALL );
+
+        QSqlQuery queryOptionChainStrikesPut( connection() );
+        queryOptionChainStrikesPut.prepare( SQL_OPTION_CHAIN_STRIKES_PUT );
+
+        // iterate
         foreach ( const QJsonValue& v, options->toArray() )
             if ( v.isObject() )
             {
@@ -1087,13 +1122,16 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
                 }
 
                 const QDateTime expiryDate( QDateTime::fromString( expiryDateIt->toString(), Qt::ISODate ) );
+                const QString type( typeIt->toString() );
 
                 // add option
-                if ( !addOption( option ) )
+                if ( !addOption( option, queryOption ) )
                     return false;
 
                 // add strike price to chain
-                else if ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), typeIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble() ) )
+                else if (( CALL == type ) && ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble(), queryOptionChainStrikesCall ) ))
+                    return false;
+                else if (( PUT == type ) && ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble(), queryOptionChainStrikesPut ) ))
                     return false;
 
                 // track expiry dates for caller
@@ -1108,16 +1146,25 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool SymbolDatabase::addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& type, const QString& expiryDate, double strikePrice )
 {
-    static const QString sql( "INSERT INTO optionChainStrikePrices (stamp,underlying,expirationDate,strikePrice,"
-        "%1Stamp,%1Symbol) "
-            "VALUES (:stamp,:underlying,:expirationDate,:strikePrice,"
-                ":optionStamp,:optionSymbol) "
-            "ON CONFLICT (stamp,underlying,expirationDate,strikePrice) DO UPDATE SET "
-                "%1Stamp=:optionStamp,%1Symbol=:optionSymbol " );
-
     QSqlQuery query( connection() );
-    query.prepare( sql.arg( type ) );
 
+    if ( CALL == type )
+        query.prepare( SQL_OPTION_CHAIN_STRIKES_CALL );
+    else if ( PUT == type )
+        query.prepare( SQL_OPTION_CHAIN_STRIKES_PUT );
+    else
+    {
+        LOG_WARN << "unknown type " << qPrintable( type );
+        return false;
+    }
+
+    return addOptionChainStrikePrice( stamp, optionStamp, optionSymbol, expiryDate, strikePrice, query );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool SymbolDatabase::addOptionChainStrikePrice( const QDateTime& stamp, const QString& optionStamp, const QString& optionSymbol, const QString& expiryDate, double strikePrice, QSqlQuery& query )
+{
+    // bind values to query
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
     query.bindValue( ":" + DB_UNDERLYING, symbol() );
     query.bindValue( ":" + DB_EXPIRY_DATE, expiryDate );
