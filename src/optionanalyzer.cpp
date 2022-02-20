@@ -80,6 +80,12 @@ void OptionAnalyzer::halt()
     // set halt flag
     halt_ = true;
 
+    // halt each thread
+    const QList<OptionAnalyzerThread*> workers( findChildren<OptionAnalyzerThread*>() );
+
+    foreach ( OptionAnalyzerThread *worker, workers )
+        worker->halt();
+
     // wait for analysis threads to complete
     while (( active_ ) || ( numThreadsComplete_ < numThreads_ ))
     {

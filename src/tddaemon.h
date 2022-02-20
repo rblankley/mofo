@@ -56,7 +56,7 @@ public:
     TDAmeritradeDaemon( TDAmeritrade *api, DeptOfTheTreasury *usdot, QObject *parent = nullptr );
 
     /// Destructor.
-    ~TDAmeritradeDaemon();
+    virtual ~TDAmeritradeDaemon();
 
     // ========================================================================
     // Properties

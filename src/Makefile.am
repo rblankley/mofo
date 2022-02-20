@@ -30,6 +30,8 @@ mofo_LDADD = \
 
 BUILT_SOURCES = \
 	moc_abstractdaemon.cpp \
+	moc_accountnicknamewidget.cpp \
+	moc_accountsdialog.cpp \
 	moc_advancedfilterlistwidget.cpp \
 	moc_advancedfilterwidget.cpp \
 	moc_analysiswidget.cpp \
@@ -52,6 +54,7 @@ BUILT_SOURCES = \
 	moc_optionviewertabwidget.cpp \
 	moc_optionviewerwidget.cpp \
 	moc_symboldetailsdialog.cpp \
+	moc_symbolimplvolwidget.cpp \
 	moc_symbolpricehistorywidget.cpp \
 	moc_tddaemon.cpp \
 	moc_watchlistdialog.cpp \
@@ -62,6 +65,8 @@ BUILT_SOURCES = \
 mofo_SOURCES = \
 	$(BUILT_SOURCES) \
 	abstractdaemon.cpp \
+	accountnicknamewidget.cpp \
+	accountsdialog.cpp \
 	advancedfilterlistwidget.cpp \
 	advancedfilterwidget.cpp \
 	analysiswidget.cpp \
@@ -87,6 +92,7 @@ mofo_SOURCES = \
 	optionviewertabwidget.cpp \
 	optionviewerwidget.cpp \
 	symboldetailsdialog.cpp \
+	symbolimplvolwidget.cpp \
 	symbolpricehistorywidget.cpp \
 	tableheaderitem.cpp \
 	tddaemon.cpp \

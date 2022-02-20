@@ -107,7 +107,7 @@ void OptionViewerWidget::translate()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void OptionViewerWidget::onButtonPressed()
+void OptionViewerWidget::onButtonClicked()
 {
     // refresh
     if ( refresh_ == sender() )
@@ -494,7 +494,7 @@ void OptionViewerWidget::initialize()
     clear_->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
     clear_->setVisible( false );
 
-    connect( clear_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
+    connect( clear_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     analysisOne_ = new QToolButton( this );
     analysisOne_->setMinimumWidth( 70 );
@@ -503,7 +503,7 @@ void OptionViewerWidget::initialize()
     analysisOne_->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
     analysisOne_->setEnabled( false );
 
-    connect( analysisOne_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
+    connect( analysisOne_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     analysisAll_ = new QToolButton( this );
     analysisAll_->setMinimumWidth( 70 );
@@ -511,7 +511,7 @@ void OptionViewerWidget::initialize()
     analysisAll_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
     analysisAll_->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
 
-    connect( analysisAll_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
+    connect( analysisAll_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     refresh_ = new QToolButton( this );
     refresh_->setMinimumWidth( 70 );
@@ -519,7 +519,7 @@ void OptionViewerWidget::initialize()
     refresh_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
     refresh_->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
 
-    connect( refresh_, &QToolButton::clicked, this, &_Myt::onButtonPressed );
+    connect( refresh_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
     // ---- //
 

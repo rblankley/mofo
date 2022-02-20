@@ -1,8 +1,8 @@
 /**
- * @file symboldetailsdialog.h
- * Dialog for showing symbol details.
+ * @file accountsdialog.h
+ * Accounts dialog.
  *
- * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
+ * @copyright Copyright (C) 2022 Randy Blankley. All rights reserved.
  *
  * @section LICENSE
  *
@@ -20,28 +20,27 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYMBOLDETAILSDIALOG_H
-#define SYMBOLDETAILSDIALOG_H
+#ifndef ACCOUNTSDIALOG_H
+#define ACCOUNTSDIALOG_H
 
 #include <QDialog>
+#include <QMap>
 
-class CollapsibleSplitter;
-class FundamentalsViewerWidget;
-class SymbolImpliedVolatilityWidget;
-class SymbolPriceHistoryWidget;
+class AccountNicknameWidget;
 
-class QSplitter;
-class QTabWidget;
+class QLabel;
+class QListWidget;
+class QListWidgetItem;
+class QPushButton;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for showing symbol details.
-class SymbolDetailsDialog : public QDialog
+/// Accounts dialog.
+class AccountsDialog : public QDialog
 {
     Q_OBJECT
-    Q_PROPERTY( QString symbol READ symbol )
 
-    using _Myt = SymbolDetailsDialog;
+    using _Myt = AccountsDialog;
     using _Mybase = QDialog;
 
 public:
@@ -52,15 +51,12 @@ public:
 
     /// Constructor.
     /**
-     * @param[in] symbol  symbol
-     * @param[in] price  market price per share
-     * @param[in,out] parent  parent widget
-     * @param[in] f  window flags
+     * @param[in] parent  parent object
      */
-    SymbolDetailsDialog( const QString symbol, double price, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    AccountsDialog( QWidget *parent = nullptr );
 
     /// Destructor.
-    virtual ~SymbolDetailsDialog();
+    virtual ~AccountsDialog();
 
     // ========================================================================
     // Properties
@@ -72,12 +68,6 @@ public:
      */
     virtual QSize sizeHint() const override;
 
-    /// Retrieve symbol.
-    /**
-     * @return  symbol
-     */
-    virtual QString symbol() const {return symbol_;}
-
     // ========================================================================
     // Methods
     // ========================================================================
@@ -85,21 +75,30 @@ public:
     /// Translate strings.
     virtual void translate();
 
-private:
+private slots:
 
-    static constexpr int SPLITTER_WIDTH = 12;
+    /// Slot for button clicked.
+    void onButtonClicked();
+
+    /// Slot for default changed.
+    void onDefaultChanged( bool newValue );
+
+private:
 
     static const QString STATE_GROUP_NAME;
 
-    QString symbol_;
-    double price_;
+    using AccountListMap = QMap<AccountNicknameWidget*, QListWidgetItem*>;
 
-    QTabWidget *tabs_;
-    CollapsibleSplitter *splitter_;
-    SymbolImpliedVolatilityWidget *implVol_;
+    AccountListMap w_;
 
-    SymbolPriceHistoryWidget *priceHistory_;
-    FundamentalsViewerWidget *fundamentals_;
+    QLabel *accountLabel_;
+    QLabel *typeLabel_;
+    QLabel *nicknameLabel_;
+
+    QListWidget *accounts_;
+
+    QPushButton *okay_;
+    QPushButton *cancel_;
 
     /// Initialize.
     void initialize();
@@ -107,32 +106,29 @@ private:
     /// Create layout.
     void createLayout();
 
+    /// Create account item.
+    AccountNicknameWidget *createAccountItem();
+
     /// Save dialog state.
     void saveState( QDialog *w ) const;
-
-    /// Save splitter state.
-    void saveState( QSplitter *w ) const;
 
     /// Restore dialog state.
     void restoreState( QDialog *w ) const;
 
-    /// Restore splitter state.
-    void restoreState( QSplitter *w ) const;
+    // not implemented
+    AccountsDialog( const _Myt& other ) = delete;
 
     // not implemented
-    SymbolDetailsDialog( const _Myt& ) = delete;
+    AccountsDialog( const _Myt&& other ) = delete;
 
     // not implemented
-    SymbolDetailsDialog( const _Myt&& ) = delete;
+    _Myt & operator = ( const _Myt& rhs ) = delete;
 
     // not implemented
-    _Myt& operator = ( const _Myt& ) = delete;
-
-    // not implemented
-    _Myt& operator = ( const _Myt&& ) = delete;
+    _Myt & operator = ( const _Myt&& rhs ) = delete;
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // SYMBOLDETAILSDIALOG_H
+#endif // ACCOUNTSDIALOG_H

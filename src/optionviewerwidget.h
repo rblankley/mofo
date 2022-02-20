@@ -88,8 +88,8 @@ public slots:
 
 private slots:
 
-    /// Slot for button pressed.
-    void onButtonPressed();
+    /// Slot for button clicked.
+    void onButtonClicked();
 
     /// Slot for option chain updated.
     void onOptionChainUpdated( const QString& symbol, const QList<QDate>& expiryDates, bool background );

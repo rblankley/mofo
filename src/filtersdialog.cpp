@@ -32,6 +32,10 @@
 #include <QTimer>
 #include <QVBoxLayout>
 
+const QString FiltersDialog::STATE_GROUP_NAME( "filters" );
+
+static const QString GEOMETRY( "geometry" );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FiltersDialog::FiltersDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f ),
@@ -58,6 +62,16 @@ FiltersDialog::FiltersDialog( QWidget *parent, Qt::WindowFlags f ) :
 
     // select first item
     selectItem( 0 );
+
+    // restore states
+    restoreState( this );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+FiltersDialog::~FiltersDialog()
+{
+    // save states
+    saveState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -398,4 +412,18 @@ void FiltersDialog::selectItem( int index )
         filters_->setCurrentRow( qMin( index, filters_->count()-1 ) );
 
     onItemSelectionChanged();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FiltersDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FiltersDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

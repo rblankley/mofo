@@ -83,6 +83,7 @@ public:
         HeaderView,                                 ///< Header View Widget.
         Splitter,                                   ///< Splitter Widget.
         PriceHistory,                               ///< Price History Widget.
+        Dialog,                                     ///< Dialog.
     };
 
     // ========================================================================
@@ -91,6 +92,7 @@ public:
 
     /// Retrieve accounts.
     /**
+     * List of strings in format "accountId;type;nickname;isDefault"
      * @return  list of accounts
      */
     virtual QStringList accounts() const;
@@ -210,6 +212,13 @@ public:
      * @return  interest rate
      */
     virtual double riskFreeRate( double term ) const;
+
+    /// Set account nicknames.
+    /**
+     * List of strings in format "accountId;nickname;isDefault"
+     * @param[in] values  nicknames
+     */
+    virtual void setAccountNicknames( const QStringList& values );
 
     /// Set configuration.
     /**
@@ -445,6 +454,8 @@ private:
 
     static QMutex instanceMutex_;
     static _Myt *instance_;
+
+    QMap<WidgetType, QString> tableNames_;
 
     /// Constructor.
     AppDatabase();

@@ -61,7 +61,7 @@ public:
     MainWindow( QWidget *parent = nullptr );
 
     /// Destructor.
-    ~MainWindow();
+    virtual ~MainWindow();
 
     // ========================================================================
     // Properties
@@ -71,7 +71,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods
@@ -124,6 +124,7 @@ private:
     QAction *exit_;
 
     QMenu *viewMenu_;
+    QAction *accountNames_;
     QAction *config_;
     QAction *filters_;
     QAction *layouts_;

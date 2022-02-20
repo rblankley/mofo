@@ -300,7 +300,7 @@ protected:
     AbstractDaemon( QObject *parent = nullptr );
 
     /// Destructor.
-    ~AbstractDaemon();
+    virtual ~AbstractDaemon();
 
     // ========================================================================
     // Properties

@@ -58,6 +58,9 @@ public:
      */
     WatchlistDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
+    /// Destructor.
+    virtual ~WatchlistDialog();
+
     // ========================================================================
     // Properties
     // ========================================================================
@@ -66,7 +69,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods
@@ -87,6 +90,8 @@ private slots:
     void onTextChanged();
 
 private:
+
+    static const QString STATE_GROUP_NAME;
 
     AppDatabase *db_;
 
@@ -120,6 +125,12 @@ private:
 
     /// Save to database.
     void saveForm();
+
+    /// Save dialog state.
+    void saveState( QDialog *w ) const;
+
+    /// Restore dialog state.
+    void restoreState( QDialog *w ) const;
 
     /// Generate list from text.
     static QStringList generateList( const QString& data );

@@ -34,6 +34,10 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+const QString FilterSelectionDialog::STATE_GROUP_NAME( "filterSelection" );
+
+static const QString GEOMETRY( "geometry" );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FilterSelectionDialog::FilterSelectionDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f ),
@@ -50,6 +54,16 @@ FilterSelectionDialog::FilterSelectionDialog( QWidget *parent, Qt::WindowFlags f
     // populate filters
     filters_->addItem( tr( "NONE" ) );
     filters_->addItems( AppDatabase::instance()->filters() );
+
+    // restore states
+    restoreState( this );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+FilterSelectionDialog::~FilterSelectionDialog()
+{
+    // save states
+    saveState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -229,4 +243,18 @@ void FilterSelectionDialog::createLayout()
     form->addLayout( filters );
     form->addStretch();
     form->addLayout( buttons );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FilterSelectionDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FilterSelectionDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

@@ -183,6 +183,14 @@ public:
      */
     void movingAveragesConvergenceDivergence( const QString& symbol, const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const;
 
+    /// Retrieve option chain curve expiration dates.
+    /**
+     * @param[in] symbol  symbol
+     * @param[out] expiryDates  option chain expiration dates
+     * @return  stamp of most recent curve calculation
+     */
+    QDateTime optionChainCurveExpirationDates( const QString& symbol, QList<QDate>& expiryDates ) const;
+
     /// Retrieve option chain curves.
     /**
      * @param[in] symbol  symbol

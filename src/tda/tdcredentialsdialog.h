@@ -86,7 +86,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods

@@ -36,7 +36,9 @@
 #include <QApplication>
 #include <QDateTime>
 #include <QDir>
+#include <QMessageBox>
 #include <QPalette>
+#include <QSslSocket>
 
 #include <QtConcurrent>
 
@@ -45,7 +47,6 @@
 #endif
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-
 
 /// Set application style and palette.
 void setStyle( QApplication& a, const QString& theme, const QColor& highlight )
@@ -141,7 +142,6 @@ int main( int argc, char *argv[] )
     SetThreadExecutionState( ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_AWAYMODE_REQUIRED );
 #endif
 
-#if defined( Q_OS_LINUX )
     static const QString config( USER_CONF_DIR );
     static const QString cache( USER_CACHE_DIR );
 
@@ -160,11 +160,26 @@ int main( int argc, char *argv[] )
         LOG_FATAL << "failed to make cache dir " << qPrintable( cache );
         return -1;
     }
-#endif
 
     // workaround for Qt 5.15.2 bug
     QDateTime start( QDateTime::currentDateTime() );
     start.toString( Qt::ISODateWithMs );
+
+    // validate ssl
+    if ( QSslSocket::supportsSsl() )
+    {
+        LOG_INFO << "ssl build version " << qPrintable( QSslSocket::sslLibraryBuildVersionString() );
+        LOG_INFO << "ssl version " << qPrintable( QSslSocket::sslLibraryVersionString() );
+    }
+    else
+    {
+        QMessageBox::critical(
+            nullptr,
+            QObject::tr( "SSL Support Missing" ),
+            QObject::tr( "Support for SSL does not appear to be installed. Please install OpenSSL and try again." ) );
+
+        return -1;
+    }
 
     // init database
     AppDatabase *db( AppDatabase::instance() );

@@ -56,6 +56,9 @@ public:
      */
     ConfigurationDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
+    /// Destructor.
+    virtual ~ConfigurationDialog();
+
     // ========================================================================
     // Properties
     // ========================================================================
@@ -64,7 +67,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods
@@ -79,6 +82,8 @@ private slots:
     void onButtonClicked();
 
 private:
+
+    static const QString STATE_GROUP_NAME;
 
     QJsonObject configs_;
 
@@ -150,6 +155,12 @@ private:
 
     /// Check configuration value changed.
     void checkConfigChanged( const QString& config, const QString& value );
+
+    /// Save dialog state.
+    void saveState( QDialog *w ) const;
+
+    /// Restore dialog state.
+    void restoreState( QDialog *w ) const;
 
     // not implemented
     ConfigurationDialog( const _Myt& ) = delete;

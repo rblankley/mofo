@@ -19,6 +19,7 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "accountsdialog.h"
 #include "analysiswidget.h"
 #include "common.h"
 #include "configdialog.h"
@@ -49,10 +50,13 @@
 #include <QTimer>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.0.18" );
+static const QString applicationVersion( "0.0.19" );
 
 static const QString EQUITY_OPTION_PRODUCT( "EQO" );
 static const QString INDEX_OPTION_PRODUCT( "IND" );
+
+static const QString MOFO_SOURCES( "https://github.com/rblankley/mofo" );
+static const QString MOFO_PAYPAL_DONATION( "https://www.paypal.com/donate/?business=YW7LNTG6J452G&no_recurring=0&item_name=Thank+you+for+your+donation%21&currency_code=USD" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 MainWindow::MainWindow( QWidget *parent ) :
@@ -119,6 +123,7 @@ void MainWindow::translate()
     exit_->setText( tr( "E&xit" ) );
 
     viewMenu_->setTitle( tr( "&View" ) );
+    accountNames_->setText( tr( "&Accounts..." ) );
     config_->setText( tr( "&Configuration..." ) );
     filters_->setText( tr( "&Filters..." ) );
     layouts_->setText( tr( "&Layouts..." ) );
@@ -368,18 +373,36 @@ void MainWindow::onAboutToQuit()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void MainWindow::onAccountsChanged()
 {
+    // not online, ignore for now
+    if ( AbstractDaemon::Offline == daemon_->connectedState() )
+        return;
+
+    // parse accounts
     const QStringList accounts( db_->accounts() );
 
     foreach ( const QString& account, accounts )
     {
-        // combo already contains account
-        if ( 0 <= accounts_->findText( account ) )
+        const QStringList parts( account.split( ';' ) );
+
+        if ( parts.size() < 4 )
             continue;
 
-        const QStringList parts( account.split( " " ) );
+        const QString text( QString( "%1 (%2)" ).arg( parts[2], parts[1] ) );
+
+        // combo already contains account
+        int index;
+
+        if ( 0 <= (index = accounts_->findData( parts[0] )) )
+        {
+            accounts_->setItemText( index, text );
+            continue;
+        }
 
         // add account to list
-        accounts_->addItem( account, parts[0] );
+        accounts_->addItem( text, parts[0] );
+
+        if ( "1" == parts[3] )
+            accounts_->setCurrentIndex( accounts_->count() - 1 );
     }
 
     updateMenuState();
@@ -388,8 +411,17 @@ void MainWindow::onAccountsChanged()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void MainWindow::onActionTriggered()
 {
+    // account namess
+    if ( accountNames_ == sender() )
+    {
+        LOG_TRACE << "accounts dialog...";
+
+        AccountsDialog d( this );
+        d.exec();
+    }
+
     // config
-    if ( config_ == sender() )
+    else if ( config_ == sender() )
     {
         LOG_TRACE << "config dialog...";
 
@@ -545,25 +577,43 @@ void MainWindow::onActionTriggered()
     // about app
     else if ( about_ == sender() )
     {
-        LOG_TRACE << "about dialog...";
+        const QString href( "<a href=\"%1\">%1</a>" );
+        const QString href2( "<a href=\"%1\">%2</a>" );
 
-        QMessageBox::about(
-            this,
-            applicationName,
-            tr( "Application Version: %1\n"
-                "Database Version: %2\n"
-                "\n"
-                "Built on %3 %4\n"
-                "\n"
-                "%5\n"
-                "\n"
-                "%6" )
-                .arg( applicationVersion )
-                .arg( db_->version() )
-                .arg( __DATE__ )
-                .arg( __TIME__ )
-                .arg( tr( "Copyright (C) 2022 Randy Blankley. All rights reserved." ) )
-                .arg( tr( "The program is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE." ) ) );
+        const QString t(
+            tr( "Application Version: %1<br>"
+                "Database Version: %2<br>"
+                "<br>"
+                "Built on %3 %4<br>"
+                "<br>"
+                "%5<br>"
+                "<br>"
+                "%6<br>"
+                "<br>"
+                "%7<br>"
+                "%8<br>"
+                "<br>"
+                "%9<br>" ) );
+
+        QMessageBox about( this );
+        about.setWindowTitle( tr( "About" ) + " " + applicationName );
+
+        about.setIconPixmap( QPixmap( ":/res/icon.png" ).scaledToWidth( 128, Qt::SmoothTransformation ) );
+
+        about.setTextFormat( Qt::RichText );
+        about.setText( t.arg(
+                applicationVersion,
+                db_->version(),
+                __DATE__,
+                __TIME__,
+                tr( "Copyright (C) 2022 Randy Blankley. All rights reserved." ),
+                tr( "The program is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE." ),
+                tr( "Full source code for this application can be found here:" ),
+                href.arg( MOFO_SOURCES ),
+                tr( "Like what you see? Consider making a" ) + " " + href2.arg( MOFO_PAYPAL_DONATION, tr( "donation" ) ) + " " + tr( "to this project." ) ) );
+
+        LOG_TRACE << "about dialog...";
+        about.exec();
     }
 
 #if defined( QT_DEBUG )
@@ -664,6 +714,7 @@ void MainWindow::initialize()
     // icons from:
     // https://www.flaticon.com/packs/ecommerce-33
     // https://www.flaticon.com/packs/music-225
+    // https://www.flaticon.com/packs/social-network-14
     // https://www.flaticon.com/packs/web-essentials-8
 
     setWindowIcon( QIcon( ":/res/icon.png" ) );
@@ -685,6 +736,8 @@ void MainWindow::initialize()
     // view menu
     // ------------
 
+    accountNames_ = new QAction( QIcon( ":/res/accounts.png" ), QString(), this );
+
     config_ = new QAction( QIcon( ":/res/cogwheel.png" ), QString(), this );
 
     filters_ = new QAction( QIcon( ":/res/filter.png" ), QString(), this );
@@ -693,12 +746,14 @@ void MainWindow::initialize()
 
     watchlists_ = new QAction( QIcon( ":/res/list.png" ), QString(), this );
 
+    connect( accountNames_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( config_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( filters_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( layouts_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( watchlists_, &QAction::triggered, this, &_Myt::onActionTriggered );
 
     viewMenu_ = menuBar()->addMenu( QString() );
+    viewMenu_->addAction( accountNames_ );
     viewMenu_->addAction( config_ );
     viewMenu_->addAction( filters_ );
     viewMenu_->addAction( layouts_ );

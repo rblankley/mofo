@@ -50,13 +50,13 @@ public:
      * @param[in] orientation  splitter orientation
      * @param[in,out] parent  parent
      */
-    explicit CollapsibleSplitter( Qt::Orientation orientation, QWidget *parent = nullptr );
+    CollapsibleSplitter( Qt::Orientation orientation, QWidget *parent = nullptr );
 
     /// Constructor.
     /**
      * @param[in,out] parent  parent
      */
-    explicit CollapsibleSplitter( QWidget *parent = nullptr );
+    CollapsibleSplitter( QWidget *parent = nullptr );
 
     /// Destructor.
     virtual ~CollapsibleSplitter();
@@ -90,8 +90,8 @@ public:
 
 private slots:
 
-    /// Slot for button pressed.
-    void onButtonPressed();
+    /// Slot for button clicked.
+    void onButtonClicked();
 
 private:
 

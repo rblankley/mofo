@@ -49,7 +49,7 @@ public:
     /**
      * @param[in,out] parent  parent
      */
-    explicit GridTableView( QWidget *parent = nullptr );
+    GridTableView( QWidget *parent = nullptr );
 
     /// Destructor.
     virtual ~GridTableView();

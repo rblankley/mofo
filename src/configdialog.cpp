@@ -36,6 +36,10 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+const QString ConfigurationDialog::STATE_GROUP_NAME( "configuration" );
+
+static const QString GEOMETRY( "geometry" );
+
 static const QString EQUITY_REFRESH_RATE( "equityRefreshRate" );
 static const QString EQUITY_TRADE_COST( "equityTradeCost" );
 static const QString EQUITY_TRADE_COST_NON_EXCHANGE( "equityTradeCostNonExchange" );
@@ -99,6 +103,16 @@ ConfigurationDialog::ConfigurationDialog( QWidget *parent, Qt::WindowFlags f ) :
 
     // set focus to first widget
     history_->setFocus();
+
+    // restore states
+    restoreState( this );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+ConfigurationDialog::~ConfigurationDialog()
+{
+    // save states
+    saveState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -437,4 +451,18 @@ void ConfigurationDialog::checkConfigChanged( const QString& config, const QStri
         configs_.remove( config );
     else
         configs_[config] = value;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void ConfigurationDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void ConfigurationDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

@@ -1,8 +1,8 @@
 /**
- * @file symbolpricehistorywidget.h
- * Price History (Graph) for a symbol.
+ * @file symbolimplvolwidget.h
+ * Implied Volatility Skew (Graph) for a symbol.
  *
- * @copyright Copyright (C) 2021 Randy Blankley. All rights reserved.
+ * @copyright Copyright (C) 2022 Randy Blankley. All rights reserved.
  *
  * @section LICENSE
  *
@@ -20,27 +20,29 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef SYMBOLPRICEHISTORYWIDGET_H
-#define SYMBOLPRICEHISTORYWIDGET_H
+#ifndef SYMBOLIMPLVOLWIDGET_H
+#define SYMBOLIMPLVOLWIDGET_H
 
+#include <QDate>
+#include <QDateTime>
+#include <QList>
 #include <QPixmap>
 #include <QWidget>
 
-#include "db/candledata.h"
+#include "db/optiondata.h"
 
 class QComboBox;
-class QScrollBar;
 class QStandardItem;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Price History (Graph) for a symbol.
-class SymbolPriceHistoryWidget : public QWidget
+/// Implied Volatility Skew (Graph) for a symbol.
+class SymbolImpliedVolatilityWidget : public QWidget
 {
     Q_OBJECT
     Q_PROPERTY( QString symbol READ symbol )
 
-    using _Myt = SymbolPriceHistoryWidget;
+    using _Myt = SymbolImpliedVolatilityWidget;
     using _Mybase = QWidget;
 
 public:
@@ -52,12 +54,13 @@ public:
     /// Constructor.
     /**
      * @param[in] symbol  symbol
+     * @param[in] price  market price per share
      * @param[in] parent  parent object
      */
-    SymbolPriceHistoryWidget( const QString& symbol, QWidget *parent = nullptr );
+    SymbolImpliedVolatilityWidget( const QString& symbol, double price, QWidget *parent = nullptr );
 
     /// Destructor.
-    virtual ~SymbolPriceHistoryWidget();
+    virtual ~SymbolImpliedVolatilityWidget();
 
     // ========================================================================
     // Properties
@@ -78,7 +81,7 @@ public:
 
 public slots:
 
-    /// Refresh underlying data.
+    /// Refresh graph data.
     virtual void refreshData();
 
 protected:
@@ -101,50 +104,24 @@ protected:
 
 private slots:
 
-    /// Slot for candle data changed.
-    void onCandleDataChanged( const QString& symbol, const QDateTime& start, const QDateTime& stop, int period, const QString& periodType, int freq, const QString& freqType, const QList<CandleData>& candles );
-
-    /// Slot for current index changed.
-    void onCurrentIndexChanged( int index );
-
     /// Slot for standard item changed.
     void onItemChanged( QStandardItem *item );
 
-    /// Slot for value changed.
-    void onValueChanged( int value );
-
 private:
 
-    static const QString STATE_GROUP_NAME;
-    static const QString STATE_NAME;
-
-    static constexpr int MIN_CANDLE_WIDTH = 5;
     static constexpr int SPACING = 6;
 
-    bool init_;
-
     QString symbol_;
-    QList<CandleData> candles_;
+    double price_;
 
-    QList<MovingAverages> ma_;
+    QDateTime stamp_;
+    QList<QDate> expiryDates_;
 
-    QList<HistoricalVolatilities> hv_;
-    QList<MovingAveragesConvergenceDivergence> macd_;
-    QList<RelativeStrengthIndexes> rsi_;
+    QMap<QDate, OptionChainCurves> curves_;
 
     QPixmap graph_;
-    QPixmap margin_;
 
-    QComboBox *period_;
-
-    QComboBox *freqMin_;
-    QComboBox *freqDayWeek_;
-    QComboBox *freqDayWeekMonth_;
-
-    QComboBox *overlays_;
-    QComboBox *lowers_;
-
-    QScrollBar *scroll_;
+    QComboBox *dates_;
 
     /// Initialize.
     void initialize();
@@ -152,36 +129,11 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Retrieve current period.
-    bool currentPeriod( int& period, QString& periodType ) const;
-
-    /// Retrieve current frequency.
-    bool currentFrequency( int& freq, QString& freqType ) const;
-
-    /// Retrieve scroll bar maximum value.
-    int scrollBarMaximum() const;
-
-    /// Check is scroll bar is visible.
-    bool scrollBarVisible() const {return (0 < scrollBarMaximum());}
-
-    /// Check if we have historical volatilities.
-    bool haveHistoricalVolatilities();
-
-    /// Check if we have moving averages.
-    bool haveMovingAverages();
-
-    /// Check if we have moving averages convergence/divergence (MACD)
-    bool haveMovingAveragesConvergenceDivergence( bool emaOnly = false );
-
-    /// Check if we have realtive strength indexes.
-    bool haveRelativeStrengthIndexes();
-
     /// Calculate min/max values from list data.
-    template <class T>
-    bool calcMinMaxValues( const QList<T>& values, double& min, double& max, unsigned long long& vmax ) const;
+    bool calcMinMaxValues( const QMap<double, double>& values, double& kmin, double& kmax, double& vmin, double& vmax ) const;
 
     /// Calculate interval values.
-    void calcIntervalValues( double min, double max, double h, double div, double& interval, int& numDecimals ) const;
+    void calcIntervalValues( double min, double max, double h, double ints, double& interval, int& numDecimals ) const;
 
     /// Draw graph.
     void drawGraph();
@@ -189,20 +141,14 @@ private:
     /// Scale value.
     static int scaled( double p, double min, double max, int height );
 
-    /// Translate overlays.
-    static void translateOverlays( QComboBox *w );
-
-    /// Translate lowers.
-    static void translateLowers( QComboBox *w );
-
-    /// Retrieve overlay color.
-    static QColor overlayColor( const QString& desc );
+    /// Retrieve date color.
+    static QColor dateColor( const QString& desc );
 
     // not implemented
-    SymbolPriceHistoryWidget( const _Myt& other ) = delete;
+    SymbolImpliedVolatilityWidget( const _Myt& other ) = delete;
 
     // not implemented
-    SymbolPriceHistoryWidget( const _Myt&& other ) = delete;
+    SymbolImpliedVolatilityWidget( const _Myt&& other ) = delete;
 
     // not implemented
     _Myt & operator = ( const _Myt& rhs ) = delete;
@@ -214,4 +160,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // SYMBOLPRICEHISTORYWIDGET_H
+#endif // SYMBOLIMPLVOLWIDGET_H

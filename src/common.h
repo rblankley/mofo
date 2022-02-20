@@ -36,7 +36,7 @@
 #if defined( Q_OS_WIN )
 #define SYS_CONF_DIR "./"
 #define USER_CONF_DIR "./"
-#define USER_CACHE_DIR "./"
+#define USER_CACHE_DIR "./db/"
 #elif defined( Q_OS_LINUX )
 #define SYS_CONF_DIR "/etc/mofo/"
 #define USER_CONF_DIR QString( qgetenv( "HOME" ) ) + "/.config/mofo/"

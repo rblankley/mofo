@@ -23,6 +23,8 @@
 #include "common.h"
 #include "filtereditordialog.h"
 
+#include "db/appdb.h"
+
 #include <QCheckBox>
 #include <QDoubleSpinBox>
 #include <QFormLayout>
@@ -33,6 +35,10 @@
 #include <QSpinBox>
 #include <QTabWidget>
 #include <QVBoxLayout>
+
+const QString FilterEditorDialog::STATE_GROUP_NAME( "filterEditor" );
+
+static const QString GEOMETRY( "geometry" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& value, QWidget *parent, Qt::WindowFlags f ) :
@@ -126,6 +132,16 @@ FilterEditorDialog::FilterEditorDialog( const QString& name, const QByteArray& v
 
     histLessThanImpl_->setChecked( OptionProfitCalculatorFilter::HV_LTE_VI & f_.volatilityFilter() );
     histGreaterThanImpl_->setChecked( OptionProfitCalculatorFilter::HV_GT_VI & f_.volatilityFilter() );
+
+    // restore states
+    restoreState( this );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+FilterEditorDialog::~FilterEditorDialog()
+{
+    // save states
+    saveState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -889,4 +905,18 @@ void FilterEditorDialog::createLayout()
     form->addLayout( groups );
     form->addStretch();
     form->addLayout( buttons );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FilterEditorDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void FilterEditorDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

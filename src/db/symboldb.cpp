@@ -489,10 +489,54 @@ void SymbolDatabase::movingAveragesConvergenceDivergence( const QDate& start, co
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QDateTime SymbolDatabase::optionChainCurveExpirationDates( QList<QDate>& expiryDates ) const
+{
+    static const QString sql( "SELECT DISTINCT stamp, expirationDate FROM optionChainStrikePrices "
+        "WHERE DATETIME(stamp)<=DATETIME(:stamp) AND volatility IS NOT NULL "
+        "ORDER BY stamp DESC" );
+
+    const QDateTime now( AppDatabase::instance()->currentDateTime() );
+
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
+    query.prepare( sql );
+
+    query.bindValue( ":" + DB_STAMP, now.toString( Qt::ISODateWithMs ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return QDateTime();
+    }
+
+    // extract data
+    QDateTime result;
+
+    while ( query.next() )
+    {
+        const QSqlRecord rec( query.record() );
+
+        const QDateTime stamp( QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs ) );
+
+        // fetch all expiration dates from same stamp
+        if ( !result.isValid() )
+            result = stamp;
+        else if ( stamp != result )
+            break;
+
+        expiryDates.append( QDate::fromString( rec.value( DB_EXPIRY_DATE ).toString(), Qt::ISODate ) );
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDatabase::optionChainCurves( const QDate& expiryDate, const QDateTime& stamp, OptionChainCurves& data ) const
 {
     static const QString sql( "SELECT * FROM optionChainStrikePrices "
-        "WHERE DATE(:date)=DATE(expirationData) AND %1" );
+        "WHERE DATE(:expirationDate)=DATE(expirationDate) AND %1" );
 
     QSqlQuery query( connection() );
     query.setForwardOnly( true );
@@ -1138,6 +1182,10 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
                 if ( !expiryDates.contains( expiryDate.date() ) )
                     expiryDates.append( expiryDate.date() );
             }
+
+        // update option chain curve data
+        // when curve data already exists for this chain duplicate it
+        updateOptionChainCurves( stamp );
     }
 
     return true;
@@ -1328,6 +1376,103 @@ int SymbolDatabase::quoteHistoryRowCount() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::updateOptionChainCurves( const QDateTime& stamp )
+{
+    static const QString sql( "SELECT * FROM optionChainStrikePrices "
+        "WHERE stamp=:stamp AND volatility IS NULL" );
+
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
+    query.prepare( sql );
+
+    query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    if ( !query.next() )
+        return;
+
+    // prepare sql statements
+    static const QString sqlSelect( "SELECT * FROM optionChainStrikePrices "
+        "WHERE underlying=:underlying "
+            "AND expirationDate=:expirationDate AND strikePrice=:strikePrice "
+            "AND callStamp=:callStamp AND callSymbol=:callSymbol "
+            "AND putStamp=:putStamp AND putSymbol=:putSymbol "
+            "AND volatility IS NOT NULL" );
+
+    QSqlQuery querySelect( connection() );
+    querySelect.setForwardOnly( true );
+    querySelect.prepare( sqlSelect );
+
+    static const QString sqlUpdate( "UPDATE optionChainStrikePrices SET "
+        "volatility=:volatility,callVolatility=:callVolatility,putVolatility=:putVolatility,"
+        "itmProbability=:itmProbability,otmProbability=:otmProbability "
+            "WHERE stamp=:stamp AND underlying=:underlying AND expirationDate=:expirationDate AND strikePrice=:strikePrice" );
+
+    QSqlQuery queryUpdate( connection() );
+    queryUpdate.prepare( sqlUpdate );
+
+    // iterate records
+    // update with existing curve data if we have it already
+    do
+    {
+        const QSqlRecord rec( query.record() );
+
+        // locate existing record
+        querySelect.bindValue( ":" + DB_UNDERLYING, rec.value( DB_UNDERLYING ) );
+        querySelect.bindValue( ":" + DB_EXPIRY_DATE, rec.value( DB_EXPIRY_DATE ) );
+        querySelect.bindValue( ":" + DB_STRIKE_PRICE, rec.value( DB_STRIKE_PRICE ) );
+
+        querySelect.bindValue( ":callStamp", rec.value( "callStamp" ) );
+        querySelect.bindValue( ":callSymbol", rec.value( "callSymbol" ) );
+
+        querySelect.bindValue( ":putStamp", rec.value( "putStamp" ) );
+        querySelect.bindValue( ":putSymbol", rec.value( "putSymbol" ) );
+
+        if ( !querySelect.exec() )
+        {
+            const QSqlError e( querySelect.lastError() );
+
+            LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+            return;
+        }
+
+        if ( querySelect.next() )
+        {
+            const QSqlRecord recSelect( querySelect.record() );
+
+            // update record
+            queryUpdate.bindValue( ":" + DB_STAMP, rec.value( DB_STAMP ) );
+            queryUpdate.bindValue( ":" + DB_UNDERLYING, rec.value( DB_UNDERLYING ) );
+            queryUpdate.bindValue( ":" + DB_EXPIRY_DATE, rec.value( DB_EXPIRY_DATE ) );
+            queryUpdate.bindValue( ":" + DB_STRIKE_PRICE, rec.value( DB_STRIKE_PRICE ) );
+
+            queryUpdate.bindValue( ":" + DB_VOLATILITY, recSelect.value( DB_VOLATILITY ) );
+            queryUpdate.bindValue( ":" + DB_CALL_VOLATILITY, recSelect.value( DB_CALL_VOLATILITY ) );
+            queryUpdate.bindValue( ":" + DB_PUT_VOLATILITY, recSelect.value( DB_PUT_VOLATILITY ) );
+
+            queryUpdate.bindValue( ":" + DB_ITM_PROBABILITY, recSelect.value( DB_ITM_PROBABILITY ) );
+            queryUpdate.bindValue( ":" + DB_OTM_PROBABILITY, recSelect.value( DB_OTM_PROBABILITY ) );
+
+            if ( !queryUpdate.exec() )
+            {
+                const QSqlError e( queryUpdate.lastError() );
+
+                LOG_ERROR << "error during update " << e.type() << " " << qPrintable( e.text() );
+                return;
+            }
+        }
+
+    } while ( query.next() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDatabase::calcHistoricalVolatility()
 {
     const double annualized( sqrt( AppDatabase::instance()->numTradingDays() ) );
@@ -1415,7 +1560,7 @@ void SymbolDatabase::calcHistoricalVolatility()
                     continue;
 
                 // update
-                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 valuesQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 valuesQuery.bindValue( ":" + DB_DEPTH, d );
                 valuesQuery.bindValue( ":" + DB_VOLATILITY, annualized * Stats::calcStdDeviation( r.mid( r.length() - d ) ) );
@@ -1435,7 +1580,7 @@ void SymbolDatabase::calcHistoricalVolatility()
             // update record
             if ( update )
             {
-                quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 quoteQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 quoteQuery.bindValue( ":" + DB_HV_DEPTH, depth );
 
@@ -1551,7 +1696,7 @@ void SymbolDatabase::calcMovingAverage()
                     continue;
 
                 // simple moving average
-                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 valuesQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 valuesQuery.bindValue( ":" + DB_TYPE, SIMPLE );
                 valuesQuery.bindValue( ":" + DB_DEPTH, d );
@@ -1566,7 +1711,7 @@ void SymbolDatabase::calcMovingAverage()
                 }
 
                 // exponential moving average
-                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 valuesQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 valuesQuery.bindValue( ":" + DB_TYPE, EXPONENTIAL );
                 valuesQuery.bindValue( ":" + DB_DEPTH, d );
@@ -1587,7 +1732,7 @@ void SymbolDatabase::calcMovingAverage()
             // update record
             if ( update )
             {
-                quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 quoteQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 quoteQuery.bindValue( ":" + DB_MA_DEPTH, depth );
 
@@ -1740,7 +1885,7 @@ void SymbolDatabase::calcRelativeStrengthIndex()
                 index = std::fmax( index, 0.0 );
 
                 // RSI
-                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 valuesQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 valuesQuery.bindValue( ":" + DB_DEPTH, d );
                 valuesQuery.bindValue( ":" + DB_VALUE, index );
@@ -1760,7 +1905,7 @@ void SymbolDatabase::calcRelativeStrengthIndex()
             // update record
             if ( update )
             {
-                quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+                quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
                 quoteQuery.bindValue( ":" + DB_SYMBOL, symbol() );
                 quoteQuery.bindValue( ":" + DB_RSI_DEPTH, depth );
 
@@ -1896,7 +2041,7 @@ void SymbolDatabase::calcMovingAverageConvergenceDivergence()
                 continue;
 
             // MACD
-            valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+            valuesQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
             valuesQuery.bindValue( ":" + DB_SYMBOL, symbol() );
             valuesQuery.bindValue( ":" + DB_EMA12, ema[12] );
             valuesQuery.bindValue( ":" + DB_EMA26, ema[26] );
@@ -1913,7 +2058,7 @@ void SymbolDatabase::calcMovingAverageConvergenceDivergence()
             }
 
             // update record
-            quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ).toString() );
+            quoteQuery.bindValue( ":" + DB_DATE, rec.value( DB_DATE ) );
             quoteQuery.bindValue( ":" + DB_SYMBOL, symbol() );
             quoteQuery.bindValue( ":" + DB_MACD, true );
 

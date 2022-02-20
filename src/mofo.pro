@@ -28,6 +28,8 @@ DEFINES += QT_NO_WARNING_OUTPUT
 
 SOURCES += \
     abstractdaemon.cpp \
+    accountnicknamewidget.cpp \
+    accountsdialog.cpp \
     advancedfilterlistwidget.cpp \
     advancedfilterwidget.cpp \
     analysiswidget.cpp \
@@ -67,6 +69,7 @@ SOURCES += \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
     symboldetailsdialog.cpp \
+    symbolimplvolwidget.cpp \
     symbolpricehistorywidget.cpp \
     tableheaderitem.cpp \
     tda/dbadaptertd.cpp \
@@ -104,6 +107,8 @@ SOURCES += \
 
 HEADERS += \
     abstractdaemon.h \
+    accountnicknamewidget.h \
+    accountsdialog.h \
     advancedfilterlistwidget.h \
     advancedfilterwidget.h \
     analysiswidget.h \
@@ -151,6 +156,7 @@ HEADERS += \
     optionviewertabwidget.h \
     optionviewerwidget.h \
     symboldetailsdialog.h \
+    symbolimplvolwidget.h \
     symbolpricehistorywidget.h \
     tableheaderitem.h \
     tda/dbadaptertd.h \

@@ -23,14 +23,18 @@
 #include "common.h"
 #include "fundamentalsviewerwidget.h"
 #include "symboldetailsdialog.h"
+#include "symbolimplvolwidget.h"
 #include "symbolpricehistorywidget.h"
 
 #include "db/appdb.h"
 #include "db/symboldbs.h"
 
 #include <QHBoxLayout>
+#include <QTabWidget>
 
 const QString SymbolDetailsDialog::STATE_GROUP_NAME( "symbolDetails" );
+
+static const QString GEOMETRY( "geometry" );
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolDetailsDialog::SymbolDetailsDialog( const QString symbol, double price, QWidget *parent, Qt::WindowFlags f ) :
@@ -46,20 +50,23 @@ SymbolDetailsDialog::SymbolDetailsDialog( const QString symbol, double price, QW
     createLayout();
     translate();
 
-    // restore
+    // restore states
+    restoreState( this );
     restoreState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SymbolDetailsDialog::~SymbolDetailsDialog()
 {
-    // save
+    // save states
+    saveState( this );
     saveState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 QSize SymbolDetailsDialog::sizeHint() const
 {
+    // default size
     return QSize( 1800, 900 );
 }
 
@@ -74,18 +81,31 @@ void SymbolDetailsDialog::translate()
         title += " - " + desc;
 
     setWindowTitle( title );
+
+    tabs_->setTabText( 0, tr( "Details" ) );
+    tabs_->setTabText( 1, tr( "Volatility" ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDetailsDialog::initialize()
 {
-    splitter_ = new CollapsibleSplitter( Qt::Horizontal, this );
+    tabs_ = new QTabWidget( this );
+
+    // details
+    splitter_ = new CollapsibleSplitter( Qt::Horizontal );
     splitter_->setButtonLocation( Qt::TopEdge );
     splitter_->setHandleWidth( SPLITTER_WIDTH );
     splitter_->setObjectName( "underlying" );
 
     splitter_->addWidget( priceHistory_ = new SymbolPriceHistoryWidget( symbol(), splitter_ ) );
     splitter_->addWidget( fundamentals_ = new FundamentalsViewerWidget( symbol(), price_, splitter_ ) );
+
+    tabs_->addTab( splitter_, QString() );
+
+    // impl vol
+    implVol_ = new SymbolImpliedVolatilityWidget( symbol(), price_ );
+
+    tabs_->addTab( implVol_, QString() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -93,23 +113,33 @@ void SymbolDetailsDialog::createLayout()
 {
     QHBoxLayout *form( new QHBoxLayout( this ) );
     form->setContentsMargins( QMargins() );
-    form->addWidget( splitter_ );
+    form->addWidget( tabs_ );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDetailsDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDetailsDialog::saveState( QSplitter *w ) const
 {
-    if ( !w )
-        return;
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName(), w->saveState() );
+}
 
-    AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName(), w->saveState() );
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDetailsDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDetailsDialog::restoreState( QSplitter *w ) const
 {
-    if ( !w )
-        return;
-
-    splitter_->restoreState( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName() ) );
+    if ( w )
+        splitter_->restoreState( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName() ) );
 }

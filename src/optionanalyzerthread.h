@@ -77,6 +77,15 @@ public:
      */
     virtual void setFilter( const QString& value ) {filter_ = value;}
 
+public slots:
+
+    // ========================================================================
+    // Methods
+    // ========================================================================
+
+    /// Halt analysis.
+    virtual void halt() {halt_ = true;}
+
 protected:
 
     model_type *analysis_;                          ///< Trading model.
@@ -85,6 +94,8 @@ protected:
     QList<QDate> expiryDates_;                      ///< Expiration dates.
 
     QString filter_;                                ///< Custom filter.
+
+    bool halt_;                                     ///< Halt flag (for shutdown).
 
     // ========================================================================
     // Methods

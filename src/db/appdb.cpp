@@ -32,7 +32,7 @@
 #include <QThread>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "10" );
+static const QString DB_VERSION( "12" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -65,6 +65,12 @@ AppDatabase::AppDatabase() :
     configs_.append( "optionCalcMethod" );
 
     configs_.append( "optionAnalysisFilter" );
+
+    // create mapping of table names
+    tableNames_[HeaderView] = "headerStates";
+    tableNames_[Splitter] = "splitterStates";
+    tableNames_[PriceHistory] = "priceHistoryStates";
+    tableNames_[Dialog] = "dialogStates";
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -95,10 +101,27 @@ QStringList AppDatabase::accounts() const
         {
             const QSqlRecord rec( query.record() );
 
+            const QString accountId( rec.value( "accountId" ).toString() );
+
+            QString nickname( rec.value( "nickname" ).toString() );
+
+            // mask account id
+            if ( nickname.isEmpty() )
+            {
+                nickname = accountId;
+
+                int i( nickname.length() - 4 );
+
+                while ( 0 < i-- )
+                    nickname[i] = '*';
+            }
+
             result.append(
-                QString( "%1 (%2)" ).arg(
-                    rec.value( "accountId" ).toString(),
-                    rec.value( "type" ).toString() ) );
+                QString( "%1;%2;%3;%4" ).arg(
+                    accountId,
+                    rec.value( "type" ).toString(),
+                    nickname,
+                    rec.value( "isDefault" ).toString() ) );
         }
     }
 
@@ -431,15 +454,8 @@ void AppDatabase::removeWidgetState( WidgetType type, const QString& groupName, 
 
     QMutexLocker guard( &writer_ );
 
-    QString table;
-
     // determine table
-    if ( HeaderView == type )
-        table = "headerStates";
-    else if ( Splitter == type )
-        table = "splitterStates";
-    else if ( PriceHistory == type )
-        table = "priceHistoryStates";
+    const QString table( tableNames_[type] );
 
     if ( table.length() )
     {
@@ -514,6 +530,67 @@ double AppDatabase::riskFreeRate( double term ) const
     }
 
     return rate;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::setAccountNicknames( const QStringList& accounts )
+{
+    const QString sql( "UPDATE accounts "
+        "SET nickname=:nickname,isDefault=:isDefault "
+            "WHERE accountId=:accountId" );
+
+    QMutexLocker guard( &writer_ );
+
+    // start transaction
+    QSqlDatabase conn( connection() );
+
+    if ( !conn.transaction() )
+    {
+        const QSqlError e( conn.lastError() );
+
+        LOG_ERROR << "failed to start transaction " << e.type() << " " << qPrintable( e.text() );
+        return;
+    }
+
+    // prepare sql
+    QSqlQuery query( conn );
+    query.prepare( sql );
+
+    foreach ( const QString& account, accounts )
+    {
+        const QStringList parts( account.split( ';' ) );
+
+        if ( 3 <= parts.size() )
+        {
+            query.bindValue( ":accountId", parts[0] );
+            query.bindValue( ":nickname", parts[1] );
+            query.bindValue( ":isDefault", parts[2] );
+
+            // exec sql
+            if ( !query.exec() )
+            {
+                const QSqlError e( query.lastError() );
+
+                LOG_WARN << "error during update " << e.type() << " " << qPrintable( e.text() );
+            }
+        }
+    }
+
+    // commit to database
+    if ( !conn.commit() )
+    {
+        const QSqlError e( conn.lastError() );
+
+        LOG_ERROR << "commit failed " << e.type() << " " << qPrintable( e.text() );
+
+        if ( !conn.rollback() )
+            LOG_FATAL << "rollback failed";
+
+        return;
+    }
+
+    // emit!
+    emit accountsChanged();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -649,15 +726,8 @@ void AppDatabase::setWidgetState( WidgetType type, const QString& groupName, con
 
     QMutexLocker guard( &writer_ );
 
-    QString table;
-
     // determine table
-    if ( HeaderView == type )
-        table = "headerStates";
-    else if ( Splitter == type )
-        table = "splitterStates";
-    else if ( PriceHistory == type )
-        table = "priceHistoryStates";
+    const QString table( tableNames_[type] );
 
     if ( table.length() )
     {
@@ -814,16 +884,10 @@ QStringList AppDatabase::widgetGroupNames( WidgetType type ) const
 {
     static const QString sql( "SELECT DISTINCT groupName FROM %1" );
 
-    QString table;
     QStringList result;
 
     // determine table
-    if ( HeaderView == type )
-        table = "headerStates";
-    else if ( Splitter == type )
-        table = "splitterStates";
-    else if ( PriceHistory == type )
-        table = "priceHistoryStates";
+    const QString table( tableNames_[type] );
 
     if ( table.length() )
     {
@@ -856,16 +920,10 @@ QByteArray AppDatabase::widgetState( WidgetType type, const QString& groupName, 
 {
     static const QString sql( "SELECT state FROM %1 WHERE groupName=:groupName AND name=:name" );
 
-    QString table;
     QByteArray result;
 
     // determine table
-    if ( HeaderView == type )
-        table = "headerStates";
-    else if ( Splitter == type )
-        table = "splitterStates";
-    else if ( PriceHistory == type )
-        table = "priceHistoryStates";
+    const QString table( tableNames_[type] );
 
     if ( table.length() )
     {
@@ -901,16 +959,10 @@ QStringList AppDatabase::widgetStates( WidgetType type, const QString& groupName
 {
     static const QString sql( "SELECT name FROM %1 WHERE groupName=:groupName AND name NOT LIKE '[[%]]' ORDER BY name ASC" );
 
-    QString table;
     QStringList result;
 
     // determine table
-    if ( HeaderView == type )
-        table = "headerStates";
-    else if ( Splitter == type )
-        table = "splitterStates";
-    else if ( PriceHistory == type )
-        table = "priceHistoryStates";
+    const QString table( tableNames_[type] );
 
     if ( table.length() )
     {
@@ -1127,10 +1179,15 @@ QStringList AppDatabase::upgradeFiles( const QString& fromStr, const QString& to
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 bool AppDatabase::addAccount( const QDateTime& stamp, const QJsonObject& obj )
 {
-    static const QString sql( "REPLACE INTO accounts (accountId,"
+    static const QString sql( "INSERT INTO accounts (accountId,"
         "type,isClosingOnlyRestricted,isDayTrader,roundTrips) "
             "VALUES (:accountId,"
-                ":type,:isClosingOnlyRestricted,:isDayTrader,:roundTrips)" );
+                ":type,:isClosingOnlyRestricted,:isDayTrader,:roundTrips) "
+            "ON CONFLICT(accountId) DO UPDATE SET "
+                "type=:type, "
+                "isClosingOnlyRestricted=:isClosingOnlyRestricted, "
+                "isDayTrader=:isDayTrader, "
+                "roundTrips=:roundTrips " );
 
     const QString accountId( obj[DB_ACCOUNT_ID].toString() );
 

@@ -55,7 +55,7 @@ public:
     NetworkAccess( QObject *parent = nullptr );
 
     /// Destructor.
-    ~NetworkAccess();
+    virtual ~NetworkAccess();
 
     // ========================================================================
     // Properties

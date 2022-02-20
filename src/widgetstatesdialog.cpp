@@ -32,6 +32,10 @@
 #include <QStringList>
 #include <QVBoxLayout>
 
+const QString WidgetStatesDialog::STATE_GROUP_NAME( "widgetStates" );
+
+static const QString GEOMETRY( "geometry" );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 WidgetStatesDialog::WidgetStatesDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f ),
@@ -63,6 +67,9 @@ WidgetStatesDialog::WidgetStatesDialog( QWidget *parent, Qt::WindowFlags f ) :
 
     // select first item
     onCurrentIndexChanged( 0 );
+
+    // restore states
+    restoreState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -70,6 +77,9 @@ WidgetStatesDialog::~WidgetStatesDialog()
 {
     // save existing items
     saveForm();
+
+    // save states
+    saveState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -324,4 +334,18 @@ void WidgetStatesDialog::saveForm()
         // save!
         db_->setWidgetState( AppDatabase::HeaderView, currentGroupName_, name, item->data( Qt::UserRole ).toByteArray() );
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WidgetStatesDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WidgetStatesDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

@@ -32,6 +32,10 @@
 #include <QStringList>
 #include <QVBoxLayout>
 
+const QString WatchlistDialog::STATE_GROUP_NAME( "watchlist" );
+
+static const QString GEOMETRY( "geometry" );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 WatchlistDialog::WatchlistDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f ),
@@ -60,6 +64,16 @@ WatchlistDialog::WatchlistDialog( QWidget *parent, Qt::WindowFlags f ) :
 
     // select first item
     selectItem( 0 );
+
+    // restore states
+    restoreState( this );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+WatchlistDialog::~WatchlistDialog()
+{
+    // save states
+    saveState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -379,4 +393,18 @@ QStringList WatchlistDialog::generateList( const QString& data )
     result.sort();
 
     return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WatchlistDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WatchlistDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

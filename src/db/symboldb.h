@@ -157,6 +157,13 @@ public:
      */
     virtual void movingAveragesConvergenceDivergence( const QDate& start, const QDate& end, QList<MovingAveragesConvergenceDivergence>& data ) const;
 
+    /// Retrieve option chain curve expiration dates.
+    /**
+     * @param[out] expiryDates  option chain expiration dates
+     * @return  stamp of most recent curve calculation
+     */
+    virtual QDateTime optionChainCurveExpirationDates( QList<QDate>& expiryDates ) const;
+
     /// Retrieve option chain curves.
     /**
      * @param[in] expiryDate  option chain expiration date
@@ -373,6 +380,9 @@ private:
 
     /// Retrieve number of rows in quote history.
     int quoteHistoryRowCount() const;
+
+    /// Update option chain curve data.
+    void updateOptionChainCurves( const QDateTime& stamp );
 
     /// Calculate historical volatility (standard deviation).
     void calcHistoricalVolatility();

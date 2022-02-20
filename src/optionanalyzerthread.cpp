@@ -35,7 +35,8 @@ OptionAnalyzerThread::OptionAnalyzerThread( const QString& symbol, const QList<Q
     _Mybase( parent ),
     analysis_( model ),
     symbol_( symbol ),
-    expiryDates_( expiryDates )
+    expiryDates_( expiryDates ),
+    halt_( false )
 {
     assert( symbol.length() );
 }
@@ -103,6 +104,10 @@ void OptionAnalyzerThread::run()
                     OptionProfitCalculator::destroy( calc );
                 }
             }
+
+            // check need to quit
+            if ( halt_ )
+                break;
         }
     }
 

@@ -207,6 +207,20 @@ void SymbolDatabases::movingAveragesConvergenceDivergence( const QString& symbol
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QDateTime SymbolDatabases::optionChainCurveExpirationDates( const QString& symbol, QList<QDate>& expiryDates ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+    {
+        SymbolDatabaseRemoveRef deref( symbol );
+        return child->optionChainCurveExpirationDates( expiryDates );
+    }
+
+    return QDateTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolDatabases::optionChainCurves( const QString& symbol, const QDate& expiryDate, const QDateTime& stamp, OptionChainCurves& data ) const
 {
     SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );

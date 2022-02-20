@@ -61,7 +61,7 @@ void CollapsibleSplitter::addWidget( QWidget *widget )
         QSplitterHandle *h( handle( index ) );
         QToolButton *b( new QToolButton( h ) );
 
-        connect( b, &QToolButton::pressed, this, &_Myt::onButtonPressed );
+        connect( b, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
         // create new layout
         QBoxLayout *layout;
@@ -100,7 +100,7 @@ void CollapsibleSplitter::addWidget( QWidget *widget )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void CollapsibleSplitter::onButtonPressed()
+void CollapsibleSplitter::onButtonClicked()
 {
     QToolButton *b( qobject_cast<QToolButton*>( sender() ) );
 

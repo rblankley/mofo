@@ -58,6 +58,9 @@ public:
      */
     FiltersDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
+    /// Destructor.
+    virtual ~FiltersDialog();
+
     // ========================================================================
     // Properties
     // ========================================================================
@@ -90,7 +93,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods
@@ -117,6 +120,8 @@ private slots:
     void onItemSelectionChanged();
 
 private:
+
+    static const QString STATE_GROUP_NAME;
 
     AppDatabase *db_;
 
@@ -151,6 +156,12 @@ private:
 
     /// Select item.
     void selectItem( int index );
+
+    /// Save dialog state.
+    void saveState( QDialog *w ) const;
+
+    /// Restore dialog state.
+    void restoreState( QDialog *w ) const;
 
     // not implemented
     FiltersDialog( const _Myt& ) = delete;

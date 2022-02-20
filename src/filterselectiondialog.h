@@ -54,6 +54,9 @@ public:
      */
     FilterSelectionDialog( QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
+    /// Destructor.
+    virtual ~FilterSelectionDialog();
+
     // ========================================================================
     // Properties
     // ========================================================================
@@ -104,7 +107,7 @@ public:
     /**
      * @return  size hint
      */
-    virtual QSize sizeHint() const;
+    virtual QSize sizeHint() const override;
 
     // ========================================================================
     // Methods
@@ -119,6 +122,8 @@ private slots:
     void onButtonClicked();
 
 private:
+
+    static const QString STATE_GROUP_NAME;
 
     bool watchListsVisible_;
 
@@ -140,6 +145,12 @@ private:
 
     /// Create layout.
     void createLayout();
+
+    /// Save dialog state.
+    void saveState( QDialog *w ) const;
+
+    /// Restore dialog state.
+    void restoreState( QDialog *w ) const;
 
     // not implemented
     FilterSelectionDialog( const _Myt& ) = delete;

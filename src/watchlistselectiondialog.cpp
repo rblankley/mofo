@@ -31,6 +31,10 @@
 #include <QPushButton>
 #include <QVBoxLayout>
 
+const QString WatchlistSelectionDialog::STATE_GROUP_NAME( "watchlistSelection" );
+
+static const QString GEOMETRY( "geometry" );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 WatchlistSelectionDialog::WatchlistSelectionDialog( QWidget *parent, Qt::WindowFlags f ) :
     _Mybase( parent, f )
@@ -45,10 +49,20 @@ WatchlistSelectionDialog::WatchlistSelectionDialog( QWidget *parent, Qt::WindowF
 
     // generate boxes
     generateBoxes();
+
+    // restore states
+    restoreState( this );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool  WatchlistSelectionDialog::watchlistsExist() const
+WatchlistSelectionDialog::~WatchlistSelectionDialog()
+{
+    // save states
+    saveState( this );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool WatchlistSelectionDialog::watchlistsExist() const
 {
     return ( 1 < boxes_.size() );
 }
@@ -197,4 +211,18 @@ void WatchlistSelectionDialog::generateBoxes()
         // add to layout
         boxesLayout_->addWidget( box );
     }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WatchlistSelectionDialog::saveState( QDialog *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY, w->saveGeometry() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void WatchlistSelectionDialog::restoreState( QDialog *w ) const
+{
+    if ( w )
+        w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
 }

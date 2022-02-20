@@ -1487,8 +1487,9 @@ void SymbolPriceHistoryWidget::translateOverlays( QComboBox *w )
     }
 
     // adjust view width to fit contents
+    // add room for check box
     w->view()->setMinimumWidth(
-        w->view()->sizeHintForColumn( 0 ) );
+        24 + w->view()->sizeHintForColumn( 0 ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

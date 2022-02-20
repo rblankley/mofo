@@ -62,6 +62,9 @@ public:
      */
     FilterEditorDialog( const QString& name, const QByteArray& value, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
 
+    /// Destructor.
+    virtual ~FilterEditorDialog();
+
     // ========================================================================
     // Properties
     // ========================================================================
@@ -106,6 +109,8 @@ private slots:
     void onDoubleSpinBoxValueChanged( double value );
 
 private:
+
+    static const QString STATE_GROUP_NAME;
 
     QString name_;
 
@@ -251,6 +256,12 @@ private:
 
     /// Create layout.
     void createLayout();
+
+    /// Save dialog state.
+    void saveState( QDialog *w ) const;
+
+    /// Restore dialog state.
+    void restoreState( QDialog *w ) const;
 
     // not implemented
     FilterEditorDialog( const _Myt& ) = delete;
