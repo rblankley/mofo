@@ -439,18 +439,32 @@ void SymbolImpliedVolatilityWidget::drawGraph()
         int xprev( 0.0 );
         int yprev( 0.0 );
 
-        painter.setPen( QPen( dateColor( dstr ), 0 ) );
+        bool solid( true );
 
         for ( QMap<double, double>::const_iterator i( values->constBegin() ); i != values->constEnd(); ++i )
         {
+            // skip over spots without a volatility
+            // use dotted line to indicate spots were skipped
+            if ( i.value() <= 0.0 )
+            {
+                if ( 0.0 < xprev )
+                    solid = false;
+
+                continue;
+            }
+
             const int x( gleft + scaled( i.key(), xmin, xmax, gright-gleft ) );
             const int y( gbottom - scaled( 100.0 * i.value(), ymin, ymax, gbottom-gtop ) );
 
-            if ( 0 < xprev )
+            painter.setPen( QPen( dateColor( dstr ), 0, solid ? Qt::SolidLine : Qt::DotLine ) );
+
+            if ( 0.0 < xprev )
                 painter.drawLine( xprev, yprev, x, y );
 
             xprev = x;
             yprev = y;
+
+            solid = true;
         }
     }
 

@@ -84,6 +84,9 @@ private slots:
     /// Slot for option chain updated.
     void onOptionChainUpdated( const QString& symbol, const QList<QDate>& expiryDates, bool background );
 
+    /// Slot for quotes updated.
+    void onQuotesUpdated( const QStringList& symbols, bool background );
+
     /// Slot for tab close requested.
     void onTabCloseRequested( int index );
 
@@ -94,6 +97,9 @@ private:
 
     /// Create layout.
     void createLayout();
+
+    /// Show underlying tab.
+    void showUnderlying( const QString& symbol );
 
     // not implemented
     OptionViewerTabWidget( const _Myt& other ) = delete;

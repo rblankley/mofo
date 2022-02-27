@@ -34,6 +34,7 @@ OptionViewerTabWidget::OptionViewerTabWidget( QWidget *parent ) :
     translate();
 
     connect( AbstractDaemon::instance(), &AbstractDaemon::optionChainUpdated, this, &_Myt::onOptionChainUpdated );
+    connect( AbstractDaemon::instance(), &AbstractDaemon::quotesUpdated, this, &_Myt::onQuotesUpdated );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,29 +88,31 @@ QWidget *OptionViewerTabWidget::findUnderlying( const QString& symbol, bool& sho
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionViewerTabWidget::onOptionChainUpdated( const QString& symbol, const QList<QDate>& expiryDates, bool background )
 {
-    Q_UNUSED( expiryDates )
-
     // ignore background requests
     if ( background )
         return;
 
-    bool shown( false );
+    // no expiration dates
+    if ( expiryDates.isEmpty() )
+        return;
 
-    QWidget *w( findUnderlying( symbol, shown ) );
+    // show!
+    showUnderlying( symbol );
+}
 
-    if ( w )
-    {
-        // does not exist; create a new tab
-        if ( !shown )
-        {
-            const int idx( addTab( w, symbol ) );
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionViewerTabWidget::onQuotesUpdated( const QStringList& symbols, bool background )
+{
+    // ignore background requests
+    if ( background )
+        return;
 
-            // make sure tab is shown
-            setCurrentIndex( idx );
-        }
+    // ignore requests with more than one symbol
+    if ( 1 != symbols.size() )
+        return;
 
-        w->setVisible( true );
-    }
+    // show!
+    showUnderlying( symbols.first() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -136,3 +139,24 @@ void OptionViewerTabWidget::createLayout()
 {
 }
 
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionViewerTabWidget::showUnderlying( const QString& symbol )
+{
+    bool shown( false );
+
+    QWidget *w( findUnderlying( symbol, shown ) );
+
+    if ( w )
+    {
+        // does not exist; create a new tab
+        if ( !shown )
+        {
+            const int idx( addTab( w, symbol ) );
+
+            // make sure tab is shown
+            setCurrentIndex( idx );
+        }
+
+        w->setVisible( true );
+    }
+}
