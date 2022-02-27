@@ -6,7 +6,7 @@ Money4Options is a cross-platform stock options evaluation tool.
 
 Are you a fan of Θ ThetaGang Θ stock option trading strategies as found on [r/thetagang](https://www.reddit.com/r/thetagang/)? Are you looking for an evaluation tool that can scan down and filter options on equities that you are interested in trading? If so this may be the tool for you...
 
-This software allows you to build up watchlists and continously scan down options on a configurable time basis. Options that pass your filter criteria are then shown in a list so you can have a closer look and decide if your interested in selling puts or not. You can also scan down stocks you own and determine the best call to sell.
+This software allows you to build up watchlists and continuously scan down options on a configurable time basis. Options that pass your filter criteria are then shown in a list so you can have a closer look and decide if your interested in selling puts or not. You can also scan down stocks you own and determine the best call to sell.
 
 This program uses TD Ameritrade API for fetching option and equity data. To make use of this software you will need to setup an account on their platform. Technically I don't believe you need to fund the account but their ToS platform is top notch and I highly recommend it.
 
@@ -19,6 +19,8 @@ logging.config
 ~~~~
 
 If you installed from the debian package or ran `make install` (Linux Only) then you can skip this manual copy process.
+
+If you are not interested in building source yourself there is some limited binary packages available under the releases section. I will try to keep this reasonably up to date but it takes time and may lag behind the sources. You will need to follow the usage instructions below just the same as if you built from source.
 
 For TDA API access you need to create a development account. Signup and add your app here:
 https://developer.tdameritrade.com/user/me/apps/add
@@ -37,7 +39,7 @@ To resolve this simply change the URL you get redirected to HTTP instead of HTTP
 
 ### Watchlists
 
-You will need to setup some watchlists of equities you are interested in. There are some common indicies provided already but you should really setup your own. Navigate to View > Watchlists to get started.
+You will need to setup some watchlists of equities you are interested in. There are some common indices provided already but you should really setup your own. Navigate to View > Watchlists to get started.
 
 ![Watchlists Dialog](./doc/watchlists.png?raw=true)
 
@@ -122,7 +124,9 @@ This project requires Qt libraries for the user interface. For Windows I have us
 
 Qt supports several different compilers. I personally use the Community version of Visual Studio 2019 (free). You can download MSVC from the [Microsoft](https://visualstudio.microsoft.com/downloads/) site. When installing make sure to install the C++ package.
 
-If your not using MSVC 2019 then I'm not sure... but it should be theoretically possible I believe.
+If your not using MSVC 2019 then I'm not sure... but it should be possible I believe (i.e. MinGW or other compiler).
+
+If you just pulled down the binary package you may need the MSVC 2019 Redistributable package. You can find that at the [Microsoft](https://docs.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170) site.
 
 Next you will need to install Qt. If you've never used Qt before you're in for a treat, it's an excellent cross platform package that does just about everything you need out of box. You can download Qt open source edition [here](https://www.qt.io/download-open-source).  Just look for the Download Qt Installer button and press it. They really, really want you to purchase a license and throw up confusing adverts but the open source edition works just fine.
 
@@ -132,7 +136,7 @@ When installing make sure you choose the appropriate packages. You will need the
 
 A Qt solution file is provided in the `src` folder. Simply open it up in Qt Creator and build.
 
-Lastly you may need to install Open SSL as a seperate package. I've had mixed results with SSL, sometimes it works fine with the Qt installer version and other times not. If you get weird Failed to Initialize SSL errors when running the software you know you will need a seperate package.
+Lastly you may need to install Open SSL as a separate package. I've had mixed results with SSL, sometimes it works fine with the Qt installer version and other times not. If you get weird Failed to Initialize SSL errors when running the software you know you will need a separate package.
 
 I've used the Open SSL package from [Shining Light](https://slproweb.com/products/Win32OpenSSL.html). The light version works just fine. You will probably need to reboot afterward though to get the DLLs into your PATH.
 
@@ -184,7 +188,7 @@ Then run the following to generate all doxygen documentation:
 $ make doxygen-doc
 ~~~~
 
-By default you get html documention placed in the `doc` folder.
+By default you get html documentation placed in the `doc` folder.
 
 If you want PDF/PS support install these packages too (its quite large):
 ~~~~
@@ -199,7 +203,7 @@ $ make doxygen-doc
 
 ## Final Note and a Word of Caution
 
-This tool is provided in the hopes that it brings you some ease in finding your next option trade. Even though I personally use this tool quite often keep in mind it is a hobby project for me and probably doesn't even work correctly. Use with caution!
+This tool is provided in the hopes that it brings you some ease in finding your next option trade. Even though I personally use this tool quite often keep in mind it is a hobby project for me and probably doesn't even work correctly. I'm not a financial expert by any means and anything the program outputs is certainly not financial advice. Use with caution!
 
 My eventual goal for this project is to have some sort of algo in place for auto-trading juicy targets. I have a long way to go however... I'd like to implement some sort of backtesting first.
 
