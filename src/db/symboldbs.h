@@ -187,18 +187,22 @@ public:
     /**
      * @param[in] symbol  symbol
      * @param[out] expiryDates  option chain expiration dates
-     * @return  stamp of most recent curve calculation
+     * @param[in] start  starting date/time (optional)
+     * @param[in] end  ending date/time (optional)
+     * @return  stamp of most recent curve calculation within period [start, end]
      */
-    QDateTime optionChainCurveExpirationDates( const QString& symbol, QList<QDate>& expiryDates ) const;
+    QDateTime optionChainCurveExpirationDates( const QString& symbol, QList<QDate>& expiryDates, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
 
     /// Retrieve option chain curves.
     /**
      * @param[in] symbol  symbol
      * @param[in] expiryDate  option chain expiration date
-     * @param[in] stamp  option chain stamp
      * @param[out] data  curve data
+     * @param[in] start  starting date/time (optional)
+     * @param[in] end  ending date/time (optional)
+     * @return  stamp of most recent curve calculation within period [start, end]
      */
-    void optionChainCurves( const QString& symbol, const QDate& expiryDate, const QDateTime& stamp, OptionChainCurves& data ) const;
+    QDateTime optionChainCurves( const QString& symbol, const QDate& expiryDate, OptionChainCurves& data, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
 
     /// Retrieve quote history date range.
     /**

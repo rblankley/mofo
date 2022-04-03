@@ -489,19 +489,24 @@ void SymbolDatabase::movingAveragesConvergenceDivergence( const QDate& start, co
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-QDateTime SymbolDatabase::optionChainCurveExpirationDates( QList<QDate>& expiryDates ) const
+QDateTime SymbolDatabase::optionChainCurveExpirationDates( QList<QDate>& expiryDates, const QDateTime& start, const QDateTime& end ) const
 {
     static const QString sql( "SELECT DISTINCT stamp, expirationDate FROM optionChainStrikePrices "
-        "WHERE DATETIME(stamp)<=DATETIME(:stamp) AND volatility IS NOT NULL "
+        "WHERE volatility IS NOT NULL %1 %2 "
         "ORDER BY stamp DESC" );
 
-    const QDateTime now( AppDatabase::instance()->currentDateTime() );
+    static const QString starting( "AND DATETIME(:start)<=DATETIME(stamp)" );
+    static const QString ending( "AND DATETIME(stamp)<=DATETIME(:end)" );
 
     QSqlQuery query( connection() );
     query.setForwardOnly( true );
-    query.prepare( sql );
+    query.prepare( sql.arg( start.isValid() ? starting : QString(), end.isValid() ? ending : QString() ) );
 
-    query.bindValue( ":" + DB_STAMP, now.toString( Qt::ISODateWithMs ) );
+    if ( start.isValid() )
+        query.bindValue( ":start", start.toString( Qt::ISODateWithMs ) );
+
+    if ( end.isValid() )
+        query.bindValue( ":end", end.toString( Qt::ISODateWithMs ) );
 
     if ( !query.exec() )
     {
@@ -533,31 +538,43 @@ QDateTime SymbolDatabase::optionChainCurveExpirationDates( QList<QDate>& expiryD
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolDatabase::optionChainCurves( const QDate& expiryDate, const QDateTime& stamp, OptionChainCurves& data ) const
+QDateTime SymbolDatabase::optionChainCurves( const QDate& expiryDate, OptionChainCurves& data, const QDateTime& start, const QDateTime& end ) const
 {
     static const QString sql( "SELECT * FROM optionChainStrikePrices "
-        "WHERE DATE(:expirationDate)=DATE(expirationDate) AND %1" );
+        "WHERE DATE(:expirationDate)=DATE(expirationDate) %1 %2" );
+
+    static const QString starting( "AND DATETIME(:start)<=DATETIME(stamp)" );
+    static const QString ending( "AND DATETIME(stamp)<=DATETIME(:end)" );
+
+    static const QString newest( "AND stamp=(SELECT MAX(stamp) FROM optionChainView)" );
 
     QSqlQuery query( connection() );
     query.setForwardOnly( true );
 
-    if ( stamp.isValid() )
-        query.prepare( sql.arg( "DATETIME(:stamp)=DATETIME(stamp)" ) );
+    if (( !start.isValid() ) && ( !end.isValid() ))
+        query.prepare( sql.arg( newest, QString() ) );
     else
-        query.prepare( sql.arg( "stamp=(SELECT MAX(stamp) FROM optionChainView)" ) );
+        query.prepare( sql.arg( start.isValid() ? starting : QString(), end.isValid() ? ending : QString() ) );
 
     query.bindValue( ":" + DB_EXPIRY_DATE, expiryDate.toString( Qt::ISODate ) );
-    query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
+
+    if ( start.isValid() )
+        query.bindValue( ":start", start.toString( Qt::ISODateWithMs ) );
+
+    if ( end.isValid() )
+        query.bindValue( ":end", end.toString( Qt::ISODateWithMs ) );
 
     if ( !query.exec() )
     {
         const QSqlError e( query.lastError() );
 
         LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
-        return;
+        return QDateTime();
     }
 
     // extract data
+    QDateTime stamp;
+
     while ( query.next() )
     {
         const QSqlRecord rec( query.record() );
@@ -570,7 +587,11 @@ void SymbolDatabase::optionChainCurves( const QDate& expiryDate, const QDateTime
 
         data.itmProbability[strikePrice] = rec.value( DB_ITM_PROBABILITY ).toDouble();
         data.otmProbability[strikePrice] = rec.value( DB_OTM_PROBABILITY ).toDouble();
+
+        stamp = QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs );
     }
+
+    return stamp;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

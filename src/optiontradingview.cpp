@@ -23,6 +23,7 @@
 #include "optiontradingview.h"
 #include "gridtableheaderview.h"
 #include "hoveritemdelegate.h"
+#include "optiontradingdetailsdialog.h"
 #include "symboldetailsdialog.h"
 
 #include "db/appdb.h"
@@ -387,19 +388,25 @@ void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button
     // create menu of actions
     // ----------------------
 
-    const QString symbol( model_->data( row, model_type::UNDERLYING ).toString() );
+    //const QString symbol( model_->data( row, model_type::SYMBOL ).toString() );
+    const QString underlying( model_->data( row, model_type::UNDERLYING ).toString() );
+
+    const QString stratDesc( model_->data( row, model_type::STRATEGY_DESC ).toString() );
 
     QMenu contextMenu;
     QAction *a;
 
     // show details
-    const QAction *details( contextMenu.addAction( QIcon( ":/res/bar-chart.png" ), tr( "Show " ) + " \"" + symbol + "\" &Details" ) );
+    const QAction *details( contextMenu.addAction( QIcon( ":/res/bar-chart.png" ), tr( "Show " ) + " \"" + underlying + "\" &Details" ) );
+
+    // show option trading details
+    const QAction *optionTradingDetails( contextMenu.addAction( QIcon( ":/res/bar-chart.png" ), tr( "Show " ) + " \"" + stratDesc + "\" &Details" ) );
 
     // remove symbol from table
-    const QAction *removeSymbol( contextMenu.addAction( QIcon( ":/res/hide.png" ), tr( "&Remove" ) + " \"" + symbol + "\" from Results" ) );
+    const QAction *removeSymbol( contextMenu.addAction( QIcon( ":/res/hide.png" ), tr( "&Remove" ) + " \"" + underlying + "\" from Results" ) );
 
     // show only symbol (remove everything else from table)
-    const QAction *showOnlySymbol( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w Only " ) + " \"" + symbol + "\" (Remove all Other Results)" ) );
+    const QAction *showOnlySymbol( contextMenu.addAction( QIcon( ":/res/view.png" ), tr( "Sho&w Only " ) + " \"" + underlying + "\" (Remove all Other Results)" ) );
 
     // cancel
     contextMenu.addAction( QIcon( ":/res/cancel.png" ), tr( "&Cancel" ) );
@@ -423,7 +430,15 @@ void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button
     if ( details == a )
     {
         // show dialog
-        SymbolDetailsDialog d( symbol, model_->data( row, model_type::UNDERLYING_PRICE ).toDouble(), this );
+        SymbolDetailsDialog d( underlying, model_->data( row, model_type::UNDERLYING_PRICE ).toDouble(), this );
+        d.exec();
+    }
+
+    // option trading details
+    else if ( optionTradingDetails == a )
+    {
+        // show dialog
+        OptionTradingDetailsDialog d( row, model_, this );
         d.exec();
     }
 
@@ -431,14 +446,14 @@ void OptionTradingView::onItemPressed( const QPoint& pos, Qt::MouseButton button
     else if ( removeSymbol == a )
     {
         // remove some rows
-        model_->removeRowsIf( model_type::UNDERLYING, symbol, model_type::RemovalRule::Equal );
+        model_->removeRowsIf( model_type::UNDERLYING, underlying, model_type::RemovalRule::Equal );
     }
 
     // show only symbol (remove everything else from table)
     else if ( showOnlySymbol == a )
     {
         // remove some rows
-        model_->removeRowsIf( model_type::UNDERLYING, symbol, model_type::RemovalRule::NotEqual );
+        model_->removeRowsIf( model_type::UNDERLYING, underlying, model_type::RemovalRule::NotEqual );
     }
 
     // cancel

@@ -1,5 +1,5 @@
 /**
- * @file symbolimplvolwidget.cpp
+ * @file optionchainimplvolwidget.cpp
  *
  * @copyright Copyright (C) 2022 Randy Blankley. All rights reserved.
  *
@@ -20,7 +20,7 @@
  */
 
 #include "common.h"
-#include "symbolimplvolwidget.h"
+#include "optionchainimplvolwidget.h"
 
 #include "db/appdb.h"
 #include "db/symboldbs.h"
@@ -37,10 +37,12 @@
 #include <QVBoxLayout>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SymbolImpliedVolatilityWidget::SymbolImpliedVolatilityWidget( const QString& symbol, double price, QWidget *parent ) :
+OptionChainImpliedVolatilityWidget::OptionChainImpliedVolatilityWidget( const QString& underlying, double underlyingPrice, const QDate& expiryDate, const QDateTime& stamp, QWidget *parent ) :
     _Mybase( parent ),
-    symbol_( symbol ),
-    price_( price )
+    underlying_( underlying ),
+    price_( underlyingPrice ),
+    end_( stamp ),
+    expiryDate_( expiryDate )
 {
     // init
     initialize();
@@ -52,112 +54,43 @@ SymbolImpliedVolatilityWidget::SymbolImpliedVolatilityWidget( const QString& sym
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-SymbolImpliedVolatilityWidget::~SymbolImpliedVolatilityWidget()
+OptionChainImpliedVolatilityWidget::~OptionChainImpliedVolatilityWidget()
 {
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::translate()
+void OptionChainImpliedVolatilityWidget::translate()
 {
-    QAbstractItemModel *model( dates_->model() );
-
-    // update root item
-    model->setData( model->index( 0, 0 ), tr( "EXPIRY" ), Qt::DisplayRole );
-
-    // update expiration items
-    for ( int i( 1 ); i < model->rowCount(); ++i )
-    {
-        const QModelIndex index( model->index( i, 0 ) );
-
-        const QDate date( model->data( index, Qt::UserRole ).toDate() );
-        const QString text( date.toString() );
-
-        model->setData( index, text, Qt::DisplayRole );
-        model->setData( index, dateColor( text ), Qt::ForegroundRole );
-    }
-
-    // adjust view width to fit contents
-    // add room for check box
-    dates_->view()->setMinimumWidth(
-        24 + dates_->view()->sizeHintForColumn( 0 ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::refreshData()
+void OptionChainImpliedVolatilityWidget::refreshData()
 {
-    curves_.clear();
-
-    // fetch most recent expiration dates with curve data
-    LOG_TRACE << "fetch curve expiry dates...";
-
-    expiryDates_.clear();
-    stamp_ = SymbolDatabases::instance()->optionChainCurveExpirationDates( symbol(), expiryDates_, QDateTime(), AppDatabase::instance()->currentDateTime() );
-
-    if (( !stamp_.isValid() ) || ( expiryDates_.isEmpty() ))
+    // check expiry date
+    if ( !expiryDate_.isValid() )
     {
-        LOG_WARN << "no curve expiry dates found";
+        LOG_WARN << "missing expiry date";
         return;
     }
 
     // fetch curve data
+    curve_.volatility.clear();
+
     LOG_TRACE << "fetch curves...";
+    stamp_ = SymbolDatabases::instance()->optionChainCurves( underlying(), expiryDate_, curve_, QDateTime(), end_ );
 
-    foreach ( const QDate& d, expiryDates_ )
+    if ( !haveCurveData() )
     {
-        OptionChainCurves data;
-
-        SymbolDatabases::instance()->optionChainCurves( symbol(), d, data, stamp_, stamp_ );
-
-        if ( data.volatility.isEmpty() )
-            LOG_WARN << "no volatility curve for " << qPrintable( d.toString() );
-        else
-        {
-            curves_[d] = data;
-        }
-    }
-
-    if ( curves_.isEmpty() )
-    {
-        LOG_WARN << "no curves found";
+        LOG_WARN << "no volatility curve for " << qPrintable( expiryDate_.toString() );
         return;
     }
-
-    // check for existing model
-    QAbstractItemModel *doomed( dates_->model() );
-
-    if ( doomed )
-        delete doomed;
-
-    // populate model
-    QStandardItemModel *datesModel( new QStandardItemModel( 0, 1, this ) );
-    QStandardItem *item;
-
-    item = new QStandardItem( QString() );
-    datesModel->appendRow( item );
-
-    foreach ( const QDate& date, curves_.keys() )
-    {
-        item = new QStandardItem();
-        item->setData( date, Qt::UserRole );
-        item->setFlags( Qt::ItemIsUserCheckable | Qt::ItemIsEnabled );
-        item->setCheckState( Qt::Checked );
-        datesModel->appendRow( item );
-    }
-
-    dates_->setModel( datesModel );
-
-    connect( datesModel, &QStandardItemModel::itemChanged, this, &_Myt::onItemChanged );
-
-    // show expiry dates
-    dates_->setVisible( true );
-    translate();
 
     // draw!
     drawGraph();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::paintEvent( QPaintEvent *e )
+void OptionChainImpliedVolatilityWidget::paintEvent( QPaintEvent *e )
 {
     QPainter painter;
     painter.begin( this );
@@ -175,7 +108,7 @@ void SymbolImpliedVolatilityWidget::paintEvent( QPaintEvent *e )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::resizeEvent( QResizeEvent *e )
+void OptionChainImpliedVolatilityWidget::resizeEvent( QResizeEvent *e )
 {
     // new graph
     drawGraph();
@@ -184,39 +117,23 @@ void SymbolImpliedVolatilityWidget::resizeEvent( QResizeEvent *e )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::onItemChanged( QStandardItem *item )
+void OptionChainImpliedVolatilityWidget::initialize()
 {
-    Q_UNUSED( item )
-
-    // update graph
-    drawGraph();
-
-    // queue paint event
-    update();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::initialize()
+void OptionChainImpliedVolatilityWidget::createLayout()
 {
-    dates_ = new QComboBox( this );
-    dates_->setVisible( false );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::createLayout()
+bool OptionChainImpliedVolatilityWidget::haveCurveData() const
 {
-    QHBoxLayout *boxes( new QHBoxLayout() );
-    boxes->addStretch();
-    boxes->addWidget( dates_ );
-
-    QVBoxLayout *form( new QVBoxLayout( this ) );
-    form->setContentsMargins( QMargins() );
-    form->addLayout( boxes );
-    form->addStretch();
+    return !curve_.volatility.isEmpty();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolImpliedVolatilityWidget::calcMinMaxValues( const QMap<double, double>& values, double& kmin, double& kmax, double& vmin, double& vmax ) const
+bool OptionChainImpliedVolatilityWidget::calcMinMaxValues( const QMap<double, double>& values, double& kmin, double& kmax, double& vmin, double& vmax ) const
 {
     kmin = vmin = 999999.99;
     kmax = vmax = 0.0;
@@ -239,7 +156,7 @@ bool SymbolImpliedVolatilityWidget::calcMinMaxValues( const QMap<double, double>
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::calcIntervalValues( double min, double max, double gheight, double ints, double& interval, int& numDecimals ) const
+void OptionChainImpliedVolatilityWidget::calcIntervalValues( double min, double max, double gheight, double ints, double& interval, int& numDecimals ) const
 {
     const int FOOTER( 25 );
 
@@ -282,13 +199,13 @@ void SymbolImpliedVolatilityWidget::calcIntervalValues( double min, double max, 
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void SymbolImpliedVolatilityWidget::drawGraph()
+void OptionChainImpliedVolatilityWidget::drawGraph()
 {
     // clear graph
     graph_ = QPixmap();
 
     // no data
-    if ( curves_.isEmpty() )
+    if ( !haveCurveData() )
     {
         graph_ = QPixmap( size() );
         graph_.fill( palette().base().color() );
@@ -313,41 +230,31 @@ void SymbolImpliedVolatilityWidget::drawGraph()
     double ymin = xmin = 999999.99;
     double ymax = xmax = 0.0;
 
+    QList<const ValuesMap*> valuesList;
+    valuesList.append( &curve_.callVolatility );
+    valuesList.append( &curve_.putVolatility );
+    valuesList.append( &curve_.volatility );
+
+    foreach ( const ValuesMap *values, valuesList )
     {
-        const QAbstractItemModel *model( dates_->model() );
-        const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
+        double kmin;
+        double kmax;
+        double vmin;
+        double vmax;
 
-        foreach ( const QModelIndex& index, indexes )
+        if ( calcMinMaxValues( (*values), kmin, kmax, vmin, vmax ) )
         {
-            const QDate date( model->data( index, Qt::UserRole ).toDate() );
+            xmin = qMin( xmin, kmin );
+            xmax = qMax( xmax, kmax );
 
-            const QMap<double, double> *values( &curves_[date].volatility );
-
-            double kmin;
-            double kmax;
-            double vmin;
-            double vmax;
-
-            if ( calcMinMaxValues( (*values), kmin, kmax, vmin, vmax ) )
-            {
-                xmin = qMin( xmin, kmin );
-                xmax = qMax( xmax, kmax );
-
-                ymin = qMin( ymin, vmin );
-                ymax = qMax( ymax, vmax );
-            }
+            ymin = qMin( ymin, vmin );
+            ymax = qMax( ymax, vmax );
         }
     }
 
     if ( xmax < xmin )
     {
-        graph_ = QPixmap( size() );
-        graph_.fill( palette().base().color() );
-
-        QPainter painter( &graph_ );
-        painter.setPen( QPen( palette().text().color(), 0 ) );
-        painter.drawText( 0, 0, width(), height(), Qt::AlignCenter, tr( "Select one or more expiration dates to display" ) );
-
+        LOG_WARN << "invalid coordinates";
         return;
     }
 
@@ -419,28 +326,21 @@ void SymbolImpliedVolatilityWidget::drawGraph()
         painter.drawText( x-4, gbottom+4, 50, 50, Qt::AlignLeft | Qt::AlignTop, QString::number( i, 'f', numDecimalPlacesStrike ) );
     }
 
-    // expiry dates
-    // draw curves from furthest expiry to closest expiry
-    QList<QDate> dates;
+    // volatility curves
+    QList<QColor> penColor;
+    penColor.append( Qt::blue );
+    penColor.append( Qt::red );
+    penColor.append( Qt::white );
 
+    QList<int> penWidth;
+    penWidth.append( 0 );
+    penWidth.append( 0 );
+    penWidth.append( 2 );
+
+    int p( 0 );
+
+    foreach ( const ValuesMap *values, valuesList )
     {
-        const QAbstractItemModel *model( dates_->model() );
-        const QModelIndexList indexes( model->match( model->index( 1, 0 ), Qt::CheckStateRole, Qt::Checked, -1, Qt::MatchExactly ) );
-
-        foreach ( const QModelIndex& index, indexes )
-        {
-            const QDate date( model->data( index, Qt::UserRole ).toDate() );
-
-            dates.prepend( date );
-        }
-    }
-
-    foreach ( const QDate& date, dates )
-    {
-        const QMap<double, double> *values( &curves_[date].volatility );
-
-        const QString dstr( date.toString() );
-
         int xprev( 0.0 );
         int yprev( 0.0 );
 
@@ -461,7 +361,7 @@ void SymbolImpliedVolatilityWidget::drawGraph()
             const int x( gleft + scaled( i.key(), xmin, xmax, gright-gleft ) );
             const int y( gbottom - scaled( 100.0 * i.value(), ymin, ymax, gbottom-gtop ) );
 
-            painter.setPen( QPen( dateColor( dstr ), 0, solid ? Qt::SolidLine : Qt::DotLine ) );
+            painter.setPen( QPen( penColor[p], penWidth[p], solid ? Qt::SolidLine : Qt::DotLine ) );
 
             if ( 0.0 < xprev )
                 painter.drawLine( xprev, yprev, x, y );
@@ -471,6 +371,8 @@ void SymbolImpliedVolatilityWidget::drawGraph()
 
             solid = true;
         }
+
+        ++p;
     }
 
     // price
@@ -485,8 +387,14 @@ void SymbolImpliedVolatilityWidget::drawGraph()
 
     // stamp
     painter.setPen( QPen( palette().text().color(), 0 ) );
-
     painter.drawText( 0, SPACING+4, gwidth, 50, Qt::AlignHCenter | Qt::AlignTop, stamp_.toString() );
+
+    // labels
+    painter.setPen( QPen( penColor[0], 0 ) );
+    painter.drawText( 0, SPACING+4, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "CALLS" ) );
+
+    painter.setPen( QPen( penColor[1], 0 ) );
+    painter.drawText( 0, SPACING+4+marginHeight, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "PUTS" ) );
 
     painter.end();
 
@@ -495,18 +403,7 @@ void SymbolImpliedVolatilityWidget::drawGraph()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-int SymbolImpliedVolatilityWidget::scaled( double p, double min, double max, int height )
+int OptionChainImpliedVolatilityWidget::scaled( double p, double min, double max, int height )
 {
     return std::round( ((p - min) / (max - min)) * height );
-}
-
-///////////////////////////////////////////////////////////////////////////////////////////////////
-QColor SymbolImpliedVolatilityWidget::dateColor( const QString& desc )
-{
-    QCryptographicHash h( QCryptographicHash::Md5 );
-    h.addData( desc.toLatin1() );
-
-    const QByteArray a( h.result() );
-
-    return QColor( (unsigned char) a[0], (unsigned char) a[1], (unsigned char) a[2] );
 }

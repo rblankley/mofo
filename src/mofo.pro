@@ -62,9 +62,12 @@ SOURCES += \
     mainwindow.cpp \
     optionanalyzer.cpp \
     optionanalyzerthread.cpp \
+    optionchainimplvolwidget.cpp \
+    optionchainprobwidget.cpp \
     optionchainview.cpp \
     optionprofitcalc.cpp \
     optionprofitcalcfilter.cpp \
+    optiontradingdetailsdialog.cpp \
     optiontradingview.cpp \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
@@ -149,9 +152,12 @@ HEADERS += \
     mainwindow.h \
     optionanalyzer.h \
     optionanalyzerthread.h \
+    optionchainimplvolwidget.h \
+    optionchainprobwidget.h \
     optionchainview.h \
     optionprofitcalc.h \
     optionprofitcalcfilter.h \
+    optiontradingdetailsdialog.h \
     optiontradingview.h \
     optionviewertabwidget.h \
     optionviewerwidget.h \
