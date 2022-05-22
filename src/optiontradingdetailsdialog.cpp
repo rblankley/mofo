@@ -21,6 +21,7 @@
 
 #include "common.h"
 #include "optionchainimplvolwidget.h"
+#include "optionchainopenintwidget.h"
 #include "optionchainprobwidget.h"
 #include "optiontradingdetailsdialog.h"
 
@@ -98,6 +99,7 @@ void OptionTradingDetailsDialog::translate()
     tabs_->setTabText( 0, tr( "Details" ) );
     tabs_->setTabText( 1, tr( "Volatility" ) );
     tabs_->setTabText( 2, tr( "Probability" ) );
+    tabs_->setTabText( 3, tr( "Open Interest" ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -171,6 +173,11 @@ void OptionTradingDetailsDialog::initialize()
     }
 
     tabs_->addTab( prob_, QString() );
+
+    // open interest
+    openInt_ = new OptionChainOpenInterestWidget( underlying(), underlyingPrice_, expiryDate, stamp );
+
+    tabs_->addTab( openInt_, QString() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -36,6 +36,19 @@ struct OptionChainCurves
 
     QMap<double, double> itmProbability;
     QMap<double, double> otmProbability;
+
+    QMap<double, int> callOpenInterest;
+    QMap<double, int> putOpenInterest;
+};
+
+/// Option Chain Open Interest
+struct OptionChainOpenInterest
+{
+    QMap<double, int> callOpenInterest;
+    QMap<double, int> putOpenInterest;
+
+    QMap<double, int> callTotalVolume;
+    QMap<double, int> putTotalVolume;
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

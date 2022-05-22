@@ -62,10 +62,11 @@ void DeptOfTheTreasury::getDailyTreasuryBillRates( int year, int month )
     if ( month <= 0 )
         month = now.month();
 
-    QString filter( QString( "year(INDEX_DATE) eq %1 and month(INDEX_DATE) eq %2" ).arg( year ).arg( month ) );
+    QString filter( QString( "%1%2" ).arg( year, 4, 10, QChar('0') ).arg( month, 2, 10, QChar('0') ) );
 
     QUrlQuery urlQuery;
-    urlQuery.addQueryItem( "$filter", QUrl::toPercentEncoding( filter ) );
+    urlQuery.addQueryItem( "data", "daily_treasury_bill_rates" );
+    urlQuery.addQueryItem( "field_tdr_date_value_month", filter );
 
     QUrl url( endpoints_[GET_DAILY_TREASURY_BILL_RATES] );
     url.setQuery( urlQuery );
@@ -89,10 +90,11 @@ void DeptOfTheTreasury::getDailyTreasuryYieldCurveRates( int year, int month )
     if ( month <= 0 )
         month = now.month();
 
-    QString filter( QString( "year(NEW_DATE) eq %1 and month(NEW_DATE) eq %2" ).arg( year ).arg( month ) );
+    QString filter( QString( "%1%2" ).arg( year, 4, 10, QChar('0') ).arg( month, 2, 10, QChar('0') ) );
 
     QUrlQuery urlQuery;
-    urlQuery.addQueryItem( "$filter", QUrl::toPercentEncoding( filter ) );
+    urlQuery.addQueryItem( "data", "daily_treasury_yield_curve" );
+    urlQuery.addQueryItem( "field_tdr_date_value_month", filter );
 
     QUrl url( endpoints_[GET_DAILY_TREASURY_YIELD_CURVE_RATES] );
     url.setQuery( urlQuery );

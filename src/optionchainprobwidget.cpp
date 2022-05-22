@@ -181,23 +181,20 @@ bool OptionChainProbabilityWidget::haveCurveData() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool OptionChainProbabilityWidget::calcMinMaxValues( const QMap<double, double>& values, double& kmin, double& kmax, double& vmin, double& vmax ) const
+bool OptionChainProbabilityWidget::calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, double& vmin, double& vmax ) const
 {
     kmin = vmin = 999999.99;
     kmax = vmax = 0.0;
 
-    for ( QMap<double, double>::const_iterator i( values.constBegin() ); i != values.constEnd(); ++i )
+    for ( ValuesMap::const_iterator i( values.constBegin() ); i != values.constEnd(); ++i )
     {
-        const double vol( 100.0 * i.value() );
+        const double prob( 100.0 * i.value() );
 
         kmin = qMin( kmin, i.key() );
         kmax = qMax( kmax, i.key() );
 
-        if ( 0.0 < vol )
-        {
-            vmin = qMin( vmin, vol );
-            vmax = qMax( vmax, vol );
-        }
+        vmin = qMin( vmin, prob );
+        vmax = qMax( vmax, prob );
     }
 
     return (kmin <= kmax);

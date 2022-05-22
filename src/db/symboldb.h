@@ -176,6 +176,16 @@ public:
      */
     virtual QDateTime optionChainCurves( const QDate& expiryDate, OptionChainCurves& data, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
 
+    /// Retrieve option chain open interest
+    /**
+     * @param[in] expiryDate  option chain expiration date
+     * @param[out] data  open interest
+     * @param[in] start  starting date/time (optional)
+     * @param[in] end  ending date/time (optional)
+     * @return  stamp of most recent open interest data within period [start, end]
+     */
+    virtual QDateTime optionChainOpenInterest( const QDate& expiryDate, OptionChainOpenInterest& data, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
+
     /// Retrieve quote history date range.
     /**
      * @param[out] start  start date

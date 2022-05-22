@@ -204,6 +204,17 @@ public:
      */
     QDateTime optionChainCurves( const QString& symbol, const QDate& expiryDate, OptionChainCurves& data, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
 
+    /// Retrieve option chain open interest.
+    /**
+     * @param[in] symbol  symbol
+     * @param[in] expiryDate  option chain expiration date
+     * @param[out] data  open interest
+     * @param[in] start  starting date/time (optional)
+     * @param[in] end  ending date/time (optional)
+     * @return  stamp of most recent open interest data within period [start, end]
+     */
+    QDateTime optionChainOpenInterest( const QString& symbol, const QDate& expiryDate, OptionChainOpenInterest& data, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
+
     /// Retrieve quote history date range.
     /**
      * @param[in] symbol  symbol

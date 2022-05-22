@@ -216,12 +216,12 @@ void SymbolImpliedVolatilityWidget::createLayout()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool SymbolImpliedVolatilityWidget::calcMinMaxValues( const QMap<double, double>& values, double& kmin, double& kmax, double& vmin, double& vmax ) const
+bool SymbolImpliedVolatilityWidget::calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, double& vmin, double& vmax ) const
 {
     kmin = vmin = 999999.99;
     kmax = vmax = 0.0;
 
-    for ( QMap<double, double>::const_iterator i( values.constBegin() ); i != values.constEnd(); ++i )
+    for ( ValuesMap::const_iterator i( values.constBegin() ); i != values.constEnd(); ++i )
     {
         const double vol( 100.0 * i.value() );
 

@@ -30,6 +30,26 @@
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
 /// U.S. Department of the Treasury API implementation.
+/**
+ * NEW URLS FOR XML FEEDS AS OF FEBRUARY 4, 2022
+ *
+ * The URLs replacing the data.treasury.gov feeds are:
+ *
+ * Daily Treasury Par Yield Curve Rates
+ * https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_yield_curve&field_tdr_date_value=all
+ *
+ * Daily Treasury Bill Rates
+ * https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_bill_rates&field_tdr_date_value=all
+ *
+ * Daily Treasury Long-Term Rates
+ * https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_long_term_rate&field_tdr_date_value=all
+ *
+ * Daily Treasury Par Real Yield Curve Rates
+ * https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_real_yield_curve&field_tdr_date_value=all
+ *
+ * Daily Treasury Real Long-Term Rates
+ * https://home.treasury.gov/resource-center/data-chart-center/interest-rates/pages/xml?data=daily_treasury_real_long_term&field_tdr_date_value=all
+ */
 class DeptOfTheTreasury : public SerializedXmlWebInterface
 {
     Q_OBJECT

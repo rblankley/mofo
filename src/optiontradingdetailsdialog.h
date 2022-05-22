@@ -26,6 +26,7 @@
 #include <QDialog>
 
 class OptionChainImpliedVolatilityWidget;
+class OptionChainOpenInterestWidget;
 class OptionChainProbabilityWidget;
 class OptionTradingItemModel;
 
@@ -112,6 +113,7 @@ private:
 
     OptionChainImpliedVolatilityWidget *implVol_;
     OptionChainProbabilityWidget *prob_;
+    OptionChainOpenInterestWidget *openInt_;
 
     /// Initialize.
     void initialize();

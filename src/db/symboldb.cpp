@@ -541,7 +541,8 @@ QDateTime SymbolDatabase::optionChainCurveExpirationDates( QList<QDate>& expiryD
 QDateTime SymbolDatabase::optionChainCurves( const QDate& expiryDate, OptionChainCurves& data, const QDateTime& start, const QDateTime& end ) const
 {
     static const QString sql( "SELECT * FROM optionChainStrikePrices "
-        "WHERE DATE(:expirationDate)=DATE(expirationDate) %1 %2" );
+        "WHERE DATE(:expirationDate)=DATE(expirationDate) %1 %2 "
+        "ORDER BY stamp DESC" );
 
     static const QString starting( "AND DATETIME(:start)<=DATETIME(stamp)" );
     static const QString ending( "AND DATETIME(stamp)<=DATETIME(:end)" );
@@ -578,6 +579,12 @@ QDateTime SymbolDatabase::optionChainCurves( const QDate& expiryDate, OptionChai
     while ( query.next() )
     {
         const QSqlRecord rec( query.record() );
+        const QDateTime recStamp( QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs ) );
+
+        if ( !stamp.isValid() )
+            stamp = recStamp;
+        else if ( recStamp != stamp )
+            break;
 
         const double strikePrice( rec.value( DB_STRIKE_PRICE ).toDouble() );
 
@@ -588,7 +595,67 @@ QDateTime SymbolDatabase::optionChainCurves( const QDate& expiryDate, OptionChai
         data.itmProbability[strikePrice] = rec.value( DB_ITM_PROBABILITY ).toDouble();
         data.otmProbability[strikePrice] = rec.value( DB_OTM_PROBABILITY ).toDouble();
 
-        stamp = QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs );
+    }
+
+    return stamp;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QDateTime SymbolDatabase::optionChainOpenInterest( const QDate &expiryDate, OptionChainOpenInterest &data, const QDateTime &start, const QDateTime &end ) const
+{
+    static const QString sql( "SELECT * FROM optionChainView "
+        "WHERE DATE(:expirationDate)=DATE(expirationDate) %1 %2 "
+        "ORDER BY stamp DESC" );
+
+    static const QString starting( "AND DATETIME(:start)<=DATETIME(stamp)" );
+    static const QString ending( "AND DATETIME(stamp)<=DATETIME(:end)" );
+
+    static const QString newest( "AND stamp=(SELECT MAX(stamp) FROM optionChainView)" );
+
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
+
+    if (( !start.isValid() ) && ( !end.isValid() ))
+        query.prepare( sql.arg( newest, QString() ) );
+    else
+        query.prepare( sql.arg( start.isValid() ? starting : QString(), end.isValid() ? ending : QString() ) );
+
+    query.bindValue( ":" + DB_EXPIRY_DATE, expiryDate.toString( Qt::ISODate ) );
+
+    if ( start.isValid() )
+        query.bindValue( ":start", start.toString( Qt::ISODateWithMs ) );
+
+    if ( end.isValid() )
+        query.bindValue( ":end", end.toString( Qt::ISODateWithMs ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+        return QDateTime();
+    }
+
+    // extract data
+    QDateTime stamp;
+
+    while ( query.next() )
+    {
+        const QSqlRecord rec( query.record() );
+        const QDateTime recStamp( QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs ) );
+
+        if ( !stamp.isValid() )
+            stamp = recStamp;
+        else if ( recStamp != stamp )
+            break;
+
+        const double strikePrice( rec.value( DB_STRIKE_PRICE ).toDouble() );
+
+        data.callOpenInterest[strikePrice] = rec.value( "callOpenInterest" ).toInt();
+        data.putOpenInterest[strikePrice] = rec.value( "putOpenInterest" ).toInt();
+
+        data.callTotalVolume[strikePrice] = rec.value( "callTotalVolume" ).toInt();
+        data.putTotalVolume[strikePrice] = rec.value( "putOpenInterest" ).toInt();
     }
 
     return stamp;

@@ -235,6 +235,20 @@ QDateTime SymbolDatabases::optionChainCurves( const QString& symbol, const QDate
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+QDateTime SymbolDatabases::optionChainOpenInterest( const QString& symbol, const QDate& expiryDate, OptionChainOpenInterest& data, const QDateTime& start, const QDateTime& end ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+    {
+        SymbolDatabaseRemoveRef deref( symbol );
+        return child->optionChainOpenInterest( expiryDate, data, start, end );
+    }
+
+    return QDateTime();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 QSqlDatabase SymbolDatabases::openDatabaseConnection( const QString& symbol ) const
 {
     SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );

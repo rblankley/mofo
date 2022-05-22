@@ -142,7 +142,7 @@ private:
     bool haveCurveData() const;
 
     /// Calculate min/max values from list data.
-    bool calcMinMaxValues( const QMap<double, double>& values, double& kmin, double& kmax, double& vmin, double& vmax ) const;
+    bool calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, double& vmin, double& vmax ) const;
 
     /// Calculate interval values.
     void calcIntervalValues( double min, double max, double h, double ints, double& interval, int& numDecimals ) const;

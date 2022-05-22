@@ -32,6 +32,8 @@
 static const QString APPLICATION_XML( "application/xml" );
 static const QString APPLICATION_ATOM_XML( "application/atom+xml" );
 
+static const QString TEXT_XML( "text/xml" );
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 SerializedXmlWebInterface::SerializedXmlWebInterface( QObject *parent ) :
     _Mybase( parent )
@@ -46,8 +48,12 @@ SerializedXmlWebInterface::~SerializedXmlWebInterface()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SerializedXmlWebInterface::handleProcessDocument( const QUuid& uuid, const QByteArray& request, const QString& requestType, int status, const QByteArray& response, const QString& responseType )
 {
-    if (( !responseType.contains( APPLICATION_XML ) ) && ( !responseType.contains( APPLICATION_ATOM_XML ) ))
+    if (( !responseType.contains( APPLICATION_XML ) ) &&
+        ( !responseType.contains( APPLICATION_ATOM_XML ) ) &&
+        ( !responseType.contains( TEXT_XML ) ))
+    {
         _Mybase::handleProcessDocument( uuid, request, requestType, status, response, responseType );
+    }
 
     // parse XML document
     else

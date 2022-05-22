@@ -1,6 +1,6 @@
 /**
- * @file optionchainprobwidget.h
- * Strike Price Probability (Graph) for an option chain.
+ * @file optionchainopenintwidget.h
+ * Open Interest (Graph) for an option chain.
  *
  * @copyright Copyright (C) 2022 Randy Blankley. All rights reserved.
  *
@@ -20,8 +20,8 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OPTIONCHAINPROBWIDGET_H
-#define OPTIONCHAINPROBWIDGET_H
+#ifndef OPTIONCHAINOPENINTWIDGET_H
+#define OPTIONCHAINOPENINTWIDGET_H
 
 #include <QDate>
 #include <QDateTime>
@@ -30,17 +30,20 @@
 
 #include "db/optiondata.h"
 
+class QScrollBar;
+class QToolButton;
+
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Strike Price Probability (Graph) for an option chain.
-class OptionChainProbabilityWidget : public QWidget
+/// Open Interest (Graph) for an option chain.
+class OptionChainOpenInterestWidget : public QWidget
 {
     Q_OBJECT
     Q_PROPERTY( QDate expirationDate READ expirationDate )
     Q_PROPERTY( QString underlying READ underlying )
     Q_PROPERTY( double underlyingPrice READ underlyingPrice )
 
-    using _Myt = OptionChainProbabilityWidget;
+    using _Myt = OptionChainOpenInterestWidget;
     using _Mybase = QWidget;
 
 public:
@@ -57,10 +60,10 @@ public:
      * @param[in] stamp  option chain stamp
      * @param[in] parent  parent object
      */
-    OptionChainProbabilityWidget( const QString& underlying, double underlyingPrice, const QDate& expiryDate, const QDateTime& stamp = QDateTime(), QWidget *parent = nullptr );
+    OptionChainOpenInterestWidget( const QString& underlying, double underlyingPrice, const QDate& expiryDate, const QDateTime& stamp = QDateTime(), QWidget *parent = nullptr );
 
     /// Destructor.
-    virtual ~OptionChainProbabilityWidget();
+    virtual ~OptionChainOpenInterestWidget();
 
     // ========================================================================
     // Properties
@@ -88,15 +91,6 @@ public:
     // Methods
     // ========================================================================
 
-    /// Add trading leg to chart.
-    /**
-     * @param[in] name  leg name
-     * @param[in] strike  strike price
-     * @param[in] isCall  @c true if call, @c false if put
-     * @param[in] isShort  @c true for short leg, @c false for long leg
-     */
-    virtual void addLeg( const QString& name, double strike, bool isCall, bool isShort );
-
     /// Translate strings.
     virtual void translate();
 
@@ -123,38 +117,27 @@ protected:
      */
     virtual void resizeEvent( QResizeEvent *e ) override;
 
-    // ========================================================================
-    // Properties
-    // ========================================================================
+private slots:
 
-    /// Check if legs are call.
-    /**
-     * @return  @c when all legs are call, @c false otherwise
-     */
-    virtual bool isCall() const;
+    /// Slot for button clicked.
+    void onButtonClicked();
 
-    /// Check if legs are puts.
-    /**
-     * @return  @c when all legs are put, @c false otherwise
-     */
-    virtual bool isPut() const;
+    /// Slot for scroll bar value changed.
+    void onValueChanged( int value );
 
 private:
 
     static constexpr int SPACING = 6;
 
-    using ValuesMap = QMap<double, double>;
+    static constexpr int BAR_SEPARATION = 3;
+    static constexpr int BAR_WIDTH = 8;
+    static constexpr int BAR_WIDTH_MIN = 2;
+    static constexpr int BAR_WIDTH_MAX = 32;
 
-    struct Leg
-    {
-        QString description;
+    static constexpr int MIN_ZOOM = BAR_WIDTH - BAR_WIDTH_MAX;
+    static constexpr int MAX_ZOOM = BAR_WIDTH - BAR_WIDTH_MIN;
 
-        double strike;
-        bool isCall;
-        bool isShort;
-    };
-
-    using LegList = QList<Leg>;
+    using ValuesMap = QMap<double, int>;
 
     QString underlying_;
     double price_;
@@ -164,11 +147,19 @@ private:
     QDateTime stamp_;
     QDate expiryDate_;
 
-    OptionChainCurves curve_;
-
-    LegList legs_;
+    OptionChainOpenInterest openInt_;
 
     QPixmap graph_;
+
+    double multiplier_;
+    int step_;
+
+    int zoom_;
+
+    QToolButton *zout_;
+    QToolButton *zin_;
+
+    QScrollBar *scroll_;
 
     /// Initialize.
     void initialize();
@@ -176,14 +167,11 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Retrieve curve data.
-    const ValuesMap *curveData() const;
-
     /// Check for curve data.
     bool haveCurveData() const;
 
     /// Calculate min/max values from list data.
-    bool calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, double& vmin, double& vmax ) const;
+    bool calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, int& vmin, int& vmax ) const;
 
     /// Calculate interval values.
     void calcIntervalValues( double min, double max, double h, double ints, double& interval, int& numDecimals ) const;
@@ -194,14 +182,11 @@ private:
     /// Scale value.
     static int scaled( double p, double min, double max, int height );
 
-    /// Retrieve leg color.
-    static QColor legColor( const Leg& leg );
+    // not implemented
+    OptionChainOpenInterestWidget( const _Myt& other ) = delete;
 
     // not implemented
-    OptionChainProbabilityWidget( const _Myt& other ) = delete;
-
-    // not implemented
-    OptionChainProbabilityWidget( const _Myt&& other ) = delete;
+    OptionChainOpenInterestWidget( const _Myt&& other ) = delete;
 
     // not implemented
     _Myt & operator = ( const _Myt& rhs ) = delete;
@@ -213,4 +198,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // OPTIONCHAINPROBWIDGET_H
+#endif // OPTIONCHAINOPENINTWIDGET_H

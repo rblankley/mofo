@@ -50,6 +50,7 @@ BUILT_SOURCES = \
 	moc_optionanalyzer.cpp \
 	moc_optionanalyzerthread.cpp \
 	moc_optionchainimplvolwidget.cpp \
+	moc_optionchainopenintwidget.cpp \
 	moc_optionchainprobwidget.cpp \
 	moc_optionchainview.cpp \
 	moc_optiontradingdetailsdialog.cpp \
@@ -89,6 +90,7 @@ mofo_SOURCES = \
 	optionanalyzer.cpp \
 	optionanalyzerthread.cpp \
 	optionchainimplvolwidget.cpp \
+	optionchainopenintwidget.cpp \
 	optionchainprobwidget.cpp \
 	optionchainview.cpp \
 	optionprofitcalc.cpp \
