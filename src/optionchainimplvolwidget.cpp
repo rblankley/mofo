@@ -158,7 +158,8 @@ bool OptionChainImpliedVolatilityWidget::calcMinMaxValues( const ValuesMap& valu
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionChainImpliedVolatilityWidget::calcIntervalValues( double min, double max, double gheight, double ints, double& interval, int& numDecimals ) const
 {
-    const int FOOTER( 25 );
+    static const int FOOTER( 25 );
+    static const double MAX_MULT( 1000.0 );
 
     // determine price interval
     QList<double> intervals;
@@ -178,7 +179,7 @@ void OptionChainImpliedVolatilityWidget::calcIntervalValues( double min, double 
             const double h( (gheight - FOOTER) / ((max - min) / i) );
 
             // check this interval height is smaller than requested interval size
-            if ( ints <= h )
+            if (( ints <= h ) || ( MAX_MULT <= mult ))
             {
                 interval = i;
                 break;
@@ -330,7 +331,7 @@ void OptionChainImpliedVolatilityWidget::drawGraph()
     QList<QColor> penColor;
     penColor.append( Qt::blue );
     penColor.append( Qt::red );
-    penColor.append( Qt::white );
+    penColor.append( palette().text().color() );
 
     QList<int> penWidth;
     penWidth.append( 0 );

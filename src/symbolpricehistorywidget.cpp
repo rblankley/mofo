@@ -867,7 +867,9 @@ bool SymbolPriceHistoryWidget::calcMinMaxValues( const QList<RelativeStrengthInd
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolPriceHistoryWidget::calcIntervalValues( double min, double max, double gheight, double div, double& interval, int& numDecimals ) const
 {
-    const int FOOTER( 25 );
+    static const int FOOTER( 25 );
+    static const double MAX_MULT( 1000.0 );
+
     const double MIN_INTERVAL_HEIGHT( 50.0 / div );
 
     // determine price interval
@@ -887,7 +889,7 @@ void SymbolPriceHistoryWidget::calcIntervalValues( double min, double max, doubl
             const double i( val*mult );
             const double h( (gheight - FOOTER) / ((max - min) / i) );
 
-            if ( MIN_INTERVAL_HEIGHT <= h )
+            if (( MIN_INTERVAL_HEIGHT <= h ) || ( MAX_MULT <= mult ))
             {
                 interval = i;
                 break;

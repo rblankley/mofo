@@ -95,11 +95,12 @@ private:
     double price_;
 
     QTabWidget *tabs_;
-    CollapsibleSplitter *splitter_;
-    SymbolImpliedVolatilityWidget *implVol_;
 
+    CollapsibleSplitter *splitter_;
     SymbolPriceHistoryWidget *priceHistory_;
     FundamentalsViewerWidget *fundamentals_;
+
+    SymbolImpliedVolatilityWidget *implVol_;
 
     /// Initialize.
     void initialize();

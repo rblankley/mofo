@@ -155,6 +155,7 @@ private:
     int step_;
 
     int zoom_;
+    bool zoomInit_;
 
     QToolButton *zout_;
     QToolButton *zin_;

@@ -191,6 +191,9 @@ private:
     /// Draw graph.
     void drawGraph();
 
+    /// Calculate probability of strike price.
+    double calcStrikeProbability( double strike ) const;
+
     /// Scale value.
     static int scaled( double p, double min, double max, int height );
 

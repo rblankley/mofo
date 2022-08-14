@@ -241,7 +241,8 @@ bool SymbolImpliedVolatilityWidget::calcMinMaxValues( const ValuesMap& values, d
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void SymbolImpliedVolatilityWidget::calcIntervalValues( double min, double max, double gheight, double ints, double& interval, int& numDecimals ) const
 {
-    const int FOOTER( 25 );
+    static const int FOOTER( 25 );
+    static const double MAX_MULT( 1000.0 );
 
     // determine price interval
     QList<double> intervals;
@@ -261,7 +262,7 @@ void SymbolImpliedVolatilityWidget::calcIntervalValues( double min, double max, 
             const double h( (gheight - FOOTER) / ((max - min) / i) );
 
             // check this interval height is smaller than requested interval size
-            if ( ints <= h )
+            if (( ints <= h )  || ( MAX_MULT <= mult ))
             {
                 interval = i;
                 break;

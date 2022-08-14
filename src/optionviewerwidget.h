@@ -28,6 +28,7 @@
 #include <QMap>
 #include <QWidget>
 
+class OptionProfitCalculator;
 class OptionTradingItemModel;
 class OptionTradingView;
 class QuoteTableModel;
@@ -182,6 +183,9 @@ private:
 
     /// Restore splitter state.
     void restoreState( QSplitter *w ) const;
+
+    /// Analyze option chain (concurrent version).
+    void analyzeOptionChain( OptionProfitCalculator *calc ) const;
 
     // not implemented
     OptionViewerWidget( const _Myt& other ) = delete;

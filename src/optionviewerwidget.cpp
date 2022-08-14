@@ -44,6 +44,8 @@
 #include <QToolButton>
 #include <QVBoxLayout>
 
+#include <QtConcurrent>
+
 const QString OptionViewerWidget::STATE_GROUP_NAME( "optionViewer" );
 const QString OptionViewerWidget::STATE_NAME( "[[default]]" );
 
@@ -178,52 +180,60 @@ void OptionViewerWidget::onButtonClicked()
         // this could take a while...
         QApplication::setOverrideCursor( Qt::WaitCursor );
 
-        for ( int i( 0 ); i < expiryDates_->count(); ++i )
         {
-            // retrieve chains
-            const OptionChainView *view( qobject_cast<const OptionChainView*>( expiryDates_->widget( i ) ) );
+            QFutureSynchronizer<void> calcs;
 
-            OptionChainTableModel *viewModel( (view ? view->model() : nullptr) );
-
-            if ( !viewModel )
-                continue;
-
-            if ( analysisOne_ == sender() )
-                if ( expiryDates_->currentWidget() != view )
-                    continue;
-
-            // check DTE
-            if (( calcFilter.minDaysToExpiry() ) && ( viewModel->daysToExpiration() < calcFilter.minDaysToExpiry() ))
-                continue;
-            else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < viewModel->daysToExpiration() ))
-                continue;
-
-            // refresh stale data
-            if ( !viewModel->ready() )
-                if ( !viewModel->refreshData() )
-                {
-                    LOG_WARN << "error refreshing chain table data";
-                    continue;
-                }
-
-            // create a calculator
-            OptionProfitCalculator *calc( OptionProfitCalculator::create( model_->tableData( QuoteTableModel::MARK ).toDouble(), viewModel, tradingModel_ ) );
-
-            if ( !calc )
-                LOG_WARN << "no calculator";
-            else
+            for ( int i( 0 ); i < expiryDates_->count(); ++i )
             {
-                // setup calculator
-                calc->setFilter( calcFilter );
-                calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+                // retrieve chains
+                const OptionChainView *view( qobject_cast<const OptionChainView*>( expiryDates_->widget( i ) ) );
 
-                // analyze
-                calc->analyze( OptionTradingItemModel::SINGLE );
-                calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
-                calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+                OptionChainTableModel *viewModel( (view ? view->model() : nullptr) );
 
-                OptionProfitCalculator::destroy( calc );
+                if ( !viewModel )
+                    continue;
+
+                if ( analysisOne_ == sender() )
+                    if ( expiryDates_->currentWidget() != view )
+                        continue;
+
+                // check DTE
+                if (( calcFilter.minDaysToExpiry() ) && ( viewModel->daysToExpiration() < calcFilter.minDaysToExpiry() ))
+                    continue;
+                else if (( calcFilter.maxDaysToExpiry() ) && ( calcFilter.maxDaysToExpiry() < viewModel->daysToExpiration() ))
+                    continue;
+
+                // refresh stale data
+                if ( !viewModel->ready() )
+                    if ( !viewModel->refreshData() )
+                    {
+                        LOG_WARN << "error refreshing chain table data";
+                        continue;
+                    }
+
+                // create a calculator
+                OptionProfitCalculator *calc( OptionProfitCalculator::create( model_->tableData( QuoteTableModel::MARK ).toDouble(), viewModel, tradingModel_ ) );
+
+                if ( !calc )
+                    LOG_WARN << "no calculator";
+                else
+                {
+                    // setup calculator
+                    calc->setFilter( calcFilter );
+                    calc->setOptionTradeCost( AppDatabase::instance()->optionTradeCost() );
+
+                    LOG_DEBUG << "starting analysis thread...";
+
+                    // analyze
+#if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
+                    calcs.addFuture( QtConcurrent::run( &_Myt::analyzeOptionChain, this, calc ) );
+#else
+                    calcs.addFuture( QtConcurrent::run( this, &_Myt::analyzeOptionChain, calc ) );
+#endif
+                }
             }
+
+            LOG_DEBUG << "waiting for analysis to complete";
         }
 
         // done
@@ -690,4 +700,15 @@ void OptionViewerWidget::restoreState( QSplitter *w ) const
         return;
 
     splitter_->restoreState( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, STATE_NAME ) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionViewerWidget::analyzeOptionChain( OptionProfitCalculator *calc ) const
+{
+    // analyze
+    calc->analyze( OptionTradingItemModel::SINGLE );
+    calc->analyze( OptionTradingItemModel::VERT_BEAR_CALL );
+    calc->analyze( OptionTradingItemModel::VERT_BULL_PUT );
+
+    OptionProfitCalculator::destroy( calc );
 }

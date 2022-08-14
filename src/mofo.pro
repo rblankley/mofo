@@ -69,6 +69,8 @@ SOURCES += \
     optionprofitcalc.cpp \
     optionprofitcalcfilter.cpp \
     optiontradingdetailsdialog.cpp \
+    optiontradingreturnsgraphwidget.cpp \
+    optiontradingreturnsviewerwidget.cpp \
     optiontradingview.cpp \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
@@ -160,6 +162,8 @@ HEADERS += \
     optionprofitcalc.h \
     optionprofitcalcfilter.h \
     optiontradingdetailsdialog.h \
+    optiontradingreturnsgraphwidget.h \
+    optiontradingreturnsviewerwidget.h \
     optiontradingview.h \
     optionviewertabwidget.h \
     optionviewerwidget.h \

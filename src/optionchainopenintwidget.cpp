@@ -45,7 +45,8 @@ OptionChainOpenInterestWidget::OptionChainOpenInterestWidget( const QString& und
     price_( underlyingPrice ),
     end_( stamp ),
     expiryDate_( expiryDate ),
-    zoom_( 0 )
+    zoom_( MIN_ZOOM ),
+    zoomInit_( true )
 {
     // init
     initialize();
@@ -153,6 +154,9 @@ void OptionChainOpenInterestWidget::resizeEvent( QResizeEvent *e )
     // new graph
     drawGraph();
 
+    // once we get our first resize event we are considered initialized
+    zoomInit_ = false;
+
     _Mybase::resizeEvent( e );
 }
 
@@ -244,7 +248,8 @@ bool OptionChainOpenInterestWidget::calcMinMaxValues( const ValuesMap& values, d
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionChainOpenInterestWidget::calcIntervalValues( double min, double max, double gheight, double ints, double& interval, int& numDecimals ) const
 {
-    const int FOOTER( 25 );
+    static const int FOOTER( 25 );
+    static const double MAX_MULT( 100000.0 );
 
     // determine price interval
     QList<double> intervals;
@@ -264,7 +269,7 @@ void OptionChainOpenInterestWidget::calcIntervalValues( double min, double max, 
             const double h( (gheight - FOOTER) / ((max - min) / i) );
 
             // check this interval height is smaller than requested interval size
-            if ( ints <= h )
+            if (( ints <= h ) || ( MAX_MULT <= mult ))
             {
                 interval = i;
                 break;
@@ -346,9 +351,30 @@ void OptionChainOpenInterestWidget::drawGraph()
     const QFontMetrics fm( fontMetrics() );
 
     // determine bar width
+    const int estwidth( ((width() * 9) / 10) );
     const int bcount = (int)(std::round( multiplier_ * (xmax - xmin) )) / step_;
-    const int bwidth = qMax( BAR_WIDTH_MIN, BAR_WIDTH - zoom_ );
-    const int bwidthtotal = bcount * (BAR_SEPARATION + (2 * bwidth));
+
+    if ( zoomInit_ )
+        zoom_ = MIN_ZOOM;
+
+    int bwidth;
+    int bwidthtotal;
+
+    // loop until graph fits frame (estimated width)
+    for ( ;; )
+    {
+        bwidth = qMax( BAR_WIDTH_MIN, BAR_WIDTH - zoom_ );
+        bwidthtotal = bcount * (BAR_SEPARATION + (2 * bwidth));
+
+        if ( !zoomInit_ )
+            break;
+        else if ( MAX_ZOOM <= zoom_ )
+            break;
+        else if ( bwidthtotal <= estwidth )
+            break;
+
+        ++zoom_;
+    }
 
     // determine intervals
     double xinterval;

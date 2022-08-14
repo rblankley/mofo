@@ -1,6 +1,6 @@
 /**
- * @file optiontradingdetailsdialog.h
- * Dialog for showing option trading details.
+ * @file optiontradingreturnsgraphwidget.h
+ * Widget for viewing option trade estimated returns information (graph).
  *
  * @copyright Copyright (C) 2022 Randy Blankley. All rights reserved.
  *
@@ -20,33 +20,27 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OPTIONTRADINGDETAILSDIALOG_H
-#define OPTIONTRADINGDETAILSDIALOG_H
+#ifndef OPTIONTRADINGRETURNSGRAPHWIDGET_H
+#define OPTIONTRADINGRETURNSGRAPHWIDGET_H
 
-#include <QDialog>
+#include <QDate>
+#include <QDateTime>
+#include <QMap>
+#include <QPixmap>
+#include <QWidget>
 
-class CollapsibleSplitter;
-class OptionChainImpliedVolatilityWidget;
-class OptionChainOpenInterestWidget;
-class OptionChainProbabilityWidget;
 class OptionTradingItemModel;
-class OptionTradingReturnsGraphWidget;
-class OptionTradingReturnsViewerWidget;
-
-class QSplitter;
-class QTabWidget;
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Dialog for showing option trading details.
-class OptionTradingDetailsDialog : public QDialog
+/// Widget for viewing option trade estimated returns information (graph).
+class OptionTradingReturnsGraphWidget : public QWidget
 {
     Q_OBJECT
-    Q_PROPERTY( QStringList symbols READ symbols )
     Q_PROPERTY( QString underlying READ underlying )
 
-    using _Myt = OptionTradingDetailsDialog;
-    using _Mybase = QDialog;
+    using _Myt = OptionTradingReturnsGraphWidget;
+    using _Mybase = QWidget;
 
 public:
 
@@ -61,29 +55,16 @@ public:
     /**
      * @param[in] index  trading model index
      * @param[in] model  trading model
-     * @param[in,out] parent  parent widget
-     * @param[in] f  window flags
+     * @param[in,out] parent  parent object
      */
-    OptionTradingDetailsDialog( int index, model_type *model, QWidget *parent = nullptr, Qt::WindowFlags f = Qt::WindowFlags() );
+    OptionTradingReturnsGraphWidget( int index, model_type *model, QWidget *parent = nullptr );
 
     /// Destructor.
-    virtual ~OptionTradingDetailsDialog();
+    virtual ~OptionTradingReturnsGraphWidget();
 
     // ========================================================================
     // Properties
     // ========================================================================
-
-    /// Retrieve size hint.
-    /**
-     * @return  size hint
-     */
-    virtual QSize sizeHint() const override;
-
-    /// Retrieve option symbols.
-    /**
-     * @return  option symbols
-     */
-    virtual QStringList symbols() const {return symbols_;}
 
     /// Retrieve underlying.
     /**
@@ -98,11 +79,37 @@ public:
     /// Translate strings.
     virtual void translate();
 
+public slots:
+
+    /// Refresh graph data.
+    virtual void refreshData();
+
+protected:
+
+    // ========================================================================
+    // Events
+    // ========================================================================
+
+    /// Paint event.
+    /**
+     * @param[in,out] e  event
+     */
+    virtual void paintEvent( QPaintEvent *e ) override;
+
+    /// Resize event.
+    /**
+     * @param[in,out] e  event
+     */
+    virtual void resizeEvent( QResizeEvent *e ) override;
+
 private:
 
-    static constexpr int SPLITTER_WIDTH = 12;
+    static constexpr int SPACING = 6;
 
-    static const QString STATE_GROUP_NAME;
+    using LinearEquation = QPair<double, double>;
+    using LinearEquationMap = QMap<double, LinearEquation>;
+
+    using ValuesMap = QMap<double, double>;
 
     model_type *model_;
     int index_;
@@ -110,22 +117,18 @@ private:
     QString underlying_;
     double underlyingPrice_;
 
-    QStringList symbols_;
-
-    QString stratDesc_;
     int strat_;
 
-    QTabWidget *tabs_;
+    double longStrikePrice_;
+    double shortStrikePrice_;
+    double breakEvenPrice_;
 
-    CollapsibleSplitter *splitter_;
-    OptionTradingReturnsGraphWidget *tradeDetailsGraph_;
-    OptionTradingReturnsViewerWidget *tradeDetails_;
+    QDateTime stamp_;
+    QDate expiryDate_;
 
-    OptionChainImpliedVolatilityWidget *implVol_;
+    ValuesMap returns_;
 
-    OptionChainProbabilityWidget *prob_;
-
-    OptionChainOpenInterestWidget *openInt_;
+    QPixmap graph_;
 
     /// Initialize.
     void initialize();
@@ -136,32 +139,32 @@ private:
     /// Retrieve model data.
     QVariant modelData( int col ) const;
 
-    /// Save dialog state.
-    void saveState( QDialog *w ) const;
+    /// Calculate min/max values from list data.
+    bool calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, double& vmin, double& vmax ) const;
 
-    /// Save splitter state.
-    void saveState( QSplitter *w ) const;
+    /// Calculate interval values.
+    void calcIntervalValues( double min, double max, double h, double ints, double& interval, int& numDecimals ) const;
 
-    /// Restore dialog state.
-    void restoreState( QDialog *w ) const;
+    /// Draw graph.
+    void drawGraph();
 
-    /// Restore splitter state.
-    void restoreState( QSplitter *w ) const;
-
-    // not implemented
-    OptionTradingDetailsDialog( const _Myt& ) = delete;
+    /// Scale value.
+    static int scaled( double p, double min, double max, int height );
 
     // not implemented
-    OptionTradingDetailsDialog( const _Myt&& ) = delete;
+    OptionTradingReturnsGraphWidget( const _Myt& other ) = delete;
 
     // not implemented
-    _Myt& operator = ( const _Myt& ) = delete;
+    OptionTradingReturnsGraphWidget( const _Myt&& other ) = delete;
 
     // not implemented
-    _Myt& operator = ( const _Myt&& ) = delete;
+    _Myt & operator = ( const _Myt& rhs ) = delete;
+
+    // not implemented
+    _Myt & operator = ( const _Myt&& rhs ) = delete;
 
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // OPTIONTRADINGDETAILSDIALOG_H
+#endif // OPTIONTRADINGRETURNSGRAPHWIDGET_H

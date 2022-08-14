@@ -19,11 +19,14 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
+#include "collapsiblesplitter.h"
 #include "common.h"
 #include "optionchainimplvolwidget.h"
 #include "optionchainopenintwidget.h"
 #include "optionchainprobwidget.h"
 #include "optiontradingdetailsdialog.h"
+#include "optiontradingreturnsgraphwidget.h"
+#include "optiontradingreturnsviewerwidget.h"
 
 #include "db/appdb.h"
 #include "db/optiontradingitemmodel.h"
@@ -64,6 +67,7 @@ OptionTradingDetailsDialog::OptionTradingDetailsDialog( int index, model_type *m
 
     // restore states
     restoreState( this );
+    restoreState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -71,6 +75,7 @@ OptionTradingDetailsDialog::~OptionTradingDetailsDialog()
 {
     // save states
     saveState( this );
+    saveState( splitter_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -111,9 +116,15 @@ void OptionTradingDetailsDialog::initialize()
     tabs_ = new QTabWidget( this );
 
     // details
-    // TODO
+    splitter_ = new CollapsibleSplitter( Qt::Horizontal );
+    splitter_->setButtonLocation( Qt::TopEdge );
+    splitter_->setHandleWidth( SPLITTER_WIDTH );
+    splitter_->setObjectName( "tradeDetails" );
 
-    tabs_->addTab( new QWidget(), QString() );
+    splitter_->addWidget( tradeDetailsGraph_ = new OptionTradingReturnsGraphWidget( index_, model_, splitter_ ) );
+    splitter_->addWidget( tradeDetails_ = new OptionTradingReturnsViewerWidget( index_, model_, splitter_ ) );
+
+    tabs_->addTab( splitter_, QString() );
 
     // impl vol
     implVol_ = new OptionChainImpliedVolatilityWidget( underlying(), underlyingPrice_, expiryDate, stamp );
@@ -123,7 +134,7 @@ void OptionTradingDetailsDialog::initialize()
     // probability
     prob_ = new OptionChainProbabilityWidget( underlying(), underlyingPrice_, expiryDate, stamp );
 
-    if ( model_type::SINGLE == modelData( model_type::STRATEGY ).toInt() )
+    if ( model_type::SINGLE == strat_ )
     {
         prob_->addLeg(
             modelData( model_type::DESC ).toString(),
@@ -131,7 +142,7 @@ void OptionTradingDetailsDialog::initialize()
             modelData( model_type::TYPE ).toString().contains( "CALL", Qt::CaseInsensitive ),
             true );
     }
-    else if ( model_type::VERT_BULL_PUT == modelData( model_type::STRATEGY ).toInt() )
+    else if ( model_type::VERT_BULL_PUT == strat_ )
     {
         const QStringList legs( modelData( model_type::DESC ).toString().split( "-" ) );
         const QStringList strikes( modelData( model_type::STRIKE_PRICE ).toString().split( "/" ) );
@@ -151,7 +162,7 @@ void OptionTradingDetailsDialog::initialize()
                 false );
         }
     }
-    else if ( model_type::VERT_BEAR_CALL == modelData( model_type::STRATEGY ).toInt() )
+    else if ( model_type::VERT_BEAR_CALL == strat_ )
     {
         const QStringList legs( modelData( model_type::DESC ).toString().split( "-" ) );
         const QStringList strikes( modelData( model_type::STRIKE_PRICE ).toString().split( "/" ) );
@@ -202,8 +213,22 @@ void OptionTradingDetailsDialog::saveState( QDialog *w ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingDetailsDialog::saveState( QSplitter *w ) const
+{
+    if ( w )
+        AppDatabase::instance()->setWidgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName(), w->saveState() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingDetailsDialog::restoreState( QDialog *w ) const
 {
     if ( w )
         w->restoreGeometry( AppDatabase::instance()->widgetState( AppDatabase::Dialog, STATE_GROUP_NAME, GEOMETRY ) );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingDetailsDialog::restoreState( QSplitter *w ) const
+{
+    if ( w )
+        splitter_->restoreState( AppDatabase::instance()->widgetState( AppDatabase::Splitter, STATE_GROUP_NAME, w->objectName() ) );
 }

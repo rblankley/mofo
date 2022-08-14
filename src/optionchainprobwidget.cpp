@@ -203,7 +203,8 @@ bool OptionChainProbabilityWidget::calcMinMaxValues( const ValuesMap& values, do
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionChainProbabilityWidget::calcIntervalValues( double min, double max, double gheight, double ints, double& interval, int& numDecimals ) const
 {
-    const int FOOTER( 25 );
+    static const int FOOTER( 25 );
+    static const double MAX_MULT( 1000.0 );
 
     // determine price interval
     QList<double> intervals;
@@ -223,7 +224,7 @@ void OptionChainProbabilityWidget::calcIntervalValues( double min, double max, d
             const double h( (gheight - FOOTER) / ((max - min) / i) );
 
             // check this interval height is smaller than requested interval size
-            if ( ints <= h )
+            if (( ints <= h ) || ( MAX_MULT <= mult ))
             {
                 interval = i;
                 break;
@@ -373,7 +374,7 @@ void OptionChainProbabilityWidget::drawGraph()
 
     painter.setPen( QPen( palette().text().color(), 2 ) );
 
-    for ( QMap<double, double>::const_iterator i( d->constBegin() ); i != d->constEnd(); ++i )
+    for ( ValuesMap::const_iterator i( d->constBegin() ); i != d->constEnd(); ++i )
     {
         const int x( gleft + scaled( i.key(), xmin, xmax, gright-gleft ) );
         const int y( gbottom - scaled( 100.0 * i.value(), ymin, ymax, gbottom-gtop ) );
@@ -410,6 +411,8 @@ void OptionChainProbabilityWidget::drawGraph()
     painter.drawText( 0, SPACING+4, gwidth, 50, Qt::AlignHCenter | Qt::AlignTop, stamp_.toString() );
 
     // labels
+    const QLocale l( QLocale::system() );
+
     int ltop( SPACING+4 );
 
     painter.setPen( QPen( palette().text().color(), 0 ) );
@@ -417,16 +420,88 @@ void OptionChainProbabilityWidget::drawGraph()
 
     foreach ( const Leg& leg, legs_ )
     {
+        const double prob( 100 * calcStrikeProbability( leg.strike ) );
+
+        const int x( gleft + scaled( leg.strike, xmin, xmax, gright-gleft ) );
+        const int y( gbottom - scaled( prob, ymin, ymax, gbottom-gtop ) );
+
         painter.setPen( QPen( legColor( leg ), 0 ) );
 
+        // draw description label
         ltop += marginHeight;
         painter.drawText( 0, ltop, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, leg.description );
+
+        // draw probability label
+        const QString probLabel( QString( "%0%" ).arg( l.toString( prob, 'f', 2 ) ) );
+
+        const int probWidth( 120 );
+        const int probHeight( 2*marginHeight );
+
+        int probLeft( x - (probWidth/2) );
+        int probTop( 0 );
+
+        // dot in top half
+        if ( y <= (gheight/2) )
+            probTop = gbottom - probHeight;
+
+        painter.drawText( probLeft, probTop, probWidth, probHeight, Qt::AlignCenter, probLabel );
     }
 
     painter.end();
 
     // queue paint event
     update();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double OptionChainProbabilityWidget::calcStrikeProbability( double strike ) const
+{
+    if ( !haveCurveData() )
+        return 0.0;
+
+    const ValuesMap *d( curveData() );
+
+    // check for exact match
+    ValuesMap::const_iterator v( d->constFind( strike ) );
+
+    if ( v != d->constEnd() )
+        return v.value();
+
+    // otherwise we need to interpolate
+    ValuesMap::const_iterator above( d->constEnd() );
+    ValuesMap::const_iterator below( d->constEnd() );
+
+    // find probability of strike above and below
+    for ( ValuesMap::const_iterator i( d->constBegin() ); i != d->constEnd(); ++i )
+    {
+        if ( strike <= i.key() )
+            if (( d->constEnd() == above ) || ( i.key() < above.key() ))
+                above = i;
+
+        if ( i.key() <= strike )
+            if (( d->constEnd() == below ) || ( below.key() < i.key() ))
+                below = i;
+    }
+
+    if (( d->constEnd() == above ) && ( d->constEnd() != below ))
+        return below.value();
+    else if (( d->constEnd() != above ) && ( d->constEnd() == below ))
+        return above.value();
+    else if (( d->constEnd() != above ) && ( d->constEnd() != below ))
+    {
+        if ( above == below )
+            return above.value();
+
+        // linear fit
+        double v( (strike - below.key()) / (above.key() - below.key()) );   // interpolate strike
+        v *= (above.value() - below.value());                               // convert to probability
+        v +=  below.value();                                                // adjust by probability minimum
+
+        return v;
+    }
+
+    LOG_WARN << "could not calculate probability for strike " << strike;
+    return 0.0;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

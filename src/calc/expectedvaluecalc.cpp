@@ -462,6 +462,10 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
     result[item_model_type::MAX_GAIN] = maxGain;
     result[item_model_type::MAX_LOSS] = maxLoss;
 
+    // update breakeven for call
+    // the TDA provided breakeven assumes naked call, we want to handle CC as well
+    result[item_model_type::BREAK_EVEN_PRICE] = equitySharePrice - (premium / multiplier);
+
     const double ror( maxGain / maxLoss );
 
     result[item_model_type::ROR] = 100.0 * ror;
