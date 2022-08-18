@@ -375,7 +375,7 @@ void SymbolEstimatedMovementWidget::drawGraph()
 
     // impl vol
     int implxminprev( 0 );
-    int implyminprev;
+    int implyminprev( 0 );
 
     for ( ValuesMap::const_iterator i( implMin_.constBegin() ); i != implMin_.constEnd(); ++i )
     {
@@ -398,7 +398,7 @@ void SymbolEstimatedMovementWidget::drawGraph()
     }
 
     int implxmaxprev( 0 );
-    int implymaxprev;
+    int implymaxprev( 0 );
 
     for ( ValuesMap::const_iterator i( implMax_.constBegin() ); i != implMax_.constEnd(); ++i )
     {
@@ -422,7 +422,7 @@ void SymbolEstimatedMovementWidget::drawGraph()
 
     // hist vol
     int histxminprev( 0 );
-    int histyminprev;
+    int histyminprev( 0 );
 
     for ( ValuesMap::const_iterator i( histMin_.constBegin() ); i != histMin_.constEnd(); ++i )
     {
@@ -440,7 +440,7 @@ void SymbolEstimatedMovementWidget::drawGraph()
     }
 
     int histxmaxprev( 0 );
-    int histymaxprev;
+    int histymaxprev( 0 );
 
     for ( ValuesMap::const_iterator i( histMax_.constBegin() ); i != histMax_.constEnd(); ++i )
     {
@@ -460,7 +460,7 @@ void SymbolEstimatedMovementWidget::drawGraph()
 
     // implied strikes
     int implsxprev( 0 );
-    int implsyprev;
+    int implsyprev( 0 );
 
     for ( ValuesMap::const_iterator i( implStrikes_.constBegin() ); i != implStrikes_.constEnd(); ++i )
     {

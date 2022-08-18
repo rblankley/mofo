@@ -54,10 +54,13 @@ BUILT_SOURCES = \
 	moc_optionchainprobwidget.cpp \
 	moc_optionchainview.cpp \
 	moc_optiontradingdetailsdialog.cpp \
+	moc_optiontradingreturnsgraphwidget.cpp \
+	moc_optiontradingreturnsviewerwidget.cpp \
 	moc_optiontradingview.cpp \
 	moc_optionviewertabwidget.cpp \
 	moc_optionviewerwidget.cpp \
 	moc_symboldetailsdialog.cpp \
+	moc_symbolestmovewidget.cpp \
 	moc_symbolimplvolwidget.cpp \
 	moc_symbolpricehistorywidget.cpp \
 	moc_tddaemon.cpp \
@@ -96,10 +99,13 @@ mofo_SOURCES = \
 	optionprofitcalc.cpp \
 	optionprofitcalcfilter.cpp \
 	optiontradingdetailsdialog.cpp \
+	optiontradingreturnsgraphwidget.cpp \
+	optiontradingreturnsviewerwidget.cpp \
 	optiontradingview.cpp \
 	optionviewertabwidget.cpp \
 	optionviewerwidget.cpp \
 	symboldetailsdialog.cpp \
+	symbolestmovewidget.cpp \
 	symbolimplvolwidget.cpp \
 	symbolpricehistorywidget.cpp \
 	tableheaderitem.cpp \

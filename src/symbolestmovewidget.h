@@ -24,6 +24,7 @@
 #define SYMBOLESTMOVEWIDGET_H
 
 #include <QDateTime>
+#include <QMap>
 #include <QPixmap>
 #include <QWidget>
 

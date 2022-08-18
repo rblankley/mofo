@@ -165,12 +165,16 @@ void OptionChainOpenInterestWidget::onButtonClicked()
 {
     if ( zout_ == sender() )
     {
-        zoom_ = qMin( ++zoom_, MAX_ZOOM );
+        ++zoom_;
+        zoom_ = qMin( zoom_, MAX_ZOOM );
+        
         drawGraph();
     }
     else if ( zin_ == sender() )
     {
-        zoom_ = qMax( --zoom_, MIN_ZOOM );
+        --zoom_;
+        zoom_ = qMax( zoom_, MIN_ZOOM );
+        
         drawGraph();
     }
 }

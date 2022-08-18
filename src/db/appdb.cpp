@@ -23,6 +23,8 @@
 #include "common.h"
 #include "stringsdb.h"
 
+#include <cmath>
+
 #include <QApplication>
 #include <QJsonArray>
 #include <QJsonObject>

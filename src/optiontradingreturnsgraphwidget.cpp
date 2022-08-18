@@ -26,6 +26,8 @@
 #include "db/optiontradingitemmodel.h"
 #include "db/symboldbs.h"
 
+#include <cmath>
+
 #include <QComboBox>
 #include <QHBoxLayout>
 #include <QPainter>
@@ -461,7 +463,12 @@ void OptionTradingReturnsGraphWidget::drawGraph()
                 vol = modelData( model_type::HIST_VOLATILITY ).toDouble() / 100.0;
             else if ( 2 < data.length() )
             {
+#if QT_VERSION_CHECK( 5, 15, 2 ) <= QT_VERSION
                 depth = QStringView{ data }.mid( 2 ).toInt();
+#else
+                depth = data.midRef( 2 ).toInt();
+#endif
+
                 vol = SymbolDatabases::instance()->historicalVolatility( underlying_, now, depth );
             }
 
