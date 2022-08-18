@@ -75,6 +75,7 @@ SOURCES += \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
     symboldetailsdialog.cpp \
+    symbolestmovewidget.cpp \
     symbolimplvolwidget.cpp \
     symbolpricehistorywidget.cpp \
     tableheaderitem.cpp \
@@ -168,6 +169,7 @@ HEADERS += \
     optionviewertabwidget.h \
     optionviewerwidget.h \
     symboldetailsdialog.h \
+    symbolestmovewidget.h \
     symbolimplvolwidget.h \
     symbolpricehistorywidget.h \
     tableheaderitem.h \

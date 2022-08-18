@@ -1,6 +1,6 @@
 /**
- * @file optiontradingreturnsgraphwidget.h
- * Widget for viewing option trade estimated returns information (graph).
+ * @file symbolestmovewidget.h
+ * Estimated Movement (Graph) for a symbol.
  *
  * @copyright Copyright (C) 2022 Randy Blankley. All rights reserved.
  *
@@ -20,34 +20,25 @@
  * not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef OPTIONTRADINGRETURNSGRAPHWIDGET_H
-#define OPTIONTRADINGRETURNSGRAPHWIDGET_H
+#ifndef SYMBOLESTMOVEWIDGET_H
+#define SYMBOLESTMOVEWIDGET_H
 
-#include <QDate>
 #include <QDateTime>
-#include <QMap>
 #include <QPixmap>
 #include <QWidget>
 
-class OptionTradingItemModel;
-
-class QComboBox;
-
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-/// Widget for viewing option trade estimated returns information (graph).
-class OptionTradingReturnsGraphWidget : public QWidget
+/// Estimated Movement (Graph) for a symbol.
+class SymbolEstimatedMovementWidget : public QWidget
 {
     Q_OBJECT
-    Q_PROPERTY( QString underlying READ underlying )
+    Q_PROPERTY( QString symbol READ symbol )
 
-    using _Myt = OptionTradingReturnsGraphWidget;
+    using _Myt = SymbolEstimatedMovementWidget;
     using _Mybase = QWidget;
 
 public:
-
-    /// Model type.
-    using model_type = OptionTradingItemModel;
 
     // ========================================================================
     // CTOR / DTOR
@@ -55,24 +46,24 @@ public:
 
     /// Constructor.
     /**
-     * @param[in] index  trading model index
-     * @param[in] model  trading model
-     * @param[in,out] parent  parent object
+     * @param[in] symbol  symbol
+     * @param[in] price  market price per share
+     * @param[in] parent  parent object
      */
-    OptionTradingReturnsGraphWidget( int index, model_type *model, QWidget *parent = nullptr );
+    SymbolEstimatedMovementWidget( const QString& symbol, double price, QWidget *parent = nullptr );
 
     /// Destructor.
-    virtual ~OptionTradingReturnsGraphWidget();
+    virtual ~SymbolEstimatedMovementWidget();
 
     // ========================================================================
     // Properties
     // ========================================================================
 
-    /// Retrieve underlying.
+    /// Retrieve symbol.
     /**
-     * @return  underlying
+     * @return  symbol
      */
-    virtual QString underlying() const {return underlying_;}
+    virtual QString symbol() const {return symbol_;}
 
     // ========================================================================
     // Methods
@@ -104,42 +95,28 @@ protected:
      */
     virtual void resizeEvent( QResizeEvent *e ) override;
 
-private slots:
-
-    /// Slot for current index changed.
-    void onCurrentIndexChanged( int index );
-
 private:
 
     static constexpr int SPACING = 6;
 
-    static constexpr int HV_RANGE_DAYS = 20;
-
-    using LinearEquation = QPair<double, double>;
-    using LinearEquationMap = QMap<double, LinearEquation>;
+    static constexpr int IV_RANGE_DAYS = 1;
 
     using ValuesMap = QMap<double, double>;
 
-    model_type *model_;
-    int index_;
-
-    QString underlying_;
-    double underlyingPrice_;
-
-    int strat_;
-
-    double longStrikePrice_;
-    double shortStrikePrice_;
-    double breakEvenPrice_;
+    QString symbol_;
+    double price_;
 
     QDateTime stamp_;
-    QDate expiryDate_;
-
-    ValuesMap returns_;
 
     QPixmap graph_;
 
-    QComboBox *overlays_;
+    ValuesMap histMin_;
+    ValuesMap histMax_;
+
+    ValuesMap implMin_;
+    ValuesMap implMax_;
+
+    ValuesMap implStrikes_;
 
     /// Initialize.
     void initialize();
@@ -147,8 +124,8 @@ private:
     /// Create layout.
     void createLayout();
 
-    /// Retrieve model data.
-    QVariant modelData( int col ) const;
+    /// Check for curve data.
+    bool haveCurveData() const;
 
     /// Calculate min/max values from list data.
     bool calcMinMaxValues( const ValuesMap& values, double& kmin, double& kmax, double& vmin, double& vmax ) const;
@@ -162,14 +139,11 @@ private:
     /// Scale value.
     static int scaled( double p, double min, double max, int height );
 
-    /// Translate overlays.
-    static void translateOverlays( QComboBox *w );
+    // not implemented
+    SymbolEstimatedMovementWidget( const _Myt& other ) = delete;
 
     // not implemented
-    OptionTradingReturnsGraphWidget( const _Myt& other ) = delete;
-
-    // not implemented
-    OptionTradingReturnsGraphWidget( const _Myt&& other ) = delete;
+    SymbolEstimatedMovementWidget( const _Myt&& other ) = delete;
 
     // not implemented
     _Myt & operator = ( const _Myt& rhs ) = delete;
@@ -181,4 +155,4 @@ private:
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 
-#endif // OPTIONTRADINGRETURNSGRAPHWIDGET_H
+#endif // SYMBOLESTMOVEWIDGET_H

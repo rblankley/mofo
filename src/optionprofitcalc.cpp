@@ -64,11 +64,9 @@ OptionProfitCalculator::OptionProfitCalculator( double underlying, const table_m
     else
     {
         // historical volatility
-        double tradingDaysToExpiry( daysToExpiry_ );
-        tradingDaysToExpiry *= AppDatabase::instance()->numTradingDays();
-        tradingDaysToExpiry /= AppDatabase::instance()->numDays();
+        const int tradingDaysToExpiry( AppDatabase::instance()->numTradingDaysUntil( chains_->expirationDate() ) );
 
-        histVolatility_ = SymbolDatabases::instance()->historicalVolatility( chains_->symbol(), now.date(), std::round( tradingDaysToExpiry ) );
+        histVolatility_ = SymbolDatabases::instance()->historicalVolatility( chains_->symbol(), now.date(), tradingDaysToExpiry );
 
         // risk free rate
         double timeToExpiryYears = daysToExpiry_;

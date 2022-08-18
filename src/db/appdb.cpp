@@ -71,6 +71,86 @@ AppDatabase::AppDatabase() :
     tableNames_[Splitter] = "splitterStates";
     tableNames_[PriceHistory] = "priceHistoryStates";
     tableNames_[Dialog] = "dialogStates";
+
+    // list of good friday dates
+    goodFriday_.append( QDate( 2000,  4, 21 ) );
+    goodFriday_.append( QDate( 2001,  4, 13 ) );
+    goodFriday_.append( QDate( 2002,  3, 29 ) );
+    goodFriday_.append( QDate( 2003,  4, 18 ) );
+    goodFriday_.append( QDate( 2004,  4,  9 ) );
+    goodFriday_.append( QDate( 2005,  3, 25 ) );
+    goodFriday_.append( QDate( 2006,  4, 14 ) );
+    goodFriday_.append( QDate( 2007,  4,  6 ) );
+    goodFriday_.append( QDate( 2008,  3, 21 ) );
+    goodFriday_.append( QDate( 2009,  4, 10 ) );
+    goodFriday_.append( QDate( 2010,  4,  2 ) );
+    goodFriday_.append( QDate( 2011,  4, 22 ) );
+    goodFriday_.append( QDate( 2012,  4,  6 ) );
+    goodFriday_.append( QDate( 2013,  3, 29 ) );
+    goodFriday_.append( QDate( 2014,  4, 18 ) );
+    goodFriday_.append( QDate( 2015,  4,  3 ) );
+    goodFriday_.append( QDate( 2016,  3, 25 ) );
+    goodFriday_.append( QDate( 2017,  4, 14 ) );
+    goodFriday_.append( QDate( 2018,  3, 30 ) );
+    goodFriday_.append( QDate( 2019,  4, 19 ) );
+    goodFriday_.append( QDate( 2020,  4, 10 ) );
+    goodFriday_.append( QDate( 2021,  4,  2 ) );
+    goodFriday_.append( QDate( 2022,  4, 15 ) );
+    goodFriday_.append( QDate( 2023,  4,  7 ) );
+    goodFriday_.append( QDate( 2024,  3, 29 ) );
+    goodFriday_.append( QDate( 2025,  4, 18 ) );
+    goodFriday_.append( QDate( 2026,  4,  3 ) );
+    goodFriday_.append( QDate( 2027,  3, 26 ) );
+    goodFriday_.append( QDate( 2028,  4, 14 ) );
+    goodFriday_.append( QDate( 2029,  3, 30 ) );
+
+#if defined( QT_DEBUG )
+    foreach ( const QDate& d, goodFriday_ )
+        assert( 5 == d.dayOfWeek() );
+
+    QMap<int, int> tradingDays;
+    tradingDays[2000] = 252;
+    tradingDays[2001] = 252; // 248 (closed 4 days extra due to 9/11)
+    tradingDays[2002] = 252;
+    tradingDays[2003] = 252;
+    tradingDays[2004] = 252;
+    tradingDays[2005] = 252;
+    tradingDays[2006] = 251;
+    tradingDays[2007] = 252; // 251 Tribute to former US President Gerald Ford January 2, 2007
+    tradingDays[2008] = 253;
+    tradingDays[2009] = 252;
+    tradingDays[2010] = 251; // 252 The 2011 New Years Eve falls in 2010
+    tradingDays[2011] = 252;
+    tradingDays[2012] = 252; // 250 (closed 2 days extra due to Hurricane Sandy)
+    tradingDays[2013] = 252;
+    tradingDays[2014] = 252;
+    tradingDays[2015] = 252;
+    tradingDays[2016] = 252;
+    tradingDays[2017] = 251;
+    tradingDays[2018] = 252;
+    tradingDays[2019] = 252;
+    tradingDays[2020] = 253;
+    tradingDays[2021] = 251; // 252 The 2022 New Years Eve falls in 2021
+    tradingDays[2022] = 251;
+    tradingDays[2023] = 250;
+    tradingDays[2024] = 252;
+
+    QDate d( 2000, 1, 1 );
+
+    do
+    {
+        const int y( d.year() );
+
+        setCurrentDateTime( QDateTime( d, QTime( 8, 0 ) ) );
+        d = d.addYears( 1 );
+
+        if ( tradingDays.contains( y ) )
+            assert( tradingDays[y] == numTradingDaysUntil( d ) );
+
+    } while ( d.year() < 2030 );
+
+    setCurrentDateTime( QDateTime() );
+#endif
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -1005,6 +1085,133 @@ AppDatabase *AppDatabase::instance()
     }
 
     return instance_;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+int AppDatabase::numTradingDaysBetween( const QDate& d0, const QDate& d ) const
+{
+    const double days( numTradingDaysBetween( QDateTime( d0, QTime( 1, 0 ) ), QDateTime( d, QTime( 1, 0 ) ) ) );
+
+    // floor result to give num days only
+    // add in a slight adjustment to ensure rounding is not an issue
+    // for example, 2.9999999999999999 should be 3
+    return std::floor( days + 0.000000001 );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+double AppDatabase::numTradingDaysBetween( const QDateTime& dt0, const QDateTime& dt ) const
+{
+    // make sure dates are ordered correctly
+    assert( dt0 <= dt );
+
+    QDate now( dt0.date() );
+
+    double days( 0 );
+
+    do
+    {
+        // check day of week
+        // 6 = sat
+        // 7 = sun
+        if ( now.dayOfWeek() < 6 )
+        {
+            const bool isMonday( 1 == now.dayOfWeek() );
+            const bool isFriday( 5 == now.dayOfWeek() );
+            const int nthDayOfWeek( std::ceil( now.day() / 7.0 ) );
+
+            const int m( now.month() );
+            const int d( now.day() );
+
+            bool valid( true );
+
+            // new years day
+            if ((  1 == m &&  1 == d ) ||
+                ( 12 == m && 31 == d && isFriday ) ||
+                (  1 == m &&  2 == d && isMonday ))
+                valid = false;
+
+            // martin luther king jr
+            // third monday in january
+            if ( 1 == m && isMonday && 3 == nthDayOfWeek )
+                valid = false;
+
+            // presidents day
+            // third monday in february
+            if ( 2 == m && isMonday && 3 == nthDayOfWeek )
+                valid = false;
+
+            // good friday
+            if ( isFriday )
+                if ( goodFriday_.contains( now ) )
+                    valid = false;
+
+            // memorial day
+            // last monday in may
+            if ( 5 == m && isMonday && 6 == now.addDays( 7 ).month() )
+                valid = false;
+
+            // juneteenth
+            if (( 6 == m && 19 == d ) ||
+                ( 6 == m && 18 == d && isFriday ) ||
+                ( 6 == m && 20 == d && isMonday ))
+            {
+                if ( 2022 <= now.year() )
+                    valid = false;
+            }
+
+            // independance day
+            if (( 7 == m && 4 == d ) ||
+                ( 7 == m && 3 == d && isFriday ) ||
+                ( 7 == m && 5 == d && isMonday ))
+                valid = false;
+
+            // labor day
+            // first monday in september
+            if ( 9 == m && isMonday && 1 == nthDayOfWeek )
+                valid = false;
+
+            // thanksgiving day
+            // fourth thursday in november
+            if ( 11 == m && 4 == now.dayOfWeek() && 4 == nthDayOfWeek )
+                valid = false;
+
+            // christmas day
+            if (( 12 == m && 25 == d ) ||
+                ( 12 == m && 24 == d && isFriday ) ||
+                ( 12 == m && 26 == d && isMonday ))
+                valid = false;
+
+            if ( valid )
+            {
+                // TODO: check market hours table for closure
+
+                // check for partial day
+                if ( now < dt.date() )
+                    days += 1.0;
+                else
+                {
+                    double hoursRemain( dt0.secsTo( dt ) );
+                    hoursRemain /= 3600.0;
+
+                    hoursRemain -= 24.0 * std::floor( hoursRemain / 24.0 );
+
+                    // TODO: early closures?
+
+                    // 6.5 hours in a trading day
+                    if ( 6.5 <= hoursRemain )
+                        days += 1.0;
+                    else
+                        days += (hoursRemain / 6.5);
+                }
+            }
+        }
+
+        // increment current day
+        now = now.addDays( 1 );
+
+    } while ( now <= dt.date() );
+
+    return days;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

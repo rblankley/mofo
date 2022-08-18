@@ -486,7 +486,6 @@ void SymbolImpliedVolatilityWidget::drawGraph()
 
     // stamp
     painter.setPen( QPen( palette().text().color(), 0 ) );
-
     painter.drawText( 0, SPACING+4, gwidth, 50, Qt::AlignHCenter | Qt::AlignTop, stamp_.toString() );
 
     painter.end();

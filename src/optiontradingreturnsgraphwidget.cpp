@@ -26,15 +26,9 @@
 #include "db/optiontradingitemmodel.h"
 #include "db/symboldbs.h"
 
-#include <cmath>
-
-#include <QAbstractItemView>
 #include <QComboBox>
-#include <QCryptographicHash>
 #include <QHBoxLayout>
 #include <QPainter>
-#include <QStandardItem>
-#include <QStandardItemModel>
 #include <QVBoxLayout>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -87,6 +81,7 @@ OptionTradingReturnsGraphWidget::~OptionTradingReturnsGraphWidget()
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingReturnsGraphWidget::translate()
 {
+    translateOverlays( overlays_ );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -222,13 +217,59 @@ void OptionTradingReturnsGraphWidget::resizeEvent( QResizeEvent *e )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingReturnsGraphWidget::onCurrentIndexChanged( int index )
+{
+    Q_UNUSED( index )
+
+    if ( overlays_ == sender() )
+        drawGraph();
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingReturnsGraphWidget::initialize()
 {
+    overlays_ = new QComboBox( this );
+
+    connect( overlays_, static_cast<void(QComboBox::*)(int)>( &QComboBox::currentIndexChanged ), this, &_Myt::onCurrentIndexChanged );
+
+    //
+    // overlays
+    //
+
+    overlays_->addItem( QString(), "NONE" );
+
+    // hist vol (days to expiry)
+    overlays_->addItem( QString(), "HVDTE" );
+
+    QStringList hvdepths;
+    hvdepths.append( "5" );
+    hvdepths.append( "10" );
+    hvdepths.append( "20" );
+    hvdepths.append( "30" );
+    hvdepths.append( "60" );
+    hvdepths.append( "90" );
+    hvdepths.append( "120" );
+    hvdepths.append( "240" );
+    hvdepths.append( "480" );
+
+    foreach ( const QString& hvdepth, hvdepths )
+        overlays_->addItem( QString(), "HV" + hvdepth );
+
+    // impl vol (days to expiry)
+    overlays_->addItem( QString(), "IV" );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 void OptionTradingReturnsGraphWidget::createLayout()
 {
+    QHBoxLayout *boxes( new QHBoxLayout() );
+    boxes->addStretch();
+    boxes->addWidget( overlays_ );
+
+    QVBoxLayout *form( new QVBoxLayout( this ) );
+    form->setContentsMargins( QMargins() );
+    form->addLayout( boxes );
+    form->addStretch();
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -379,6 +420,8 @@ void OptionTradingReturnsGraphWidget::drawGraph()
 
     const QLocale l( QLocale::system() );
 
+    QString volatilityInfoStr;
+
     int gwidth( width() );
     int gheight( height() );
 
@@ -392,6 +435,128 @@ void OptionTradingReturnsGraphWidget::drawGraph()
 
     QPainter painter;
     painter.begin( &graph_ );
+
+    // overlays
+    if ( 0 < overlays_->currentIndex() )
+    {
+        const QString data( overlays_->currentData().toString() );
+
+        // trading days until expiration
+        const double dte( AppDatabase::instance()->numTradingDaysUntil( QDateTime::fromString( modelData( model_type::EXPIRY_DATE ).toString(), Qt::ISODate ) ) );
+
+        LOG_TRACE << "trading days to expiry " << dte;
+
+        double vol( 0.0 );
+        double volMin( 0.0 );
+        double volMax( 0.0 );
+
+        // graph expected movement based on historical volatility
+        if ( data.startsWith( "HV" ) )
+        {
+            const QDate now( AppDatabase::instance()->currentDateTime().date() );
+
+            int depth( std::ceil( dte ) );
+
+            if ( "HVDTE" == data )
+                vol = modelData( model_type::HIST_VOLATILITY ).toDouble() / 100.0;
+            else if ( 2 < data.length() )
+            {
+                depth = QStringView{ data }.mid( 2 ).toInt();
+                vol = SymbolDatabases::instance()->historicalVolatility( underlying_, now, depth );
+            }
+
+            SymbolDatabases::instance()->historicalVolatilityRange( underlying_, now.addDays( -HV_RANGE_DAYS ), now, depth, volMin, volMax );
+        }
+        // graph expected movement based on implied volatility
+        else if ( data.startsWith( "IV" ) )
+        {
+            OptionChainCurves data;
+
+            SymbolDatabases::instance()->optionChainCurves( underlying_, expiryDate_, data );
+
+            // find lowest vol
+            if ( data.volatility.isEmpty() )
+                LOG_WARN << "no volatility info";
+            else
+            {
+                double implVol( data.volatility.begin().value() );
+
+                foreach ( const double& v, data.volatility )
+                    if ( v < implVol )
+                        implVol = v;
+
+                LOG_TRACE << "impl vol " << implVol;
+                vol = implVol;
+            }
+        }
+
+        LOG_TRACE << "volatility " << vol << " min " << volMin << " max " << volMax;
+
+        // draw
+        painter.setPen( QPen( Qt::NoPen ) );
+
+        // estimated movement
+        if ( 0.0 < vol )
+        {
+            const double volp( vol * sqrt( dte / AppDatabase::instance()->numTradingDays() ) );
+            const double estMovement( underlyingPrice_ * volp );
+
+            QList<int> alpha;
+            alpha.append( (16 * 255) / 100 );   // 1 sigma - 34.1% probability
+            alpha.append( (12 * 255) / 100 );   // 2 sigma - 13.6% probability
+            alpha.append( (8 * 255) / 100 );    // 3 sigma -  2.1% probability
+
+            for ( int sigma( 3 ); 0 < sigma; --sigma )
+            {
+                int xleft( gleft + scaled( underlyingPrice_ - estMovement * sigma, xmin, xmax, gright-gleft ) );
+                int xright( gleft + scaled( underlyingPrice_ + estMovement * sigma, xmin, xmax, gright-gleft ) );
+
+                xleft = qMax( xleft, gleft );
+                xright = qMin( xright, gright );
+
+                QColor c( Qt::red );
+                c.setAlpha( alpha[sigma-1] );
+
+                painter.setBrush( QBrush( c, Qt::SolidPattern ) );
+                painter.drawRect( xleft, gtop, xright - xleft, gbottom - gtop );
+            }
+
+            volatilityInfoStr = QString( "%1% (+/- %2)")
+                .arg( l.toString( vol * 100.0, 'f', 2 ) )
+                .arg( l.toString( estMovement, 'f', 3 ) );
+        }
+
+        // minimum movement
+        if ( 0.0 < volMin )
+        {
+            const double volp( volMin * sqrt( dte / AppDatabase::instance()->numTradingDays() ) );
+            const double estMovement( underlyingPrice_ * volp );
+
+            const int xleft( gleft + scaled( underlyingPrice_ - estMovement, xmin, xmax, gright-gleft ) );
+            const int xright( gleft + scaled( underlyingPrice_ + estMovement, xmin, xmax, gright-gleft ) );
+
+            QColor c( Qt::darkRed );
+            c.setAlpha( 128 );
+
+            painter.setBrush( QBrush( c, Qt::SolidPattern ) );
+            painter.drawRect( xleft, gtop, xright - xleft, gbottom - gtop );
+        }
+
+        // maximum movement
+        if ( 0.0 < volMax )
+        {
+            const double volp( volMax * sqrt( dte / AppDatabase::instance()->numTradingDays() ) );
+            const double estMovement( underlyingPrice_ * volp );
+
+            const int xleft( gleft + scaled( underlyingPrice_ - estMovement, xmin, xmax, gright-gleft ) );
+            const int xright( gleft + scaled( underlyingPrice_ + estMovement, xmin, xmax, gright-gleft ) );
+
+            painter.setPen( QPen( palette().text().color(), 1, Qt::DashLine ) );
+            painter.drawLine( xleft, gtop, xleft, gbottom - gtop );
+            painter.drawLine( xright, gtop, xright, gbottom - gtop );
+        }
+
+    } // overlay selected
 
     // return value intervals
     painter.setPen( QPen( Qt::darkGray, 0 ) );
@@ -450,9 +615,19 @@ void OptionTradingReturnsGraphWidget::drawGraph()
         const int y( gbottom - scaled( ev, ymin, ymax, gbottom-gtop ) );
 
         painter.setPen( QPen( (ev < 0.0) ? Qt::red : Qt::darkGreen, 1, Qt::DashLine ) );
-
         painter.drawLine( gleft, y, gright, y );
-        painter.drawText( 0, y-25, marginWidth-SPACING, 50, Qt::AlignRight | Qt::AlignVCenter, QString::number( ev, 'f', numDecimalPlacesReturns ) );
+
+        const QString exString( QString::number( ev, 'f', numDecimalPlacesReturns ) );
+
+        QRect r( fm.boundingRect( exString ) );
+        r.moveTo( gleft - r.width()/2, y - r.height()/2 );
+
+        painter.setBrush( (ev < 0.0) ? Qt::red : Qt::darkGreen );
+        painter.setPen( (ev < 0.0) ? Qt::red : Qt::darkGreen );
+        painter.drawRect( r );
+
+        painter.setPen( Qt::white );
+        painter.drawText( r, Qt::AlignCenter, exString );
     }
 
     // price
@@ -468,14 +643,14 @@ void OptionTradingReturnsGraphWidget::drawGraph()
     // stamp
     painter.setPen( QPen( palette().text().color(), 0 ) );
     painter.drawText( 0, SPACING+4, gwidth, 50, Qt::AlignHCenter | Qt::AlignTop, stamp_.toString() );
-/*
-    // labels
-    painter.setPen( QPen( penColor[0], 0 ) );
-    painter.drawText( 0, SPACING+4, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "CALLS" ) );
 
-    painter.setPen( QPen( penColor[1], 0 ) );
-    painter.drawText( 0, SPACING+4+marginHeight, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "PUTS" ) );
-*/
+    // volatility info
+    if ( volatilityInfoStr.length() )
+    {
+        painter.setPen( QPen( palette().text().color(), 0 ) );
+        painter.drawText( gright-250, gbottom-50, 250, 50, Qt::AlignRight | Qt::AlignBottom, volatilityInfoStr );
+    }
+
     painter.end();
 
     // queue paint event
@@ -487,3 +662,26 @@ int OptionTradingReturnsGraphWidget::scaled( double p, double min, double max, i
 {
     return std::round( ((p - min) / (max - min)) * height );
 }
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void OptionTradingReturnsGraphWidget::translateOverlays( QComboBox *w )
+{
+    for ( int i( 0 ); i < w->count(); ++i )
+    {
+        const QString data( w->itemData( i ).toString() );
+
+        QString text;
+
+        if ( "NONE" == data )
+            text = tr( "OVERLAYS" );
+        else if ( "HVDTE" == data )
+            text = tr( "HV(DTE)" );
+        else if ( data.startsWith( "HV" ) )
+            text = tr( "HV(%0)" ).arg( QStringView{ data }.mid( 2 ) );
+        else if ( "IV" == data )
+            text = tr( "IV" );
+
+        w->setItemText( i, text );
+    }
+}
+

@@ -304,6 +304,36 @@ public:
     // Methods
     // ========================================================================
 
+    /// Calculate number of trading days between dates.
+    /**
+     * @param[in] start  start date
+     * @param[in] end  end date
+     * @return  number of trading days
+     */
+    virtual int numTradingDaysBetween( const QDate& start, const QDate& end ) const;
+
+    /// Calculate number of trading days between dates.
+    /**
+     * @param[in] start  start date
+     * @param[in] end  end date
+     * @return  number of trading days
+     */
+    virtual double numTradingDaysBetween( const QDateTime& start, const QDateTime& end ) const;
+
+    /// Calculate number of trading days remaining until a date.
+    /**
+     * @param[in] d  date to calculate until
+     * @return  number of trading days
+     */
+    virtual int numTradingDaysUntil( const QDate& d ) const {return numTradingDaysBetween( currentDateTime().date(), d );}
+
+    /// Calculate number of trading days remaining until a date/time.
+    /**
+     * @param[in] dt  date/time to calculate until
+     * @return  number of trading days
+     */
+    virtual double numTradingDaysUntil( const QDateTime& dt ) const {return numTradingDaysBetween( currentDateTime(), dt );}
+
     /// Remove thread specific database connection.
     virtual void removeConnection();
 
@@ -456,6 +486,8 @@ private:
     static _Myt *instance_;
 
     QMap<WidgetType, QString> tableNames_;
+
+    QList<QDate> goodFriday_;
 
     /// Constructor.
     AppDatabase();

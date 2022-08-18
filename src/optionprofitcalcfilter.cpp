@@ -1094,9 +1094,7 @@ QVariant OptionProfitCalculatorFilter::tableData( const QString& t, const QStrin
                 return QVariant();
 
             // depth is trading days to expiry
-            int d( end.daysTo( expiry ) );
-            d *= AppDatabase::instance()->numTradingDays();
-            d /= AppDatabase::instance()->numDays();
+            const int d( AppDatabase::instance()->numTradingDaysBetween( end, expiry ) );
 
             if (( vmin ) || ( vmax ))
             {

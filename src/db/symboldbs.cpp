@@ -117,6 +117,18 @@ double SymbolDatabases::dividendYield( const QString& symbol ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabases::futureVolatility( const QString& symbol, QMap<QDate, FutureVolatilities>& data, const QDateTime& start, const QDateTime& end ) const
+{
+    SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );
+
+    if ( child )
+    {
+        SymbolDatabaseRemoveRef deref( symbol );
+        child->futureVolatility( data, start, end );
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double SymbolDatabases::historicalVolatility( const QString& symbol, const QDate& date, int depth ) const
 {
     SymbolDatabase *child( const_cast<_Myt*>( this )->findSymbol( symbol ) );

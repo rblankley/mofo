@@ -166,6 +166,172 @@ double SymbolDatabase::dividendYield() const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void SymbolDatabase::futureVolatility( QMap<QDate, FutureVolatilities>& data, const QDateTime& start, const QDateTime& end ) const
+{
+    const QDateTime now( AppDatabase::instance()->currentDateTime() );
+
+    // fetch all expirations
+    const QList<QDate> expiryDates( optionExpirationDates( now ) );
+
+    if ( expiryDates.isEmpty() )
+    {
+        LOG_WARN << "no expiration dates found for " << qPrintable( symbol() );
+        return;
+    }
+
+    LOG_TRACE << "processing " << expiryDates.size() << " expiry dates...";
+
+    // determine what expirations we have curve data for
+    QList<QDate> curveDataExists;
+    optionChainCurveExpirationDates( curveDataExists, start, end );
+
+    LOG_TRACE << "have " << curveDataExists.size() << " analyzed expirations";
+
+    // handle each expiration
+    foreach ( const QDate& d, expiryDates )
+    {
+        FutureVolatilities future;
+
+        // days to expiration
+        future.dte = AppDatabase::instance()->numTradingDaysBetween( now.date(), d );
+
+        // historical
+        future.hist = historicalVolatility( now.date(), future.dte );
+
+        // analyzed implied volatility option data exists
+        if ( curveDataExists.contains( d ) )
+        {
+            OptionChainCurves curves;
+
+            const QDateTime curvesStamp( optionChainCurves( d, curves, start, end ) );
+            const QMap<double, double> *vol( &curves.volatility );
+
+            if ( vol->isEmpty() )
+                LOG_WARN << "no curve data found for " << qPrintable( symbol() ) << " expiry " << qPrintable( d.toString() );
+            else
+            {
+                future.strike = vol->begin().key();
+                future.impl = vol->begin().value();
+
+                for ( QMap<double, double>::const_iterator i( vol->constBegin() ); i != vol->constEnd(); i++ )
+                    if ( i.value() < future.impl )
+                    {
+                        future.strike = i.key();
+                        future.impl = i.value();
+                    }
+                    else if ( i.value() == future.impl )
+                    {
+                        future.strike += i.key();
+                        future.strike /= 2.0;
+                    }
+
+                future.stamp = curvesStamp;
+                future.analyzed = true;
+            }
+        }
+
+        // no analyzed data
+        // estimate from raw option chain data
+        else
+        {
+            future.strike = 0.0;
+            future.impl = 0.0;
+
+            future.analyzed = false;
+
+            // ---- //
+
+            static const QString sql( "SELECT * FROM optionChainView "
+                "WHERE DATE(:expirationDate)=DATE(expirationDate) %1 %2 "
+                "ORDER BY stamp DESC" );
+
+            static const QString starting( "AND DATETIME(:start)<=DATETIME(stamp)" );
+            static const QString ending( "AND DATETIME(stamp)<=DATETIME(:end)" );
+
+            static const QString newest( "AND stamp=(SELECT MAX(stamp) FROM optionChainView)" );
+
+            QSqlQuery query( connection() );
+            query.setForwardOnly( true );
+
+            if (( !start.isValid() ) && ( !end.isValid() ))
+                query.prepare( sql.arg( newest, QString() ) );
+            else
+                query.prepare( sql.arg( start.isValid() ? starting : QString(), end.isValid() ? ending : QString() ) );
+
+            query.bindValue( ":" + DB_EXPIRY_DATE, d.toString( Qt::ISODate ) );
+
+            if ( start.isValid() )
+                query.bindValue( ":start", start.toString( Qt::ISODateWithMs ) );
+
+            if ( end.isValid() )
+                query.bindValue( ":end", end.toString( Qt::ISODateWithMs ) );
+
+            if ( !query.exec() )
+            {
+                const QSqlError e( query.lastError() );
+
+                LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+            }
+
+            // parse data
+            else
+            {
+                bool first( true );
+
+                while ( query.next() )
+                {
+                    const QSqlRecord rec( query.record() );
+                    const QDateTime recStamp( QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs ) );
+
+                    if ( !future.stamp.isValid() )
+                    {
+                        // record stamp outside requested range
+                        if (( start.isValid() ) && ( recStamp < start ))
+                            break;
+                        else if (( end.isValid() ) && ( end < recStamp ))
+                            break;
+
+                        future.stamp = recStamp;
+                    }
+                    else if ( recStamp != future.stamp )
+                        break;
+
+                    const double strikePrice( rec.value( DB_STRIKE_PRICE ).toDouble() );
+                    const double volatility( (rec.value( DB_CALL_VOLATILITY ).toDouble() + rec.value( DB_PUT_VOLATILITY ).toDouble()) / 200.0 );
+
+                    if ( first )
+                    {
+                        future.strike = strikePrice;
+                        future.impl = volatility;
+
+                        first = false;
+                    }
+                    else
+                    {
+                        if ( volatility < future.impl )
+                        {
+                            future.strike = strikePrice;
+                            future.impl = volatility;
+                        }
+                        else if ( volatility == future.impl )
+                        {
+                            future.strike += strikePrice;
+                            future.strike /= 2.0;
+                        }
+                    }
+
+                } // for each option chain record
+            } // valid query
+        } // no analyzed data
+
+        // add to map
+        data[d] = future;
+    }
+
+    LOG_DEBUG << "done";
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 double SymbolDatabase::historicalVolatility( const QDate& date, int depth ) const
 {
     // find a recent hv
@@ -1558,6 +1724,45 @@ void SymbolDatabase::updateOptionChainCurves( const QDateTime& stamp )
         }
 
     } while ( query.next() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QList<QDate> SymbolDatabase::optionExpirationDates( const QDateTime& dt ) const
+{
+    static const QString sql( "SELECT DISTINCT expirationDate FROM optionChainStrikePrices "
+        "WHERE DATE(:date)<=DATE(expirationDate) AND DATETIME(stamp)<=DATETIME(:stamp) "
+        "ORDER BY expirationDate ASC" );
+
+    assert( dt.isValid() );
+
+    QList<QDate> results;
+
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
+    query.prepare( sql );
+
+    query.bindValue( ":date", dt.date().toString( Qt::ISODate ) );
+    query.bindValue( ":stamp", dt.toString( Qt::ISODateWithMs ) );
+
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+
+    // extract data
+    else
+    {
+        while ( query.next() )
+        {
+            const QSqlRecord rec( query.record() );
+
+            results.append( QDate::fromString( rec.value( DB_EXPIRY_DATE ).toString(), Qt::ISODate ) );
+        }
+    }
+
+    return results;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

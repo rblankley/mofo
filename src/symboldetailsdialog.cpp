@@ -23,6 +23,7 @@
 #include "common.h"
 #include "fundamentalsviewerwidget.h"
 #include "symboldetailsdialog.h"
+#include "symbolestmovewidget.h"
 #include "symbolimplvolwidget.h"
 #include "symbolpricehistorywidget.h"
 
@@ -84,6 +85,7 @@ void SymbolDetailsDialog::translate()
 
     tabs_->setTabText( 0, tr( "Details" ) );
     tabs_->setTabText( 1, tr( "Volatility" ) );
+    tabs_->setTabText( 2, tr( "Est. Movement" ) );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -106,6 +108,11 @@ void SymbolDetailsDialog::initialize()
     implVol_ = new SymbolImpliedVolatilityWidget( symbol(), price_ );
 
     tabs_->addTab( implVol_, QString() );
+
+    // estimated movement
+    estMove_ = new SymbolEstimatedMovementWidget( symbol(), price_ );
+
+    tabs_->addTab( estMove_, QString() );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

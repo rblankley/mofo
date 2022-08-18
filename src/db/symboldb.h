@@ -97,6 +97,14 @@ public:
      */
     virtual double dividendYield() const;
 
+    /// Retrieve future volatility.
+    /**
+     * @param[out] data  map of volatility information by date
+     * @param[in] start  starting date/time (optional)
+     * @param[in] end  ending date/time (optional)
+     */
+    virtual void futureVolatility( QMap<QDate, FutureVolatilities>& data, const QDateTime& start = QDateTime(), const QDateTime& end = QDateTime() ) const;
+
     /// Retrieve historical volatility.
     /**
      * @param[in] date  date to retrieve
@@ -397,6 +405,9 @@ private:
 
     /// Update option chain curve data.
     void updateOptionChainCurves( const QDateTime& stamp );
+
+    /// Retrieve list of option expiration dates.
+    QList<QDate> optionExpirationDates( const QDateTime& dt ) const;
 
     /// Calculate historical volatility (standard deviation).
     void calcHistoricalVolatility();

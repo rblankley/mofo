@@ -416,35 +416,41 @@ void OptionChainProbabilityWidget::drawGraph()
     int ltop( SPACING+4 );
 
     painter.setPen( QPen( palette().text().color(), 0 ) );
-    painter.drawText( 0, ltop, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "OTM Probability" ) );
+
+    if ( isCall() )
+        painter.drawText( gleft+4, ltop, gwidth-SPACING, 50, Qt::AlignLeft | Qt::AlignTop, tr( "OTM Probability" ) );
+    else
+        painter.drawText( 0, ltop, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "OTM Probability" ) );
 
     foreach ( const Leg& leg, legs_ )
     {
+        const QColor c( legColor( leg ) );
+
         const double prob( 100 * calcStrikeProbability( leg.strike ) );
 
         const int x( gleft + scaled( leg.strike, xmin, xmax, gright-gleft ) );
-        const int y( gbottom - scaled( prob, ymin, ymax, gbottom-gtop ) );
-
-        painter.setPen( QPen( legColor( leg ), 0 ) );
 
         // draw description label
         ltop += marginHeight;
-        painter.drawText( 0, ltop, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, leg.description );
+
+        painter.setPen( c );
+
+        if ( isCall() )
+            painter.drawText( gleft+4, ltop, gwidth-SPACING, 50, Qt::AlignLeft | Qt::AlignTop, leg.description );
+        else
+            painter.drawText( 0, ltop, gwidth-SPACING, 50, Qt::AlignRight | Qt::AlignTop, leg.description );
 
         // draw probability label
         const QString probLabel( QString( "%0%" ).arg( l.toString( prob, 'f', 2 ) ) );
 
-        const int probWidth( 120 );
-        const int probHeight( 2*marginHeight );
+        QRect r( fm.boundingRect( probLabel ) );
+        r.moveTo( x - r.width()/2, gbottom - r.height()/2 );
 
-        int probLeft( x - (probWidth/2) );
-        int probTop( 0 );
+        painter.setBrush( c );
+        painter.drawRect( r );
 
-        // dot in top half
-        if ( y <= (gheight/2) )
-            probTop = gbottom - probHeight;
-
-        painter.drawText( probLeft, probTop, probWidth, probHeight, Qt::AlignCenter, probLabel );
+        painter.setPen( Qt::white );
+        painter.drawText( r, Qt::AlignCenter, probLabel );
     }
 
     painter.end();

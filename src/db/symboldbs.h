@@ -122,6 +122,15 @@ public:
      */
     double dividendYield( const QString& symbol ) const;
 
+    /// Retrieve future volatility.
+    /**
+     * @param[in] symbol  symbol to retrieve
+     * @param[out] data  map of volatility information by date
+     * @param[in] start  starting date/time (optional)
+     * @param[in] end  ending date/time (optional)
+     */
+    void futureVolatility( const QString& symbol, QMap<QDate, FutureVolatilities>& data, const QDateTime& start, const QDateTime& end ) const;
+
     /// Retrieve historical volatility.
     /**
      * @param[in] symbol  symbol to retrieve

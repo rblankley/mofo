@@ -27,6 +27,7 @@
 
 class CollapsibleSplitter;
 class FundamentalsViewerWidget;
+class SymbolEstimatedMovementWidget;
 class SymbolImpliedVolatilityWidget;
 class SymbolPriceHistoryWidget;
 
@@ -101,6 +102,8 @@ private:
     FundamentalsViewerWidget *fundamentals_;
 
     SymbolImpliedVolatilityWidget *implVol_;
+
+    SymbolEstimatedMovementWidget *estMove_;
 
     /// Initialize.
     void initialize();

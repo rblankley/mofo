@@ -23,6 +23,7 @@
 #ifndef OPTIONDATA_H
 #define OPTIONDATA_H
 
+#include <QDateTime>
 #include <QMap>
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -49,6 +50,19 @@ struct OptionChainOpenInterest
 
     QMap<double, int> callTotalVolume;
     QMap<double, int> putTotalVolume;
+};
+
+/// Future Volatility Information (i.e. Estimated Movement).
+struct FutureVolatilities
+{
+    QDateTime stamp;                                ///< Stamp of when option chain data was retrieved.
+    int dte;                                        ///< Trading days to expiration.
+
+    double hist;                                    ///< Historical volatility for same period (DTE).
+    double impl;                                    ///< Implied volatility.
+
+    double strike;                                  ///< Strike price for implied volatility.
+    bool analyzed;                                  ///< @c true if implied volatility was computed from analysis, @c false otherwise.
 };
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

@@ -528,10 +528,10 @@ void OptionChainOpenInterestWidget::drawGraph()
 
     // labels
     painter.setPen( QPen( penColor[0], 0 ) );
-    painter.drawText( 0, SPACING+4, width()-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "CALLS" ) );
+    painter.drawText( 0, SPACING+4, width()-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "Calls" ) );
 
     painter.setPen( QPen( penColor[1], 0 ) );
-    painter.drawText( 0, SPACING+4+marginHeight, width()-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "PUTS" ) );
+    painter.drawText( 0, SPACING+4+marginHeight, width()-SPACING, 50, Qt::AlignRight | Qt::AlignTop, tr( "Puts" ) );
 
     painter.end();
 
