@@ -164,6 +164,7 @@ private:
     QToolButton *clear_;
     QToolButton *analysisOne_;
     QToolButton *analysisAll_;
+    QToolButton *details_;
     QToolButton *refresh_;
 
     QSplitter *splitter_;

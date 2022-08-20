@@ -88,14 +88,16 @@ void SymbolEstimatedMovementWidget::refreshData()
 
     for ( QMap<QDate, FutureVolatilities>::const_iterator f( vfuture.constBegin() ); f != vfuture.constEnd(); f++ )
     {
+        const double key( AppDatabase::instance()->currentDateTime().date().daysTo( f.key() ) );
+
         // hist movement
         if ( 0.0 < f->hist )
         {
             const double volp( f->hist * sqrt( f->dte / AppDatabase::instance()->numTradingDays() ) );
             const double estMovement( price_ * volp );
 
-            histMin_[f->dte] = price_ - estMovement;
-            histMax_[f->dte] = price_ + estMovement;
+            histMin_[key] = price_ - estMovement;
+            histMax_[key] = price_ + estMovement;
         }
 
         // impl movement
@@ -104,13 +106,13 @@ void SymbolEstimatedMovementWidget::refreshData()
             const double volp( f->impl * sqrt( f->dte / AppDatabase::instance()->numTradingDays() ) );
             const double estMovement( price_ * volp );
 
-            implMin_[f->dte] = price_ - estMovement;
-            implMax_[f->dte] = price_ + estMovement;
+            implMin_[key] = price_ - estMovement;
+            implMax_[key] = price_ + estMovement;
         }
 
         // impl vol strike estimation
         if ( 0.0 < f->strike )
-            implStrikes_[f->dte] = f->strike;
+            implStrikes_[key] = f->strike;
     }
 
     // draw!

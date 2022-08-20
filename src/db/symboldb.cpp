@@ -683,24 +683,31 @@ QDateTime SymbolDatabase::optionChainCurveExpirationDates( QList<QDate>& expiryD
     }
 
     // extract data
-    QDateTime result;
+    QString result;
 
     while ( query.next() )
     {
         const QSqlRecord rec( query.record() );
 
-        const QDateTime stamp( QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs ) );
+        const QString stamp( rec.value( DB_STAMP ).toString() );
+        const QString expiry( rec.value( DB_EXPIRY_DATE ).toString() );
+
+        LOG_TRACE << "found analyzed option chain " << qPrintable( symbol() ) << " " << qPrintable( expiry ) << " " << qPrintable( stamp );
 
         // fetch all expiration dates from same stamp
-        if ( !result.isValid() )
+        if ( result.isEmpty() )
             result = stamp;
         else if ( stamp != result )
             break;
 
-        expiryDates.append( QDate::fromString( rec.value( DB_EXPIRY_DATE ).toString(), Qt::ISODate ) );
+        const QDate d( QDate::fromString( expiry, Qt::ISODate ) );
+
+        expiryDates.append( d );
     }
 
-    return result;
+    LOG_DEBUG << "found " << expiryDates.size() << " analyzed option chains for " << qPrintable( symbol() );
+
+    return QDateTime::fromString( result, Qt::ISODateWithMs );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -740,16 +747,17 @@ QDateTime SymbolDatabase::optionChainCurves( const QDate& expiryDate, OptionChai
     }
 
     // extract data
-    QDateTime stamp;
+    QString result;
 
     while ( query.next() )
     {
         const QSqlRecord rec( query.record() );
-        const QDateTime recStamp( QDateTime::fromString( rec.value( DB_STAMP ).toString(), Qt::ISODateWithMs ) );
 
-        if ( !stamp.isValid() )
-            stamp = recStamp;
-        else if ( recStamp != stamp )
+        const QString stamp( rec.value( DB_STAMP ).toString() );
+
+        if ( result.isEmpty() )
+            result = stamp;
+        else if ( stamp != result )
             break;
 
         const double strikePrice( rec.value( DB_STRIKE_PRICE ).toDouble() );
@@ -760,10 +768,9 @@ QDateTime SymbolDatabase::optionChainCurves( const QDate& expiryDate, OptionChai
 
         data.itmProbability[strikePrice] = rec.value( DB_ITM_PROBABILITY ).toDouble();
         data.otmProbability[strikePrice] = rec.value( DB_OTM_PROBABILITY ).toDouble();
-
     }
 
-    return stamp;
+    return QDateTime::fromString( result, Qt::ISODateWithMs );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////

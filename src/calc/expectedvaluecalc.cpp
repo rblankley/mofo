@@ -375,10 +375,14 @@ bool ExpectedValueCalculator::generateProbCurve()
     }
 
     // save option curve info
+    const QString stamp( chains_->data0( table_model_type::STAMP ).toString() );
+
+    LOG_DEBUG << "set option chain curve " << qPrintable( chains_->symbol() ) << " " << qPrintable( chains_->expirationDate().toString() ) << " " << qPrintable( stamp );
+
     SymbolDatabases::instance()->setOptionChainCurves(
         chains_->symbol(),
         chains_->expirationDate(),
-        QDateTime::fromString( chains_->data0( table_model_type::STAMP ).toString(), Qt::ISODateWithMs ),
+        QDateTime::fromString( stamp, Qt::ISODateWithMs ),
         curves );
 
     return true;

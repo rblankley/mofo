@@ -26,6 +26,7 @@
 #include "optionprofitcalc.h"
 #include "optiontradingview.h"
 #include "optionviewerwidget.h"
+#include "symboldetailsdialog.h"
 #include "symbolpricehistorywidget.h"
 
 #include "db/appdb.h"
@@ -103,6 +104,7 @@ void OptionViewerWidget::translate()
     clear_->setText( tr( "Clear" ) );
     analysisOne_->setText( tr( "Analyze\nOne Expiry" ) );
     analysisAll_->setText( tr( "Analyze\nAll Expirys" ) );
+    details_->setText( tr( "Show\nDetails" ) );
     refresh_->setText( tr( "Refresh" ) );
 
     expiryDates_->setTabText( chartTab_, tr( "Chart" ) );
@@ -240,6 +242,14 @@ void OptionViewerWidget::onButtonClicked()
         QApplication::restoreOverrideCursor();
 
         clear_->setVisible( true );
+    }
+
+    // show details
+    else if ( details_ == sender() )
+    {
+        // show dialog
+        SymbolDetailsDialog d( symbol(), model_->tableData( QuoteTableModel::MARK ).toDouble(), this );
+        d.exec();
     }
 }
 
@@ -523,6 +533,14 @@ void OptionViewerWidget::initialize()
 
     connect( analysisAll_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
 
+    details_ = new QToolButton( this );
+    details_->setMinimumWidth( 70 );
+    details_->setIcon( QIcon( ":/res/bar-chart.png" ) );
+    details_->setToolButtonStyle( Qt::ToolButtonTextUnderIcon );
+    details_->setSizePolicy( QSizePolicy::Minimum, QSizePolicy::Minimum );
+
+    connect( details_, &QToolButton::clicked, this, &_Myt::onButtonClicked );
+
     refresh_ = new QToolButton( this );
     refresh_->setMinimumWidth( 70 );
     refresh_->setIcon( QIcon( ":/res/refresh.png" ) );
@@ -671,6 +689,7 @@ void OptionViewerWidget::createLayout()
     buttons->addWidget( clear_ );
     buttons->addWidget( analysisOne_ );
     buttons->addWidget( analysisAll_ );
+    buttons->addWidget( details_ );
     buttons->addWidget( refresh_ );
 
     QHBoxLayout *header( new QHBoxLayout() );
