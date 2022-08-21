@@ -166,6 +166,10 @@ void OptionTradingReturnsViewerWidget::refreshData()
         l.toString( modelData( model_type::CALC_THEO_VOLATILITY ).toDouble(), 'f', 4 ),
         "-" );
 
+    // red - volatility < historic
+    // green - volatility >= historic
+    setLabelColor( implVol_, (modelData( model_type::HIST_VOLATILITY ).toDouble() <= modelData( model_type::CALC_THEO_VOLATILITY ).toDouble()) ? Qt::darkGreen : Qt::red );
+
     setLabelText( histVol_,
         l.toString( modelData( model_type::HIST_VOLATILITY ).toDouble(), 'f', 4 ),
         "-" );

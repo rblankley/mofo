@@ -116,6 +116,34 @@ You will be asked to choose a watchlist and a filter. After doing so you can vie
 
 ![Custom Scan Dialog](./doc/customscanfilter.png?raw=true)
 
+### Charts and Graphs
+
+After running analysis you can view basic information on the underlying or the option trade through the right click menu.
+
+![Option Trade Menu](./doc/optionmenu.png?raw=true)
+
+For the underlying you can view basic fundamentals, implied volatility skew for all analyzed expirations, and implied versus historical estimated movement.
+
+I've noticed TDA API gives back very mixed results regarding fundamental data. Some symbols appear to have lots of detail where others do not.
+
+![Underlying Details](./doc/symboldetails.png?raw=true)
+
+![Underlying Implied Volatility](./doc/symbolimplvol.png?raw=true)
+
+![Underlying Estimated Movement](./doc/symbolestmove.png?raw=true)
+
+For the analyzed option trade you can view estimated returns along with estimated movement information (the red background indicates three sigmas worth of estimated movement), implied volatility skew, probability curve, and open interest at each strike.
+
+The volatility and estimated movement that I compute always seems to be a little less than ToS. I'm not sure if this is due to computation method (I tend to use binomial) or something else. I guess it goes without saying that you should do your own homework before making any trade!
+
+![Option Trade Details](./doc/optiondetails.png?raw=true)
+
+![Option Implied Volatility](./doc/optionimplvol.png?raw=true)
+
+![Option Probability](./doc/optionprob.png?raw=true)
+
+![Option Open Interest](./doc/optionopenint.png?raw=true)
+
 ## Building
 
 This project requires Qt libraries for the user interface. For Windows I have used both 5.15.2 and 6.2.1. For Linux I have used whatever comes with Ubuntu 20.04 which I believe is 5.12.8.
