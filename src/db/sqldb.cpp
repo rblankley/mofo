@@ -91,7 +91,7 @@ QSqlDatabase SqlDatabase::connection() const
 
     // execute pragmas
     QStringList pragmas;
-    pragmas.append( "PRAGMA foreign_keys = ON" );
+    //pragmas.append( "PRAGMA foreign_keys = ON" ); this appears to be causing massive stalls for larger option chains
     pragmas.append( "PRAGMA journal_mode = WAL" );
     pragmas.append( "PRAGMA synchronous = OFF" );
     pragmas.append( "PRAGMA temp_store = MEMORY" );

@@ -358,7 +358,7 @@ void SymbolImpliedVolatilityWidget::drawGraph()
     double xinterval;
     int numDecimalPlacesStrike;
 
-    // width of maximum stirke price text element
+    // width of maximum strike price text element
     const double xmaxwidth( fm.boundingRect( QString::number( xmax, 'f', 4 ) ).width() );
 
     calcIntervalValues( xmin, xmax, width(), xmaxwidth, xinterval, numDecimalPlacesStrike );
@@ -485,7 +485,15 @@ void SymbolImpliedVolatilityWidget::drawGraph()
     }
 
     // stamp
-    painter.setPen( QPen( palette().text().color(), 0 ) );
+    const QDateTime now( AppDatabase::instance()->currentDateTime() );
+
+    if ( stamp_.daysTo( now ) <= 0 )
+        painter.setPen( QPen( palette().text().color(), 0 ) );
+    else if ( stamp_.daysTo( now ) <= 7 )
+        painter.setPen( QPen( QColor( 255, 165, 0 ), 0 ) ); // orange
+    else
+        painter.setPen( QPen( Qt::red, 0 ) );
+
     painter.drawText( 0, SPACING+4, gwidth, 50, Qt::AlignHCenter | Qt::AlignTop, stamp_.toString() );
 
     painter.end();

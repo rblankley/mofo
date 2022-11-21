@@ -74,6 +74,8 @@ SOURCES += \
     optiontradingview.cpp \
     optionviewertabwidget.cpp \
     optionviewerwidget.cpp \
+    riskfreeinterestratesdialog.cpp \
+    riskfreeinterestrateswidget.cpp \
     symboldetailsdialog.cpp \
     symbolestmovewidget.cpp \
     symbolimplvolwidget.cpp \
@@ -168,6 +170,8 @@ HEADERS += \
     optiontradingview.h \
     optionviewertabwidget.h \
     optionviewerwidget.h \
+    riskfreeinterestratesdialog.h \
+    riskfreeinterestrateswidget.h \
     symboldetailsdialog.h \
     symbolestmovewidget.h \
     symbolimplvolwidget.h \

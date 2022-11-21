@@ -477,24 +477,23 @@ bool TDAmeritradeDatabaseAdapter::transformOptionChain( const QJsonObject& tdobj
     QJsonArray options;
     QMutex m;
 
-    QFuture<void> fcalls;
-    QFuture<void> fputs;
+    QFutureSynchronizer<void> f;
 
     if (( tdobj.constEnd() != calls ) && ( calls->isObject() ))
     {
 #if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        fcalls = QtConcurrent::run( &_Myt::parseOptionChain, this, calls, underlyingPrice, &options, &m );
+        f.addFuture( QtConcurrent::run( &_Myt::parseOptionChain, this, calls, underlyingPrice, &options, &m ) );
 #else
-        fcalls = QtConcurrent::run( this, &_Myt::parseOptionChain, calls, underlyingPrice, &options, &m );
+        f.addFuture( QtConcurrent::run( this, &_Myt::parseOptionChain, calls, underlyingPrice, &options, &m ) );
 #endif
     }
 
     if (( tdobj.constEnd() != puts ) && ( puts->isObject() ))
     {
 #if QT_VERSION_CHECK( 6, 2, 0 ) <= QT_VERSION
-        fputs = QtConcurrent::run( &_Myt::parseOptionChain, this, puts, underlyingPrice, &options, &m );
+        f.addFuture( QtConcurrent::run( &_Myt::parseOptionChain, this, puts, underlyingPrice, &options, &m ) );
 #else
-        fputs = QtConcurrent::run( this, &_Myt::parseOptionChain, puts, underlyingPrice, &options, &m );
+        f.addFuture( QtConcurrent::run( this, &_Myt::parseOptionChain, puts, underlyingPrice, &options, &m ) );
 #endif
     }
 
@@ -514,8 +513,7 @@ bool TDAmeritradeDatabaseAdapter::transformOptionChain( const QJsonObject& tdobj
     }
 
     // wait for completion
-    fcalls.waitForFinished();
-    fputs.waitForFinished();
+    f.waitForFinished();
 
     optionChain[DB_OPTIONS] = options;
 

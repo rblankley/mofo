@@ -436,14 +436,14 @@ bool OptionProfitCalculatorFilter::check( const OptionTradingItemModel::ColumnVa
     }
 
     // ROR / Time
-    else if (( 0.0 != minReturnOnRiskTime() ) && ( trade[OptionTradingItemModel::ROR_TIME].toDouble() < minReturnOnRiskTime() ) && ( !freeMoney ))
+    else if (( 0.0 != minReturnOnRiskTime() ) && ( trade[OptionTradingItemModel::ROR_WEEK].toDouble() < minReturnOnRiskTime() ) && ( !freeMoney ))
     {
-        LOG_DEBUG << "below min return on risk / time";
+        LOG_DEBUG << "below min return on risk / week";
         return false;
     }
-    else if (( 0.0 != maxReturnOnRiskTime() ) && ( maxReturnOnRiskTime() < trade[OptionTradingItemModel::ROR_TIME].toDouble() ))
+    else if (( 0.0 != maxReturnOnRiskTime() ) && ( maxReturnOnRiskTime() < trade[OptionTradingItemModel::ROR_WEEK].toDouble() ))
     {
-        LOG_DEBUG << "above max return on risk / time";
+        LOG_DEBUG << "above max return on risk / week";
         return false;
     }
 
@@ -460,14 +460,14 @@ bool OptionProfitCalculatorFilter::check( const OptionTradingItemModel::ColumnVa
     }
 
     // ROI / Time
-    else if (( 0.0 != minReturnOnInvestmentTime() ) && ( trade[OptionTradingItemModel::ROI_TIME].toDouble() < minReturnOnInvestmentTime() ) && ( !freeMoney ))
+    else if (( 0.0 != minReturnOnInvestmentTime() ) && ( trade[OptionTradingItemModel::ROI_WEEK].toDouble() < minReturnOnInvestmentTime() ) && ( !freeMoney ))
     {
-        LOG_DEBUG << "below min return on investment / time";
+        LOG_DEBUG << "below min return on investment / week";
         return false;
     }
-    else if (( 0.0 != maxReturnOnInvestmentTime() ) && ( maxReturnOnInvestmentTime() < trade[OptionTradingItemModel::ROI_TIME].toDouble() ))
+    else if (( 0.0 != maxReturnOnInvestmentTime() ) && ( maxReturnOnInvestmentTime() < trade[OptionTradingItemModel::ROI_WEEK].toDouble() ))
     {
-        LOG_DEBUG << "above max return on investment / time";
+        LOG_DEBUG << "above max return on investment / week";
         return false;
     }
 
@@ -486,24 +486,24 @@ bool OptionProfitCalculatorFilter::check( const OptionTradingItemModel::ColumnVa
     // EV-ROI
     else if (( 0.0 != minExpectedValueReturnOnInvestment() ) && ( trade[OptionTradingItemModel::EXPECTED_VALUE_ROI].toDouble() < minExpectedValueReturnOnInvestment() ) && ( !freeMoney ))
     {
-        LOG_DEBUG << "below min expected value / time";
+        LOG_DEBUG << "below min expected value roi";
         return false;
     }
     else if (( 0.0 != maxExpectedValueReturnOnInvestment() ) && ( maxExpectedValueReturnOnInvestment() < trade[OptionTradingItemModel::EXPECTED_VALUE_ROI].toDouble() ))
     {
-        LOG_DEBUG << "above max expected value / time";
+        LOG_DEBUG << "above max expected value roi";
         return false;
     }
 
     // EV-ROI / Time
-    else if (( 0.0 != minExpectedValueReturnOnInvestmentTime() ) && ( trade[OptionTradingItemModel::EXPECTED_VALUE_ROI_TIME].toDouble() < minExpectedValueReturnOnInvestmentTime() ) && ( !freeMoney ))
+    else if (( 0.0 != minExpectedValueReturnOnInvestmentTime() ) && ( trade[OptionTradingItemModel::EXPECTED_VALUE_ROI_WEEK].toDouble() < minExpectedValueReturnOnInvestmentTime() ) && ( !freeMoney ))
     {
-        LOG_DEBUG << "below min EV-ROI / time";
+        LOG_DEBUG << "below min EV-ROI / week";
         return false;
     }
-    else if (( 0.0 != maxExpectedValueReturnOnInvestmentTime() ) && ( maxExpectedValueReturnOnInvestmentTime() < trade[OptionTradingItemModel::EXPECTED_VALUE_ROI_TIME].toDouble() ))
+    else if (( 0.0 != maxExpectedValueReturnOnInvestmentTime() ) && ( maxExpectedValueReturnOnInvestmentTime() < trade[OptionTradingItemModel::EXPECTED_VALUE_ROI_WEEK].toDouble() ))
     {
-        LOG_DEBUG << "above max EV-ROI / time";
+        LOG_DEBUG << "above max EV-ROI / week";
         return false;
     }
 

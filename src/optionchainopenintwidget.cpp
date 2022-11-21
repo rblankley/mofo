@@ -438,8 +438,10 @@ void OptionChainOpenInterestWidget::drawGraph()
         scroll_->hide();
     else
     {
-        scroll_->show();
         scroll_->setRange( 0, offsettotal );
+        scroll_->setPageStep( gwidth );
+        scroll_->setSingleStep( BAR_SEPARATION + (2 * bwidth) );
+        scroll_->show();
 
         offset = scroll_->value();
 

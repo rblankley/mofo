@@ -694,20 +694,32 @@ QString OptionTradingView::columnHeaderText( int column ) const
 
     case model_type::ROR:
         return tr( "ROR %" );
-    case model_type::ROR_TIME:
+    case model_type::ROR_WEEK:
         return tr( "ROR %/Wk" );
+    case model_type::ROR_MONTH:
+        return tr( "ROR %/Mo" );
+    case model_type::ROR_YEAR:
+        return tr( "ROR %/Yr" );
 
     case model_type::ROI:
         return tr( "ROI %" );
-    case model_type::ROI_TIME:
+    case model_type::ROI_WEEK:
         return tr( "ROI %/Wk" );
+    case model_type::ROI_MONTH:
+        return tr( "ROI %/Mo" );
+    case model_type::ROI_YEAR:
+        return tr( "ROI %/Yr" );
 
     case model_type::EXPECTED_VALUE:
         return tr( "EV" );
     case model_type::EXPECTED_VALUE_ROI:
         return tr( "EV-ROI %" );
-    case model_type::EXPECTED_VALUE_ROI_TIME:
+    case model_type::EXPECTED_VALUE_ROI_WEEK:
         return tr( "EV-ROI %/Wk" );
+    case model_type::EXPECTED_VALUE_ROI_MONTH:
+        return tr( "EV-ROI %/Mo" );
+    case model_type::EXPECTED_VALUE_ROI_YEAR:
+        return tr( "EV-ROI %/Yr" );
 
     default:
         break;

@@ -615,6 +615,43 @@ double AppDatabase::riskFreeRate( double term ) const
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void AppDatabase::riskFreeRates( double term, RiskFreeRatesMap& rates ) const
+{
+    static const double EPSILON = 0.0001;
+
+    const QString sql( "SELECT * FROM riskFreeInterestRates WHERE "
+        ":termMin<=term AND "
+        "term<=:termMax AND "
+        "source='" + DB_TREAS_YIELD_CURVE + "' " );
+
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
+    query.prepare( sql );
+
+    query.bindValue( ":termMin", term - EPSILON );
+    query.bindValue( ":termMax", term + EPSILON );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        while ( query.next() )
+        {
+            const QSqlRecord rec( query.record() );
+
+            const QDate d( QDate::fromString( rec.value( "date" ).toString(), Qt::ISODate ) );
+
+            rates[d] = rec.value( "rate" ).toDouble();
+        }
+    }
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void AppDatabase::setAccountNicknames( const QStringList& accounts )
 {
     const QString sql( "UPDATE accounts "

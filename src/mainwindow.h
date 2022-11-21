@@ -129,6 +129,7 @@ private:
     QAction *filters_;
     QAction *layouts_;
     QAction *watchlists_;
+    QAction *rates_;
 
     QMenu *marketDaemonMenu_;
     QAction *authenticate_;

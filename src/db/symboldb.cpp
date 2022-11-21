@@ -1372,7 +1372,9 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
             "VALUES (:stamp,:underlying,"
                 ":underlyingPrice,:interestRate,:isDelayed,:isIndex,:numberOfContracts,:volatility) " );
 
-    QSqlQuery query( connection() );
+    QSqlDatabase conn( connection() );
+
+    QSqlQuery query( conn );
     query.prepare( sql );
 
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
@@ -1391,64 +1393,75 @@ bool SymbolDatabase::addOptionChain( const QDateTime& stamp, const QJsonObject& 
     // iterate options
     QJsonObject::const_iterator options( obj.constFind( DB_OPTIONS ) );
 
-    if (( obj.constEnd() != options ) && ( options->isArray() ))
+    if ( obj.constEnd() == options )
+        return true;
+    else if ( !options->isArray() )
     {
-        // prepare query objects
-        QSqlQuery queryOption( connection() );
-        queryOption.prepare( SQL_OPTION );
-
-        QSqlQuery queryOptionChainStrikesCall( connection() );
-        queryOptionChainStrikesCall.prepare( SQL_OPTION_CHAIN_STRIKES_CALL );
-
-        QSqlQuery queryOptionChainStrikesPut( connection() );
-        queryOptionChainStrikesPut.prepare( SQL_OPTION_CHAIN_STRIKES_PUT );
-
-        // iterate
-        foreach ( const QJsonValue& v, options->toArray() )
-            if ( v.isObject() )
-            {
-                const QJsonObject option( v.toObject() );
-
-                const QJsonObject::const_iterator optionStampIt( option.constFind( DB_STAMP ) );
-                const QJsonObject::const_iterator optionSymbolIt( option.constFind( DB_SYMBOL ) );
-
-                const QJsonObject::const_iterator expiryDateIt( option.constFind( DB_EXPIRY_DATE ) );
-                const QJsonObject::const_iterator strikePriceIt( option.constFind( DB_STRIKE_PRICE ) );
-                const QJsonObject::const_iterator typeIt( option.constFind( DB_TYPE ) );
-
-                if (( option.constEnd() == optionStampIt ) ||
-                    ( option.constEnd() == optionSymbolIt ) ||
-                    ( option.constEnd() == expiryDateIt ) ||
-                    ( option.constEnd() == strikePriceIt ) ||
-                    ( option.constEnd() == typeIt ))
-                {
-                    LOG_WARN << "bad or missing value(s)";
-                    return false;
-                }
-
-                const QDateTime expiryDate( QDateTime::fromString( expiryDateIt->toString(), Qt::ISODate ) );
-                const QString type( typeIt->toString() );
-
-                // add option
-                if ( !addOption( option, queryOption ) )
-                    return false;
-
-                // add strike price to chain
-                else if (( CALL == type ) && ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble(), queryOptionChainStrikesCall ) ))
-                    return false;
-                else if (( PUT == type ) && ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), expiryDate.date().toString( Qt::ISODate ), strikePriceIt->toDouble(), queryOptionChainStrikesPut ) ))
-                    return false;
-
-                // track expiry dates for caller
-                if ( !expiryDates.contains( expiryDate.date() ) )
-                    expiryDates.append( expiryDate.date() );
-            }
-
-        // update option chain curve data
-        // when curve data already exists for this chain duplicate it
-        updateOptionChainCurves( stamp );
+        LOG_WARN << "object is not an array";
+        return false;
     }
 
+    // prepare query objects
+    QSqlQuery queryOption( conn );
+    queryOption.prepare( SQL_OPTION );
+
+    QSqlQuery queryOptionChainStrikesCall( conn );
+    queryOptionChainStrikesCall.prepare( SQL_OPTION_CHAIN_STRIKES_CALL );
+
+    QSqlQuery queryOptionChainStrikesPut( conn );
+    queryOptionChainStrikesPut.prepare( SQL_OPTION_CHAIN_STRIKES_PUT );
+
+    // iterate
+    foreach ( const QJsonValue& v, options->toArray() )
+        if ( v.isObject() )
+        {
+            const QJsonObject option( v.toObject() );
+
+            const QJsonObject::const_iterator optionStampIt( option.constFind( DB_STAMP ) );
+            const QJsonObject::const_iterator optionSymbolIt( option.constFind( DB_SYMBOL ) );
+
+            const QJsonObject::const_iterator expiryDateIt( option.constFind( DB_EXPIRY_DATE ) );
+            const QJsonObject::const_iterator strikePriceIt( option.constFind( DB_STRIKE_PRICE ) );
+            const QJsonObject::const_iterator typeIt( option.constFind( DB_TYPE ) );
+
+            if (( option.constEnd() == optionStampIt ) ||
+                ( option.constEnd() == optionSymbolIt ) ||
+                ( option.constEnd() == expiryDateIt ) ||
+                ( option.constEnd() == strikePriceIt ) ||
+                ( option.constEnd() == typeIt ))
+            {
+                LOG_WARN << "bad or missing value(s)";
+                return false;
+            }
+
+            const QDate expiryDate( QDateTime::fromString( expiryDateIt->toString(), Qt::ISODate ).date() );
+
+            const QString expiry( expiryDate.toString( Qt::ISODate ) );
+            const QString type( typeIt->toString() );
+
+            // add option
+            if ( !addOption( option, queryOption ) )
+                return false;
+
+            // add strike price to chain
+            else if (( CALL == type ) && ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), expiry, strikePriceIt->toDouble(), queryOptionChainStrikesCall ) ))
+                return false;
+            else if (( PUT == type ) && ( !addOptionChainStrikePrice( stamp, optionStampIt->toString(), optionSymbolIt->toString(), expiry, strikePriceIt->toDouble(), queryOptionChainStrikesPut ) ))
+                return false;
+
+            // track expiry dates for caller
+            if ( !expiryDates.contains( expiryDate ) )
+                expiryDates.append( expiryDate );
+
+        } // for each option
+/*
+    // FIXME
+    // does this need added back in?
+
+    // update option chain curve data
+    // when curve data already exists for this chain duplicate it
+    updateOptionChainCurves( stamp );
+*/
     return true;
 }
 

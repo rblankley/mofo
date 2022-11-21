@@ -224,17 +224,17 @@ void FilterEditorDialog::translate()
     minReturnOnRisk_->setToolTip( tr( "Options with a return on risk below this value will be filtered out." ) );
     maxReturnOnRisk_->setToolTip( tr( "Options with a return on risk above this value will be filtered out." ) );
 
-    returnOnRiskTimeLabel_->setText( tr( "Return on Risk / Time (%)" ) );
-    minReturnOnRiskTime_->setToolTip( tr( "Options with a return on risk divided by time below this value will be filtered out." ) );
-    maxReturnOnRiskTime_->setToolTip( tr( "Options with a return on risk divided by time above this value will be filtered out." ) );
+    returnOnRiskTimeLabel_->setText( tr( "Return on Risk / Week (%)" ) );
+    minReturnOnRiskTime_->setToolTip( tr( "Options with a return on risk (weekly return) below this value will be filtered out." ) );
+    maxReturnOnRiskTime_->setToolTip( tr( "Options with a return on risk (weekly return) above this value will be filtered out." ) );
 
     returnOnInvestmentLabel_->setText( tr( "Return on Investment (%)" ) );
     minReturnOnInvestment_->setToolTip( tr( "Options with a return on investment below this value will be filtered out." ) );
     maxReturnOnInvestment_->setToolTip( tr( "Options with a return on investment above this value will be filtered out." ) );
 
-    returnOnInvestmentTimeLabel_->setText( tr( "Return on Investment / Time (%)" ) );
-    minReturnOnInvestmentTime_->setToolTip( tr( "Options with a return on investment divided by time below this value will be filtered out." ) );
-    maxReturnOnInvestmentTime_->setToolTip( tr( "Options with a return on investment divided by time above this value will be filtered out." ) );
+    returnOnInvestmentTimeLabel_->setText( tr( "Return on Investment / Week (%)" ) );
+    minReturnOnInvestmentTime_->setToolTip( tr( "Options with a return on investment (weekly return) below this value will be filtered out." ) );
+    maxReturnOnInvestmentTime_->setToolTip( tr( "Options with a return on investment (weekly return) above this value will be filtered out." ) );
 
     expectedValueLabel_->setText( tr( "Expected Value ($)" ) );
     minExpectedValue_->setToolTip( tr( "Options expecting to an amount below this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
@@ -244,9 +244,9 @@ void FilterEditorDialog::translate()
     minExpectedValueReturnOnInvestment_->setToolTip( tr( "Option expected return on investment below this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
     maxExpectedValueReturnOnInvestment_->setToolTip( tr( "Option expected return on investment above this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
 
-    expectedValueReturnOnInvestmentTimeLabel_->setText( tr( "Expected Value ROI / Time (%)" ) );
-    minExpectedValueReturnOnInvestmentTime_->setToolTip( tr( "Option expected return on investment over time below this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
-    maxExpectedValueReturnOnInvestmentTime_->setToolTip( tr( "Option expected return on investment over time above this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
+    expectedValueReturnOnInvestmentTimeLabel_->setText( tr( "Expected Value ROI / Week (%)" ) );
+    minExpectedValueReturnOnInvestmentTime_->setToolTip( tr( "Option expected return on investment (weekly return) below this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
+    maxExpectedValueReturnOnInvestmentTime_->setToolTip( tr( "Option expected return on investment (weekly return) above this value will be filtered out. Expected value is calcuated from max gain and option chain ITM and OTM probabilities." ) );
 
     tabs_->setTabText( 2, tr( "Advanced" ) );
 

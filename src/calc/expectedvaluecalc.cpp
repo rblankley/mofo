@@ -443,6 +443,8 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
 
     // ---- //
 
+    const double numWeeksPerYear( AppDatabase::instance()->numDays() / 7.0 );
+
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
 
     const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
@@ -473,12 +475,16 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
     const double ror( maxGain / maxLoss );
 
     result[item_model_type::ROR] = 100.0 * ror;
-    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
+    result[item_model_type::ROR_WEEK] = result[item_model_type::ROR].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROR_YEAR] = numWeeksPerYear * result[item_model_type::ROR_WEEK].toDouble();
+    result[item_model_type::ROR_MONTH] = result[item_model_type::ROR_YEAR].toDouble() / 12.0;
 
     const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = 100.0 * roi;
-    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
+    result[item_model_type::ROI_WEEK] = result[item_model_type::ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROI_YEAR] = numWeeksPerYear * result[item_model_type::ROI_WEEK].toDouble();
+    result[item_model_type::ROI_MONTH] = result[item_model_type::ROI_YEAR].toDouble() / 12.0;
 
     const double costBasis( equitySharePrice - (premium / multiplier) );
 
@@ -501,7 +507,9 @@ void ExpectedValueCalculator::analyzeSingleCall( int row ) const
 
     result[item_model_type::EXPECTED_VALUE] = ev;
     result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
+    result[item_model_type::EXPECTED_VALUE_ROI_WEEK] = result[item_model_type::EXPECTED_VALUE_ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::EXPECTED_VALUE_ROI_YEAR] = numWeeksPerYear * result[item_model_type::EXPECTED_VALUE_ROI_WEEK].toDouble();
+    result[item_model_type::EXPECTED_VALUE_ROI_MONTH] = result[item_model_type::EXPECTED_VALUE_ROI_YEAR].toDouble() / 12.0;
 
     // add row
     addRowToItemModel( result );
@@ -549,6 +557,8 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
 
     // ---- //
 
+    const double numWeeksPerYear( AppDatabase::instance()->numDays() / 7.0 );
+
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
 
     const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
@@ -571,12 +581,16 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
     const double ror( maxGain / maxLoss );
 
     result[item_model_type::ROR] = 100.0 * ror;
-    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
+    result[item_model_type::ROR_WEEK] = result[item_model_type::ROR].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROR_YEAR] = numWeeksPerYear * result[item_model_type::ROR_WEEK].toDouble();
+    result[item_model_type::ROR_MONTH] = result[item_model_type::ROR_YEAR].toDouble() / 12.0;
 
     const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = 100.0 * roi;
-    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
+    result[item_model_type::ROI_WEEK] = result[item_model_type::ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROI_YEAR] = numWeeksPerYear * result[item_model_type::ROI_WEEK].toDouble();
+    result[item_model_type::ROI_MONTH] = result[item_model_type::ROI_YEAR].toDouble() / 12.0;
 
     const double costBasis( maxLoss / multiplier );
 
@@ -599,7 +613,9 @@ void ExpectedValueCalculator::analyzeSinglePut( int row ) const
 
     result[item_model_type::EXPECTED_VALUE] = ev;
     result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
+    result[item_model_type::EXPECTED_VALUE_ROI_WEEK] = result[item_model_type::EXPECTED_VALUE_ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::EXPECTED_VALUE_ROI_YEAR] = numWeeksPerYear * result[item_model_type::EXPECTED_VALUE_ROI_WEEK].toDouble();
+    result[item_model_type::EXPECTED_VALUE_ROI_MONTH] = result[item_model_type::EXPECTED_VALUE_ROI_YEAR].toDouble() / 12.0;
 
     // add row
     addRowToItemModel( result );
@@ -651,6 +667,8 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
 
     // ---- //
 
+    const double numWeeksPerYear( AppDatabase::instance()->numDays() / 7.0 );
+
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
 
     const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
@@ -674,12 +692,16 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
     const double ror( maxGain / maxLoss );
 
     result[item_model_type::ROR] = 100.0 * ror;
-    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
+    result[item_model_type::ROR_WEEK] = result[item_model_type::ROR].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROR_YEAR] = numWeeksPerYear * result[item_model_type::ROR_WEEK].toDouble();
+    result[item_model_type::ROR_MONTH] = result[item_model_type::ROR_YEAR].toDouble() / 12.0;
 
     const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = 100.0 * roi;
-    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
+    result[item_model_type::ROI_WEEK] = result[item_model_type::ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROI_YEAR] = numWeeksPerYear * result[item_model_type::ROI_WEEK].toDouble();
+    result[item_model_type::ROI_MONTH] = result[item_model_type::ROI_YEAR].toDouble() / 12.0;
 
     const double costBasis( strikeShort + ((premium - equityTradeCost_) / multiplier) );
 
@@ -713,7 +735,9 @@ void ExpectedValueCalculator::analyzeVertBearCall( int rowLong, int rowShort ) c
 
     result[item_model_type::EXPECTED_VALUE] = ev;
     result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
+    result[item_model_type::EXPECTED_VALUE_ROI_WEEK] = result[item_model_type::EXPECTED_VALUE_ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::EXPECTED_VALUE_ROI_YEAR] = numWeeksPerYear * result[item_model_type::EXPECTED_VALUE_ROI_WEEK].toDouble();
+    result[item_model_type::EXPECTED_VALUE_ROI_MONTH] = result[item_model_type::EXPECTED_VALUE_ROI_YEAR].toDouble() / 12.0;
 
     // add row
     addRowToItemModel( result );
@@ -765,6 +789,8 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
 
     // ---- //
 
+    const double numWeeksPerYear( AppDatabase::instance()->numDays() / 7.0 );
+
     const double multiplier( result[item_model_type::MULTIPLIER].toDouble() );
 
     const double theoOptionValue( result[item_model_type::CALC_THEO_OPTION_VALUE].toDouble() );
@@ -788,12 +814,16 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
     const double ror( maxGain / maxLoss );
 
     result[item_model_type::ROR] = 100.0 * ror;
-    result[item_model_type::ROR_TIME] = 100.0 * (ror / timeToExpiryWeeks);
+    result[item_model_type::ROR_WEEK] = result[item_model_type::ROR].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROR_YEAR] = numWeeksPerYear * result[item_model_type::ROR_WEEK].toDouble();
+    result[item_model_type::ROR_MONTH] = result[item_model_type::ROR_YEAR].toDouble() / 12.0;
 
     const double roi( premium / investmentValue );
 
     result[item_model_type::ROI] = 100.0 * roi;
-    result[item_model_type::ROI_TIME] = 100.0 * (roi / timeToExpiryWeeks);
+    result[item_model_type::ROI_WEEK] = result[item_model_type::ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::ROI_YEAR] = numWeeksPerYear * result[item_model_type::ROI_WEEK].toDouble();
+    result[item_model_type::ROI_MONTH] = result[item_model_type::ROI_YEAR].toDouble() / 12.0;
 
     const double costBasis( strikeShort - ((premium - equityTradeCost_) / multiplier) );
 
@@ -827,7 +857,9 @@ void ExpectedValueCalculator::analyzeVertBullPut( int rowLong, int rowShort ) co
 
     result[item_model_type::EXPECTED_VALUE] = ev;
     result[item_model_type::EXPECTED_VALUE_ROI] = 100.0 * ev_roi;
-    result[item_model_type::EXPECTED_VALUE_ROI_TIME] = 100.0 * (ev_roi / timeToExpiryWeeks);
+    result[item_model_type::EXPECTED_VALUE_ROI_WEEK] = result[item_model_type::EXPECTED_VALUE_ROI].toDouble() / timeToExpiryWeeks;
+    result[item_model_type::EXPECTED_VALUE_ROI_YEAR] = numWeeksPerYear * result[item_model_type::EXPECTED_VALUE_ROI_WEEK].toDouble();
+    result[item_model_type::EXPECTED_VALUE_ROI_MONTH] = result[item_model_type::EXPECTED_VALUE_ROI_YEAR].toDouble() / 12.0;
 
     // add row
     addRowToItemModel( result );

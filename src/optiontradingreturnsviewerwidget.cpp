@@ -224,8 +224,8 @@ void OptionTradingReturnsViewerWidget::refreshData()
     setLabelText( maxReturnOnRisk_,
         QString( "%0 (%1% /wk, %2% /yr)" )
             .arg( l.toString( modelData( model_type::ROR ).toDouble(), 'f', 2 ) )
-            .arg( l.toString( modelData( model_type::ROR_TIME ).toDouble(), 'f', 3 ) )
-            .arg( l.toString( 52.0 * modelData( model_type::ROR_TIME ).toDouble(), 'f', 3 ) ),
+            .arg( l.toString( modelData( model_type::ROR_WEEK ).toDouble(), 'f', 3 ) )
+            .arg( l.toString( modelData( model_type::ROR_YEAR ).toDouble(), 'f', 3 ) ),
         "-" );
 
     setLabelColor( maxReturnOnRisk_, (0.0 < modelData( model_type::ROR ).toDouble()) ? Qt::darkGreen : Qt::red );
@@ -233,11 +233,19 @@ void OptionTradingReturnsViewerWidget::refreshData()
     setLabelText( maxReturnOnInvest_,
         QString( "%0 (%1% /wk, %2% /yr)" )
             .arg( l.toString( modelData( model_type::ROI ).toDouble(), 'f', 2 ) )
-            .arg( l.toString( modelData( model_type::ROI_TIME ).toDouble(), 'f', 3 ) )
-            .arg( l.toString( 52.0 * modelData( model_type::ROI_TIME ).toDouble(), 'f', 3 ) ),
+            .arg( l.toString( modelData( model_type::ROI_WEEK ).toDouble(), 'f', 3 ) )
+            .arg( l.toString( modelData( model_type::ROI_YEAR ).toDouble(), 'f', 3 ) ),
         "-" );
 
-    setLabelColor( maxReturnOnInvest_, (0.0 < modelData( model_type::ROI ).toDouble()) ? Qt::darkGreen : Qt::red );
+    // red - lose money
+    // orange - make less money than risk free investment (i.e. government bond)
+    // green - make more money than risk free investment
+    if ( modelData( model_type::ROI ).toDouble() < 0.0 )
+        setLabelColor( maxReturnOnInvest_, Qt::red );
+    else if ( modelData( model_type::ROI_YEAR ).toDouble() <= modelData( model_type::RISK_FREE_INTEREST_RATE ).toDouble() )
+        setLabelColor( maxReturnOnInvest_, QColor( 255, 165, 0 ) ); // orange
+    else
+        setLabelColor( maxReturnOnInvest_, Qt::darkGreen );
 
     setLabelText( expectedValue_,
         l.toString( modelData( model_type::EXPECTED_VALUE ).toDouble(), 'f', 2 ),

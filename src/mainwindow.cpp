@@ -28,6 +28,7 @@
 #include "mainwindow.h"
 #include "optionanalyzer.h"
 #include "optionviewertabwidget.h"
+#include "riskfreeinterestratesdialog.h"
 #include "watchlistdialog.h"
 #include "widgetstatesdialog.h"
 
@@ -50,7 +51,7 @@
 #include <QTimer>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.1.5" );
+static const QString applicationVersion( "0.1.6" );
 
 static const QString EQUITY_OPTION_PRODUCT( "EQO" );
 static const QString INDEX_OPTION_PRODUCT( "IND" );
@@ -128,6 +129,7 @@ void MainWindow::translate()
     filters_->setText( tr( "&Filters..." ) );
     layouts_->setText( tr( "&Layouts..." ) );
     watchlists_->setText( tr( "&Watchlists..." ) );
+    rates_->setText( tr( "Interest &Rates..." ) );
 
     marketDaemonMenu_->setTitle( daemon_->name() );
     authenticate_->setText( tr( "&Authenticate (Login)" ) );
@@ -456,6 +458,15 @@ void MainWindow::onActionTriggered()
         d.exec();
     }
 
+    // rates
+    else if ( rates_ == sender() )
+    {
+        LOG_TRACE << "interest rates dialog...";
+
+        RiskFreeInterestRatesDialog d( this );
+        d.exec();
+    }
+
     // authenticate
     else if ( authenticate_ == sender() )
     {
@@ -746,11 +757,14 @@ void MainWindow::initialize()
 
     watchlists_ = new QAction( QIcon( ":/res/list.png" ), QString(), this );
 
+    rates_ = new QAction( QIcon( ":/res/coins.png" ), QString(), this );
+
     connect( accountNames_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( config_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( filters_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( layouts_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( watchlists_, &QAction::triggered, this, &_Myt::onActionTriggered );
+    connect( rates_, &QAction::triggered, this, &_Myt::onActionTriggered );
 
     viewMenu_ = menuBar()->addMenu( QString() );
     viewMenu_->addAction( accountNames_ );
@@ -758,6 +772,8 @@ void MainWindow::initialize()
     viewMenu_->addAction( filters_ );
     viewMenu_->addAction( layouts_ );
     viewMenu_->addAction( watchlists_ );
+    viewMenu_->addSeparator();
+    viewMenu_->addAction( rates_ );
 
     // market daemon menu
     // ------------------
@@ -791,7 +807,6 @@ void MainWindow::initialize()
     connect( stopDaemon_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( pauseDaemon_, &QAction::triggered, this, &_Myt::onActionTriggered );
     connect( runWhenMarketsClosed_, &QAction::triggered, this, &_Myt::onActionTriggered );
-
 
     marketDaemonMenu_ = menuBar()->addMenu( QString() );
     marketDaemonMenu_->addAction( authenticate_ );

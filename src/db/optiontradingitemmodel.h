@@ -141,14 +141,20 @@ public:
         MAX_LOSS,
 
         ROR,                                        ///< Return on risk.
-        ROR_TIME,
+        ROR_WEEK,
+        ROR_MONTH,
+        ROR_YEAR,
 
         ROI,                                        ///< Return on investment.
-        ROI_TIME,
+        ROI_WEEK,
+        ROI_MONTH,
+        ROI_YEAR,
 
         EXPECTED_VALUE,                             ///< Expected value.
         EXPECTED_VALUE_ROI,
-        EXPECTED_VALUE_ROI_TIME,
+        EXPECTED_VALUE_ROI_WEEK,
+        EXPECTED_VALUE_ROI_MONTH,
+        EXPECTED_VALUE_ROI_YEAR,
 
         _NUM_COLUMNS,
     };

@@ -66,7 +66,7 @@ Here you can mess with a number of things that control how TDA API is used and a
 The really important ones are:
 
 | Config | Description |
-| --- | ----------- |
+| ------ | ----------- |
 | Option Chain Expiration End | This controls the maximum DTE that will be fetched by the daemon. By default this is set to 28 days which means options with a DTE greater than 28 days will not be evaluated. This is enforced no matter what your filter is set for! |
 | Option Chain Watchlists | Controls what symbols are scanned down by the daemon background scanning process. |
 | Option Pricing Evaluation Method | Pricing methods other than CRR Binomial Tree are a work in progress. Use with caution. |
@@ -156,7 +156,7 @@ If your not using MSVC 2019 then I'm not sure... but it should be possible I bel
 
 If you just pulled down the binary package you may need the MSVC 2019 Redistributable package. You can find that at the [Microsoft](https://docs.microsoft.com/en-US/cpp/windows/latest-supported-vc-redist?view=msvc-170) site.
 
-Next you will need to install Qt. If you've never used Qt before you're in for a treat, it's an excellent cross platform package that does just about everything you need out of box. You can download Qt open source edition [here](https://www.qt.io/download-open-source).  Just look for the Download Qt Installer button and press it. They really, really want you to purchase a license and throw up confusing adverts but the open source edition works just fine.
+Next you will need to install Qt. If you've never used Qt before you're in for a treat, it's an excellent cross platform package that does just about everything you need out of box. You can download Qt open source edition [here](https://www.qt.io/download-open-source).  Just look for the Download Qt Installer button and press it. They really, really want you to purchase a license and throw up confusing adverts but the open source (free) edition works just fine.
 
 When installing make sure you choose the appropriate packages. You will need the Qt Network Authorization package. You may want to hunt down SSL toolkit (towards the bottom) and install that as well.
 

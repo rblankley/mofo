@@ -59,6 +59,8 @@ BUILT_SOURCES = \
 	moc_optiontradingview.cpp \
 	moc_optionviewertabwidget.cpp \
 	moc_optionviewerwidget.cpp \
+	moc_riskfreeinterestratesdialog.cpp \
+	moc_riskfreeinterestrateswidget.cpp \
 	moc_symboldetailsdialog.cpp \
 	moc_symbolestmovewidget.cpp \
 	moc_symbolimplvolwidget.cpp \
@@ -104,6 +106,8 @@ mofo_SOURCES = \
 	optiontradingview.cpp \
 	optionviewertabwidget.cpp \
 	optionviewerwidget.cpp \
+	riskfreeinterestratesdialog.cpp \
+	riskfreeinterestrateswidget.cpp \
 	symboldetailsdialog.cpp \
 	symbolestmovewidget.cpp \
 	symbolimplvolwidget.cpp \

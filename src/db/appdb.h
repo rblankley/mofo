@@ -86,6 +86,9 @@ public:
         Dialog,                                     ///< Dialog.
     };
 
+    /// Map of interest rates by date.
+    using RiskFreeRatesMap = QMap<QDate, double>;
+
     // ========================================================================
     // Properties
     // ========================================================================
@@ -212,6 +215,15 @@ public:
      * @return  interest rate
      */
     virtual double riskFreeRate( double term ) const;
+
+    /// Retrieve map of risk free interest rates by date.
+    /**
+     * @warning
+     * Requested period @a term must be <= 30.0 and data must exist for that period
+     * @param[in] term  term (years)
+     * @param[out] rates  interest rates
+     */
+    virtual void riskFreeRates( double term, RiskFreeRatesMap& rates ) const;
 
     /// Set account nicknames.
     /**

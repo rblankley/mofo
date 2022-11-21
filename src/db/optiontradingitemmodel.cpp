@@ -130,14 +130,20 @@ OptionTradingItemModel::OptionTradingItemModel( QObject *parent ) :
     numDecimalPlaces_[MAX_LOSS] = 2;
 
     numDecimalPlaces_[ROR] = 3;
-    numDecimalPlaces_[ROR_TIME] = 3;
+    numDecimalPlaces_[ROR_WEEK] = 3;
+    numDecimalPlaces_[ROR_MONTH] = 3;
+    numDecimalPlaces_[ROR_YEAR] = 3;
 
     numDecimalPlaces_[ROI] = 3;
-    numDecimalPlaces_[ROI_TIME] = 3;
+    numDecimalPlaces_[ROI_WEEK] = 3;
+    numDecimalPlaces_[ROI_MONTH] = 3;
+    numDecimalPlaces_[ROI_YEAR] = 3;
 
     numDecimalPlaces_[EXPECTED_VALUE] = 2;
     numDecimalPlaces_[EXPECTED_VALUE_ROI] = 3;
-    numDecimalPlaces_[EXPECTED_VALUE_ROI_TIME] = 3;
+    numDecimalPlaces_[EXPECTED_VALUE_ROI_WEEK] = 3;
+    numDecimalPlaces_[EXPECTED_VALUE_ROI_MONTH] = 3;
+    numDecimalPlaces_[EXPECTED_VALUE_ROI_YEAR] = 3;
 
     // color of money!!!!
     inTheMoneyColor_ = Qt::green;
@@ -337,20 +343,33 @@ QString OptionTradingItemModel::columnDescription( int col ) const
 
     case ROR:
         return tr( "Return on Risk" );
-    case ROR_TIME:
-        return tr( "Return on Risk / Time" );
+    case ROR_WEEK:
+        return tr( "Return on Risk / Week" );
+    case ROR_MONTH:
+        return tr( "Return on Risk / Month" );
+    case ROR_YEAR:
+        return tr( "Return on Risk / Year" );
 
     case ROI:
         return tr( "Return on Investment" );
-    case ROI_TIME:
-        return tr( "Return on Investment / Time" );
+    case ROI_WEEK:
+        return tr( "Return on Investment / Week" );
+    case ROI_MONTH:
+        return tr( "Return on Investment / Month" );
+    case ROI_YEAR:
+        return tr( "Return on Investment / Year" );
 
     case EXPECTED_VALUE:
         return tr( "Expected Value" );
     case EXPECTED_VALUE_ROI:
         return tr( "Expected Value Return on Investment" );
-    case EXPECTED_VALUE_ROI_TIME:
-        return tr( "Expected Value Return on Investment / Time" );
+    case EXPECTED_VALUE_ROI_WEEK:
+        return tr( "Expected Value Return on Investment / Week" );
+    case EXPECTED_VALUE_ROI_MONTH:
+        return tr( "Expected Value Return on Investment / Month" );
+    case EXPECTED_VALUE_ROI_YEAR:
+        return tr( "Expected Value Return on Investment / Year" );
+
     default:
         break;
     }
@@ -483,7 +502,9 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
             break;
 
         case ROR:
-        case ROR_TIME:
+        case ROR_WEEK:
+        case ROR_MONTH:
+        case ROR_YEAR:
             if ( values[i.key()].toDouble() < 0.0 )
             {
                 if ( freeMoney )
@@ -494,13 +515,21 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
             break;
 
         case ROI:
-        case ROI_TIME:
+        case ROI_WEEK:
+        case ROI_MONTH:
+        case ROI_YEAR:
             if ( values[i.key()].toDouble() < 0.0 )
             {
                 if ( freeMoney )
                     item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );
                 else
                     item->setData( QColor( Qt::red ), Qt::ForegroundRole );
+            }
+            else
+            {
+                // make less money than risk free investment (i.e. government bond)
+                if ( values[ROI_YEAR].toDouble() <= values[RISK_FREE_INTEREST_RATE].toDouble() )
+                    item->setData( QColor( 255, 165, 0 ), Qt::ForegroundRole ); // orange
             }
             break;
 
@@ -513,7 +542,9 @@ void OptionTradingItemModel::addRow( const ColumnValueMap& values )
             break;
 
         case EXPECTED_VALUE_ROI:
-        case EXPECTED_VALUE_ROI_TIME:
+        case EXPECTED_VALUE_ROI_WEEK:
+        case EXPECTED_VALUE_ROI_MONTH:
+        case EXPECTED_VALUE_ROI_YEAR:
             v = values[i.key()].toDouble();
             if ( 0.0 < v )
                 item->setData( QColor( Qt::darkGreen ), Qt::ForegroundRole );

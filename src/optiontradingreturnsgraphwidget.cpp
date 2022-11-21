@@ -391,7 +391,7 @@ void OptionTradingReturnsGraphWidget::drawGraph()
     double xinterval;
     int numDecimalPlacesStrike;
 
-    // width of maximum stirke price text element
+    // width of maximum strike price text element
     const double xmaxwidth( fm.boundingRect( QString::number( xmax, 'f', 4 ) ).width() );
 
     calcIntervalValues( xmin, xmax, width(), xmaxwidth, xinterval, numDecimalPlacesStrike );
