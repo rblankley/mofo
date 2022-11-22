@@ -51,7 +51,7 @@
 #include <QTimer>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.1.6" );
+static const QString applicationVersion( "0.2.0" );
 
 static const QString EQUITY_OPTION_PRODUCT( "EQO" );
 static const QString INDEX_OPTION_PRODUCT( "IND" );

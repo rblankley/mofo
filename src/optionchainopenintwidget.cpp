@@ -167,14 +167,14 @@ void OptionChainOpenInterestWidget::onButtonClicked()
     {
         ++zoom_;
         zoom_ = qMin( zoom_, MAX_ZOOM );
-        
+
         drawGraph();
     }
     else if ( zin_ == sender() )
     {
         --zoom_;
         zoom_ = qMax( zoom_, MIN_ZOOM );
-        
+
         drawGraph();
     }
 }

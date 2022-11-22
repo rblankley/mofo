@@ -146,7 +146,7 @@ The volatility and estimated movement that I compute always seems to be a little
 
 ## Building
 
-This project requires Qt libraries for the user interface. For Windows I have used both 5.15.2 and 6.2.1. For Linux I have used whatever comes with Ubuntu 20.04 which I believe is 5.12.8.
+This project requires Qt libraries for the user interface. For Windows I have used versions 5.15.2, 6.2.1, and 6.4.1. For Linux I have used whatever comes with Ubuntu 20.04 which I believe is 5.12.8.
 
 ### Windows
 
