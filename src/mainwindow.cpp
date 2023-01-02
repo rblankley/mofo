@@ -51,7 +51,7 @@
 #include <QTimer>
 
 static const QString applicationName( "Money 4 Options" );
-static const QString applicationVersion( "0.2.0" );
+static const QString applicationVersion( "0.2.1" );
 
 static const QString EQUITY_OPTION_PRODUCT( "EQO" );
 static const QString INDEX_OPTION_PRODUCT( "IND" );
@@ -617,7 +617,7 @@ void MainWindow::onActionTriggered()
                 db_->version(),
                 __DATE__,
                 __TIME__,
-                tr( "Copyright (C) 2022 Randy Blankley. All rights reserved." ),
+                tr( "Copyright (C) 2023 Randy Blankley. All rights reserved." ),
                 tr( "The program is provided AS IS with NO WARRANTY OF ANY KIND, INCLUDING THE WARRANTY OF DESIGN, MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE." ),
                 tr( "Full source code for this application can be found here:" ),
                 href.arg( MOFO_SOURCES ),

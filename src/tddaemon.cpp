@@ -384,6 +384,32 @@ void TDAmeritradeDaemon::onAccountsChanged()
     LOG_DEBUG << "have accounts";
     setCurrentState( ACTIVE );
 
+    // fetch account transactions
+    const QStringList accounts( adb_->accountLastTransactions() );
+
+    LOG_TRACE << "fetch account transactions " << accounts.size();
+
+    foreach ( const QString& account, accounts )
+    {
+        const QStringList parts( account.split( ';' ) );
+
+        if ( 2 <= parts.size() )
+        {
+            QDate from( QDate::fromString( parts[1], Qt::ISODate ) );
+
+            if ( !from.isValid() )
+                LOG_DEBUG << "fetch all transactions";
+            else
+            {
+                from = from.addDays( -7 );
+
+                LOG_DEBUG << "fetch transactions from " << qPrintable( from.toString() );
+            }
+
+            api_->getTransactions( parts[0], "ALL", QString(), from );
+        }
+    }
+
     // process next state manually when not initialized
     if ( !init_ )
         dequeue();

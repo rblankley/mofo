@@ -115,6 +115,13 @@ public slots:
      */
     virtual bool transformQuotes( const QJsonObject& obj ) const;
 
+    /// Transform transactions to database format.
+    /**
+     * @param[in] a  data objects
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool transformTransactions( const QJsonArray& a ) const;
+
 private:
 
     /// Field map type.
@@ -129,11 +136,14 @@ private:
     FieldMap instrumentFields_;
     FieldMap marketHoursFields_;
     FieldMap optionChainFields_;
+    FieldMap positionFields_;
     FieldMap priceHistoryFields_;
     FieldMap quoteFields_;
+    FieldMap transactionFields_;
 
     FieldMap balances_;
     FieldMap sessionHours_;
+    FieldMap transactionItem_;
 
     /// Transform json object.
     void transform( const QJsonObject& obj, const FieldMap& mapping, QJsonObject& result ) const;
@@ -161,6 +171,9 @@ private:
 
     /// Parse session hours.
     QJsonObject parseSessionHours( const QJsonObject& obj ) const;
+
+    /// Parse transaction.
+    QJsonObject parseTransaction( const QJsonObject& obj ) const;
 
     /// Save object.
     static void saveObject( const QJsonObject& obj, const QString& filename );

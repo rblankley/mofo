@@ -42,6 +42,7 @@ class AppDatabase : public SqlDatabase
 {
     Q_OBJECT
     Q_PROPERTY( QStringList accounts READ accounts NOTIFY accountsChanged STORED true )
+    Q_PROPERTY( QStringList accountLastTransactions READ accountLastTransactions STORED true )
     Q_PROPERTY( QJsonObject configs READ configs WRITE setConfigs NOTIFY configurationChanged STORED true )
     Q_PROPERTY( QDateTime currentDateTime READ currentDateTime WRITE setCurrentDateTime )
     Q_PROPERTY( QStringList filters READ filters STORED true )
@@ -99,6 +100,13 @@ public:
      * @return  list of accounts
      */
     virtual QStringList accounts() const;
+
+    /// Retrieve last transaction date time for all accounts.
+    /**
+     * List of strings in format "accountId;lastTransaction"
+     * @return  list of accounts
+     */
+    virtual QStringList accountLastTransactions() const;
 
     /// Retrieve configuration.
     /**
@@ -440,7 +448,7 @@ protected:
      */
     virtual bool addAccount( const QDateTime& stamp, const QJsonObject& obj );
 
-    /// Add account balances to database.
+    /// Add account balance to database.
     /**
      * @param[in] stamp  timestamp
      * @param[in] accountId  account id
@@ -448,7 +456,16 @@ protected:
      * @param[in] obj  data
      * @return  @c true upon success, @c false otherwise
      */
-    virtual bool addAccountBalances( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj );
+    virtual bool addAccountBalance( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj );
+
+    /// Add account position to database.
+    /**
+     * @param[in] stamp  timestamp
+     * @param[in] accountId  account id
+     * @param[in] obj  data
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool addAccountPosition( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
 
     /// Add market hours to database.
     /**
@@ -475,6 +492,13 @@ protected:
      * @return  @c true upon success, @c false otherwise
      */
     virtual bool addSessionHours( const QDate& date, const QString& marketType, const QString& product, const QString& sessionHoursType, const QJsonObject& obj );
+
+    /// Add transaction to database.
+    /**
+     * @param[in] obj  data
+     * @return  @c true upon success, @c false otherwise
+     */
+    virtual bool addTransaction( const QJsonObject& obj );
 
     /// Add treasury bill rate to database.
     /**
@@ -512,6 +536,9 @@ private:
 
     /// Parse account balances.
     bool parseAccountBalances( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
+
+    /// Parse account positions.
+    bool parseAccountPositions( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj );
 
     /// Parse session hours.
     bool parseSessionHours( const QDate& date, const QString& marketType, const QString& product, const QJsonObject& obj );

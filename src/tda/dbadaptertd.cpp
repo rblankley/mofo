@@ -57,11 +57,14 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     dateColumns_.append( JSON_DIV_DATE );
     dateColumns_.append( JSON_DIVIDEND_DATE );
     dateColumns_.append( JSON_DIVIDEND_PAY_DATE );
+    dateColumns_.append( JSON_SETTLEMENT_DATE );
 
     // date time columns
+    dateTimeColumns_.append( JSON_BOND_MATURITY_DATE );
     dateTimeColumns_.append( JSON_DATETIME );
     dateTimeColumns_.append( JSON_EXPIRY_DATE );
     dateTimeColumns_.append( JSON_LAST_TRADING_DAY );
+    dateTimeColumns_.append( JSON_MATURITY_DATE );
     dateTimeColumns_.append( JSON_QUOTE_TIME );
     dateTimeColumns_.append( JSON_REG_MARKET_TRADE_TIME );
     dateTimeColumns_.append( JSON_TRADE_TIME );
@@ -69,6 +72,9 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     dateTimeColumnsISO_.append( JSON_DIV_DATE );
     dateTimeColumnsISO_.append( JSON_DIVIDEND_DATE );
     dateTimeColumnsISO_.append( JSON_DIVIDEND_PAY_DATE );
+    dateTimeColumnsISO_.append( JSON_OPTION_EXPIRY_DATE );
+    dateTimeColumnsISO_.append( JSON_ORDER_DATE );
+    dateTimeColumnsISO_.append( JSON_TRANS_DATE );
 
     // quotes
     quoteFields_[JSON_52_WK_HIGH] = DB_FIFTY_TWO_WEEK_HIGH;
@@ -183,6 +189,22 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     optionChainFields_[JSON_UNDERLYING_PRICE] = DB_UNDERLYING_PRICE;
     optionChainFields_[JSON_VOLATILITY] = DB_VOLATILITY;
 
+    // position
+    positionFields_[JSON_AGED_QUANTITY] = DB_AGED_QUANTITY;
+    positionFields_[JSON_AVERAGE_PRICE] = DB_AVERAGE_PRICE;
+    positionFields_[JSON_CURRENT_DAY_COST] = DB_CURRENT_DAY_COST;
+    positionFields_[JSON_CURRENT_DAY_PROFIT_LOSS] = DB_CURRENT_DAY_PROFIT_LOSS;
+    positionFields_[JSON_CURRENT_DAY_PROFIT_LOSS_PERCENT] = DB_CURRENT_DAY_PROFIT_LOSS_PERCENT;
+    positionFields_[JSON_INSTRUMENT] = "";
+    positionFields_[JSON_LONG_QUANTITY] = DB_LONG_QUANTITY;
+    positionFields_[JSON_MAINTENANCE_REQUIREMENT] = DB_MAINTENANCE_REQUIREMENT;
+    positionFields_[JSON_MARKET_VALUE] = DB_MARKET_VALUE;
+    positionFields_[JSON_PREV_SESSION_LONG_QUANTITY] = DB_PREV_SESSION_LONG_QUANTITY;
+    positionFields_[JSON_PREV_SESSION_SHORT_QUANTITY] = DB_PREV_SESSION_SHORT_QUANTITY;
+    positionFields_[JSON_SETTLED_LONG_QUANTITY] = DB_SETTLED_LONG_QUANTITY;
+    positionFields_[JSON_SETTLED_SHORT_QUANTITY] = DB_SETTLED_SHORT_QUANTITY;
+    positionFields_[JSON_SHORT_QUANTITY] = DB_SHORT_QUANTITY;
+
     // price history
     priceHistoryFields_[JSON_CANDLES] = "";
     priceHistoryFields_[JSON_EMPTY] = "";
@@ -279,10 +301,11 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     // instrument
     instrumentFields_[JSON_ASSET_TYPE] = DB_ASSET_TYPE;
     instrumentFields_[JSON_CUSIP] = DB_CUSIP;
-    instrumentFields_[JSON_DESCRIPTION] = DB_DESCRIPTION;
+    instrumentFields_[JSON_DESC] = DB_DESC;
     instrumentFields_[JSON_EXCHANGE] = DB_EXCHANGE;
     instrumentFields_[JSON_FUNDAMENTAL] = "";
     instrumentFields_[JSON_SYMBOL] = DB_SYMBOL;
+    instrumentFields_[JSON_TYPE] = DB_ASSET_SUB_TYPE;
 
     instrumentFields_[JSON_HIGH_52] = DB_HIGH_52;
     instrumentFields_[JSON_LOW_52] = DB_LOW_52;
@@ -337,6 +360,45 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     instrumentFields_[JSON_VOL_10_DAY_AVG] = DB_VOL_10_DAY_AVG;
     instrumentFields_[JSON_VOL_3_MONTH_AVG] = DB_VOL_3_MONTH_AVG;
 
+    instrumentFields_[JSON_MATURITY_DATE] = DB_MATURITY_DATE;
+    instrumentFields_[JSON_VARIABLE_RATE] = DB_VARIABLE_RATE;
+    instrumentFields_[JSON_FACTOR] = DB_FACTOR;
+
+    instrumentFields_[JSON_UNDERLYING_SYMBOL] = DB_UNDERLYING_SYMBOL;
+    instrumentFields_[JSON_PUT_CALL] = DB_PUT_CALL;
+    instrumentFields_[JSON_OPTION_MULTIPLIER] = DB_OPTION_MULTIPLIER;
+    instrumentFields_[JSON_OPTION_DELIVERABLES] = "";
+
+    // transaction
+    transactionFields_[JSON_ACH_STATUS] = DB_ACH_STATUS;
+    transactionFields_[JSON_ACCRUED_INTEREST] = DB_ACCRUED_INTEREST;
+    transactionFields_[JSON_CASH_BALANCE_EFFECT_FLAG] = DB_CASH_BALANCE_EFFECT;
+    transactionFields_[JSON_CLEARING_REFERENCE_NUM] = DB_CLEARING_REFERENCE_NUM;
+    transactionFields_[JSON_DAY_TRADE_BUYING_POWER_EFFECT] = DB_DAY_TRADE_BUYING_POWER_EFFECT;
+    transactionFields_[JSON_DESC] = DB_TRANS_DESC;
+    transactionFields_[JSON_FEES] = "";
+    transactionFields_[JSON_NET_AMOUNT] = DB_NET_AMOUNT;
+    transactionFields_[JSON_ORDER_DATE] = DB_ORDER_DATE;
+    transactionFields_[JSON_ORDER_ID] = DB_ORDER_ID;
+    transactionFields_[JSON_REQUIREMENT_REALLOC_AMOUNT] = DB_REQUIREMENT_REALLOC_AMOUNT;
+    transactionFields_[JSON_SETTLEMENT_DATE] = DB_SETTLEMENT_DATE;
+    transactionFields_[JSON_SMA] = DB_SMA;
+    transactionFields_[JSON_SUB_ACCOUNT] = DB_SUB_ACCOUNT;
+    transactionFields_[JSON_TRANS_DATE] = DB_TRANS_DATE;
+    transactionFields_[JSON_TRANS_ID] = DB_TRANS_ID;
+    transactionFields_[JSON_TRANS_ITEM] = "";
+    transactionFields_[JSON_TRANS_SUB_TYPE] = DB_TRANS_SUB_TYPE;
+    transactionFields_[JSON_TYPE] = DB_TRANS_TYPE;
+
+    transactionFields_[JSON_ADDITIONAL_FEE] = DB_ADDITIONAL_FEE;
+    transactionFields_[JSON_CDSC_FEE] = DB_CDSC_FEE;
+    transactionFields_[JSON_COMMISSION] = DB_COMMISSION;
+    transactionFields_[JSON_OPT_REG_FEE] = DB_OPT_REG_FEE;
+    transactionFields_[JSON_OTHER_CHARGES] = DB_OTHER_CHARGES;
+    transactionFields_[JSON_RFEE] = DB_RFEE;
+    transactionFields_[JSON_REG_FEE] = DB_REG_FEE;
+    transactionFields_[JSON_SEC_FEE] = DB_SEC_FEE;
+
     // balances
     balances_[JSON_INITIAL_BALANCES] = DB_INITIAL_BALANCES;
     balances_[JSON_CURRENT_BALANCES] = DB_CURRENT_BALANCES;
@@ -347,6 +409,29 @@ TDAmeritradeDatabaseAdapter::TDAmeritradeDatabaseAdapter( QObject *parent ) :
     sessionHours_[JSON_REGULAR_MARKET] = DB_REGULAR_MARKET;
     sessionHours_[JSON_POST_MARKET] = DB_POST_MARKET;
     sessionHours_[JSON_OUTCRY_MARKET] = DB_OUTCRY_MARKET;
+
+    // transaction item
+    transactionItem_[JSON_ACCOUNT_ID] = DB_ACCOUNT_ID;
+    transactionItem_[JSON_AMOUNT] = DB_AMOUNT;
+    transactionItem_[JSON_COST] = DB_COST;
+    transactionItem_[JSON_INSTRUCTION] = DB_INSTRUCTION;
+    transactionItem_[JSON_INSTRUMENT] = "";
+    transactionItem_[JSON_PARENT_ORDER_KEY] = DB_PARENT_ORDER_KEY;
+    transactionItem_[JSON_PARENT_CHILD_INDICATOR] = DB_PARENT_CHILD_INDICATOR;
+    transactionItem_[JSON_POSITION_EFFECT] = DB_POSITION_EFFECT;
+    transactionItem_[JSON_PRICE] = DB_PRICE;
+
+    transactionItem_[JSON_ASSET_TYPE] = DB_ASSET_TYPE;
+    transactionItem_[JSON_BOND_MATURITY_DATE] = DB_BOND_MATURITY_DATE;
+    transactionItem_[JSON_BOND_INTEREST_RATE] = DB_BOND_INTEREST_RATE;
+    transactionItem_[JSON_CUSIP] = DB_CUSIP;
+    transactionItem_[JSON_DESC] = DB_DESC;
+    transactionItem_[JSON_OPTION_EXPIRY_DATE] = DB_OPTION_EXPIRY_DATE;
+    transactionItem_[JSON_OPTION_STRIKE_PRICE] = DB_OPTION_STRIKE_PRICE;
+    transactionItem_[JSON_PUT_CALL] = DB_ASSET_SUB_TYPE;
+    transactionItem_[JSON_SYMBOL] = DB_SYMBOL;
+    transactionItem_[JSON_TYPE] = DB_ASSET_SUB_TYPE;
+    transactionItem_[JSON_UNDERLYING_SYMBOL] = DB_UNDERLYING_SYMBOL;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
@@ -597,6 +682,25 @@ bool TDAmeritradeDatabaseAdapter::transformQuotes( const QJsonObject& tdobj ) co
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+bool TDAmeritradeDatabaseAdapter::transformTransactions( const QJsonArray& a ) const
+{
+    QJsonArray transactions;
+
+    // iterate transaction objects
+    for ( QJsonArray::const_iterator transIt( a.constBegin() ); transIt != a.constEnd(); ++transIt )
+        if ( transIt->isObject() )
+            transactions.append( parseTransaction( transIt->toObject() ) );
+
+    QJsonObject obj;
+    obj[DB_TRANSACTIONS] = transactions;
+
+    complete( obj );
+
+    LOG_TRACE << "done";
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 void TDAmeritradeDatabaseAdapter::transform( const QJsonObject& obj, const FieldMap& fieldMap, QJsonObject& result ) const
 {
     // iterate all json fields
@@ -669,6 +773,7 @@ QJsonObject TDAmeritradeDatabaseAdapter::parseAccount( const QJsonObject& obj ) 
     QJsonObject result;
     transform( obj, accountFields_, result );
 
+    // balances
     for ( FieldMap::const_iterator balance( balances_.constBegin() ); balance != balances_.constEnd(); ++balance )
     {
         const QJsonObject::const_iterator it( obj.constFind( balance.key() ) );
@@ -680,6 +785,46 @@ QJsonObject TDAmeritradeDatabaseAdapter::parseAccount( const QJsonObject& obj ) 
 
             result[balance.value()] = balances;
         }
+    }
+
+    // positions
+    const QJsonObject::const_iterator positions( obj.constFind( JSON_POSITIONS ) );
+
+    if ( obj.constEnd() == positions )
+        ; // nothing to do
+    else if ( !positions->isArray() )
+        LOG_WARN << "positions not an array";
+    else
+    {
+        QJsonArray a;
+
+        foreach ( const QJsonValue& positionVal, positions->toArray() )
+            if ( positionVal.isObject() )
+            {
+                const QJsonObject p( positionVal.toObject() );
+
+                // instrument
+                const QJsonObject::const_iterator it( p.constFind( JSON_INSTRUMENT ) );
+
+                if (( p.constEnd() == it ) || ( !it->isObject() ))
+                    LOG_WARN << "instrument missing or invalid";
+                else
+                {
+                    QJsonObject position;
+                    transform( p, positionFields_, position );
+
+                    transform( it->toObject(), instrumentFields_, position ); // flatten
+
+                    if ( position.isEmpty() )
+                        LOG_WARN << "error during position transform";
+                    else
+                    {
+                        a.append( position );
+                    }
+                }
+            }
+
+        result[DB_POSITIONS] = a;
     }
 
     return result;
@@ -965,6 +1110,56 @@ QJsonObject TDAmeritradeDatabaseAdapter::parseSessionHours( const QJsonObject& s
                 }
             }
         }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QJsonObject TDAmeritradeDatabaseAdapter::parseTransaction( const QJsonObject& trans ) const
+{
+    QJsonObject::const_iterator it( trans.find( JSON_TRANS_ID ) );
+
+    if ( it == trans.constEnd() )
+    {
+        LOG_WARN << "missing transaction id";
+        return QJsonObject();
+    }
+
+    const qint64 transId( it->toVariant().toLongLong() );
+
+    if ( transId <= 0 )
+    {
+        LOG_WARN << "bad transaction id " << qPrintable( it->toString() );
+        return QJsonObject();
+    }
+
+    LOG_DEBUG << "transform quote for " << transId << "...";
+
+    QJsonObject result;
+    transform( trans, transactionFields_, result );
+
+    // flatten the transaction information so we can write to database
+
+    const QJsonObject::const_iterator feesIt( trans.constFind( JSON_FEES ) );
+    const QJsonObject::const_iterator transItemIt( trans.constFind( JSON_TRANS_ITEM ) );
+
+    // fees
+    if (( trans.constEnd() != feesIt ) && ( feesIt->isObject() ))
+        transform( feesIt->toObject(), transactionFields_, result );
+
+    // transaction
+    if (( trans.constEnd() != transItemIt ) && ( transItemIt->isObject() ))
+    {
+        const QJsonObject transItem( transItemIt->toObject() );
+
+        transform( transItem, transactionItem_, result );
+
+        const QJsonObject::const_iterator instrumentIt( transItem.constFind( JSON_INSTRUMENT ) );
+
+        // instrument
+        if (( transItem.constEnd() != instrumentIt ) && ( instrumentIt->isObject() ))
+            transform( instrumentIt->toObject(), transactionItem_, result );
+    }
 
     return result;
 }

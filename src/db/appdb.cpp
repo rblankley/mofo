@@ -34,7 +34,7 @@
 #include <QThread>
 
 static const QString DB_NAME( "appdb.db" );
-static const QString DB_VERSION( "12" );
+static const QString DB_VERSION( "15" );
 
 QMutex AppDatabase::instanceMutex_;
 AppDatabase *AppDatabase::instance_( nullptr );
@@ -204,6 +204,39 @@ QStringList AppDatabase::accounts() const
                     rec.value( "type" ).toString(),
                     nickname,
                     rec.value( "isDefault" ).toString() ) );
+        }
+    }
+
+    return result;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+QStringList AppDatabase::accountLastTransactions() const
+{
+    static const QString sql( "SELECT * FROM accounts" );
+
+    QStringList result;
+
+    QSqlQuery query( connection() );
+    query.setForwardOnly( true );
+
+    // exec sql
+    if ( !query.exec( sql ) )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during select " << e.type() << " " << qPrintable( e.text() );
+    }
+    else
+    {
+        while ( query.next() )
+        {
+            const QSqlRecord rec( query.record() );
+
+            result.append(
+                QString( "%1;%2" ).arg(
+                    rec.value( "accountId" ).toString(),
+                    rec.value( "lastTransaction" ).toString() ) );
         }
     }
 
@@ -1272,6 +1305,7 @@ bool AppDatabase::processData( const QJsonObject& obj )
     const QDateTime now( currentDateTime() );
 
     bool accountsProcessed( false );
+    bool transactionsProcessed( false );
     bool marketHoursProcessed( false );
     bool treasBillRatesProcessed( false );
     bool treasYieldCurveRatesProcessed( false );
@@ -1314,6 +1348,27 @@ bool AppDatabase::processData( const QJsonObject& obj )
                       result &= addMarketHours( hoursVal.toObject() );
 
                 marketHoursProcessed = result;
+            }
+
+            // iterate transactions
+            const QJsonObject::const_iterator transactions( obj.constFind( DB_TRANSACTIONS ) );
+
+            if (( obj.constEnd() != transactions ) && ( transactions->isArray() ))
+            {
+                int count( 0 );
+
+                LOG_DEBUG << "process transactions";
+
+                foreach ( const QJsonValue& transactionVal, transactions->toArray() )
+                   if ( transactionVal.isObject() )
+                   {
+                      result &= addTransaction( transactionVal.toObject() );
+                      ++count;
+                   }
+
+                LOG_DEBUG << "processed " << count << " transactions";
+
+                transactionsProcessed = result;
             }
 
             // process treasury bill rates
@@ -1458,11 +1513,15 @@ bool AppDatabase::addAccount( const QDateTime& stamp, const QJsonObject& obj )
     if ( !parseAccountBalances( stamp, accountId, obj ) )
         return false;
 
+    // parse account positions
+    if ( !parseAccountPositions( stamp, accountId, obj ) )
+        return false;
+
     return true;
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-bool AppDatabase::addAccountBalances( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj )
+bool AppDatabase::addAccountBalance( const QDateTime& stamp, const QString& accountId, const QString& type, const QJsonObject& obj )
 {
     static const QString sql( "REPLACE INTO balances (stamp,accountId,type,"
         "accruedInterest,cashBalance,cashReceipts,longOptionMarketValue,liquidationValue,longMarketValue,moneyMarketFund,savings,shortMarketValue,pendingDeposits,"
@@ -1483,6 +1542,38 @@ bool AppDatabase::addAccountBalances( const QDateTime& stamp, const QString& acc
     query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
     query.bindValue( ":" + DB_ACCOUNT_ID, accountId );
     query.bindValue( ":" + DB_TYPE, type );
+
+    bindQueryValues( query, obj );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
+        return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool AppDatabase::addAccountPosition( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj )
+{
+    static const QString sql( "REPLACE INTO positions (stamp,accountId,symbol,"
+        "assetType,assetSubType,cusip,description,underlyingSymbol,putCall,optionMultiplier,maturityDate,variableRate,factor,"
+        "shortQuantity,averagePrice,currentDayCost,currentDayProfitLoss,currentDayProfitLossPercentage,longQuantity,settledShortQuantity,settledLongQuantity,previousSessionShortQuantity,previousSessionLongQuantity,"
+        "agedQuantity,marketValue,maintenanceRequirement) "
+            "VALUES (:stamp,:accountId,:symbol,"
+                ":assetType,:assetSubType,:cusip,:description,:underlyingSymbol,:putCall,:optionMultiplier,:maturityDate,:variableRate,:factor,"
+                ":shortQuantity,:averagePrice,:currentDayCost,:currentDayProfitLoss,:currentDayProfitLossPercentage,:longQuantity,:settledShortQuantity,:settledLongQuantity,:previousSessionShortQuantity,:previousSessionLongQuantity,"
+                ":agedQuantity,:marketValue,:maintenanceRequirement) " );
+
+    QSqlQuery query( connection() );
+    query.prepare( sql );
+
+    query.bindValue( ":" + DB_STAMP, stamp.toString( Qt::ISODateWithMs ) );
+    query.bindValue( ":" + DB_ACCOUNT_ID, accountId );
 
     bindQueryValues( query, obj );
 
@@ -1613,6 +1704,101 @@ bool AppDatabase::addSessionHours( const QDate& date, const QString& marketType,
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+bool AppDatabase::addTransaction( const QJsonObject& obj )
+{
+    static const QString sql( "INSERT OR IGNORE INTO transactions (accountId,transId,"
+        "transDate,transType,transSubType,transDescription,clearingReferenceNumber,subAccount,settlementDate,netAmount,sma,requirementReallocationAmount,"
+        "dayTradeBuyingPowerEffect,cashBalanceEffect,achStatus,accruedInterest,reconciled,orderId,orderDate,parentOrderKey,parentChildIndicator,instruction,"
+        "positionEffect,amount,price,cost,assetType,assetSubType,description,cusip,symbol,underlyingSymbol,"
+        "optionExpirationDate,optionStrikePrice,bondMaturityDate,bondInterestRate,commission,cdscFee,regFee,secFee,additionalFee,optRegFee,"
+        "rFee,otherCharges) "
+            "VALUES (:accountId,:transId,"
+                ":transDate,:transType,:transSubType,:transDescription,:clearingReferenceNumber,:subAccount,:settlementDate,:netAmount,:sma,:requirementReallocationAmount,"
+                ":dayTradeBuyingPowerEffect,:cashBalanceEffect,:achStatus,:accruedInterest,:reconciled,:orderId,:orderDate,:parentOrderKey,:parentChildIndicator,:instruction,"
+                ":positionEffect,:amount,:price,:cost,:assetType,:assetSubType,:description,:cusip,:symbol,:underlyingSymbol,"
+                ":optionExpirationDate,:optionStrikePrice,:bondMaturityDate,:bondInterestRate,:commission,:cdscFee,:regFee,:secFee,:additionalFee,:optRegFee,"
+                ":rFee,:otherCharges) " );
+
+    static const QString sqlAccount( "UPDATE accounts "
+        "SET lastTransaction=:lastTransaction "
+        "WHERE accountId=:accountId AND (lastTransaction IS NULL OR lastTransaction<:lastTransaction)" );
+
+    static const QString sqlSubType( "REPLACE INTO transactionSubTypes (type,"
+        "description) "
+            "VALUES (:type,"
+                ":description) " );
+
+    QSqlQuery query( connection() );
+
+    // check existance of transaction sub type
+    QJsonObject::const_iterator subTypeIt( obj.constFind( DB_TRANS_SUB_TYPE ) );
+    QJsonObject::const_iterator descIt( obj.constFind( DB_TRANS_DESC ) );
+
+    if (( subTypeIt != obj.constEnd() ) && ( subTypeIt->isString() ) &&
+        ( descIt != obj.constEnd() ) && ( descIt->isString() ))
+    {
+        query.prepare( sqlSubType );
+        query.bindValue( ":" + DB_TYPE, subTypeIt->toString() );
+        query.bindValue( ":" + DB_DESC, descIt->toString() );
+
+        // exec sql
+        if ( !query.exec() )
+        {
+            const QSqlError e( query.lastError() );
+
+            LOG_ERROR << "error during replace " << e.type() << " " << qPrintable( e.text() );
+            return false;
+        }
+    }
+
+    // transaction
+    query.prepare( sql );
+    query.bindValue( ":" + DB_RECONCILED, false );
+
+    bindQueryValues( query, obj );
+
+    // exec sql
+    if ( !query.exec() )
+    {
+        const QSqlError e( query.lastError() );
+
+        LOG_ERROR << "error during insert " << e.type() << " " << qPrintable( e.text() );
+        return false;
+    }
+
+    // account
+    QJsonObject::const_iterator accountIdIt( obj.constFind( DB_ACCOUNT_ID ) );
+    QJsonObject::const_iterator transDateIt( obj.constFind( DB_TRANS_DATE ) );
+
+    if (( accountIdIt != obj.constEnd() ) &&
+        ( transDateIt != obj.constEnd() ) && ( transDateIt->isString() ))
+    {
+        const QDateTime transDate( QDateTime::fromString( transDateIt->toString(), Qt::ISODateWithMs ) );
+
+        if ( !transDate.isValid() )
+            LOG_WARN << "invalid transaction date";
+        else
+        {
+            const QDate d( transDate.date() );
+
+            query.prepare( sqlAccount );
+            query.bindValue( ":" + DB_ACCOUNT_ID, accountIdIt->toVariant() );
+            query.bindValue( ":" + DB_LAST_TRANSACTION, d.toString( Qt::ISODate ) );
+
+            // exec sql
+            if ( !query.exec() )
+            {
+                const QSqlError e( query.lastError() );
+
+                LOG_WARN << "error during update " << e.type() << " " << qPrintable( e.text() );
+            }
+        }
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 bool AppDatabase::addTreasuryBillRate( const QDateTime& stamp, const QJsonObject& obj )
 {
     Q_UNUSED( stamp )
@@ -1728,8 +1914,26 @@ bool AppDatabase::parseAccountBalances( const QDateTime& stamp, const QString& a
         const QJsonObject::const_iterator it( obj.constFind( key ) );
 
         if (( obj.constEnd() != it ) && ( it->isObject() ))
-            if ( !addAccountBalances( stamp, accountId, key, it->toObject() ) )
+            if ( !addAccountBalance( stamp, accountId, key, it->toObject() ) )
                 return false;
+    }
+
+    return true;
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+bool AppDatabase::parseAccountPositions( const QDateTime& stamp, const QString& accountId, const QJsonObject& obj )
+{
+    const QJsonObject::const_iterator positions( obj.constFind( DB_POSITIONS ) );
+
+    if (( obj.constEnd() != positions ) && ( positions->isArray() ))
+    {
+        foreach ( const QJsonValue& p, positions->toArray() )
+            if ( p.isObject() )
+            {
+                if ( !addAccountPosition( stamp, accountId, p.toObject() ) )
+                    return false;
+            }
     }
 
     return true;

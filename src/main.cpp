@@ -223,6 +223,7 @@ int main( int argc, char *argv[] )
     QObject::connect( tda, &TDAmeritrade::optionChainReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformOptionChain, Qt::DirectConnection );
     QObject::connect( tda, &TDAmeritrade::priceHistoryReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformPriceHistory, Qt::DirectConnection );
     QObject::connect( tda, &TDAmeritrade::quotesReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformQuotes, Qt::DirectConnection );
+    QObject::connect( tda, &TDAmeritrade::transactionsReceived, tdaadapter, &TDAmeritradeDatabaseAdapter::transformTransactions, Qt::DirectConnection );
 
     QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, db, &AppDatabase::processData, Qt::DirectConnection );
     QObject::connect( tdaadapter, &TDAmeritradeDatabaseAdapter::transformComplete, sdbs, &SymbolDatabases::processData, Qt::DirectConnection );

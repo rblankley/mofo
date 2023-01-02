@@ -13,6 +13,9 @@
         <file>db/version10_app.sql</file>
         <file>db/version11_app.sql</file>
         <file>db/version12_app.sql</file>
+        <file>db/version13_app.sql</file>
+        <file>db/version14_app.sql</file>
+        <file>db/version15_app.sql</file>
         <file>db/createdb_symbol.sql</file>
         <file>db/default_symbol.sql</file>
         <file>db/version2_symbol.sql</file>

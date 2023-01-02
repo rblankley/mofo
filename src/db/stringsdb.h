@@ -33,6 +33,7 @@ inline static const QString DB_MARKET_HOURS                         = "marketHou
 inline static const QString DB_OPTION_CHAIN                         = "optionChain";
 inline static const QString DB_QUOTES                               = "quotes";
 inline static const QString DB_QUOTE_HISTORY                        = "quoteHistory";
+inline static const QString DB_TRANSACTIONS                         = "transactions";
 inline static const QString DB_TREAS_BILL_RATES                     = "treasuryBillRates";
 inline static const QString DB_TREAS_YIELD_CURVE_RATES              = "treasuryYieldCurveRates";
 
@@ -59,6 +60,8 @@ inline static const QString DB_IS_CLOSING_ONLY_RESTRICT             = "isClosing
 inline static const QString DB_IS_DAY_TRADER                        = "isDayTrader";
 inline static const QString DB_ROUND_TRIPS                          = "roundTrips";
 
+inline static const QString DB_LAST_TRANSACTION                     = "lastTransaction";
+
 // Account Balances
 inline static const QString DB_ACCRUED_INTEREST                     = "accruedInterest";
 inline static const QString DB_CASH_BALANCE                         = "cashBalance";
@@ -66,7 +69,7 @@ inline static const QString DB_CASH_RECEIPTS                        = "cashRecei
 inline static const QString DB_LONG_OPTION_MARKET_VALUE             = "longOptionMarketValue";
 inline static const QString DB_LIQUIDATION_VALUE                    = "liquidationValue";
 inline static const QString DB_LONG_MARKET_VALUE                    = "longMarketValue";
-inline static const QString DB_MONEY_MARKET_FUND                     = "moneyMarketFund";
+inline static const QString DB_MONEY_MARKET_FUND                    = "moneyMarketFund";
 inline static const QString DB_SAVINGS                              = "savings";
 inline static const QString DB_SHORT_MARKET_VALUE                   = "shortMarketValue";
 inline static const QString DB_PENDING_DEPOSITS                     = "pendingDeposits";
@@ -109,6 +112,25 @@ inline static const QString DB_ACCOUNT_VALUE                        = "accountVa
 inline static const QString DB_DAY_TRADING_EQUITY_CALL              = "dayTradingEquityCall";
 inline static const QString DB_MARGIN                               = "margin";
 inline static const QString DB_MARGIN_EQUITY                        = "marginEquity";
+
+// Account Positions
+inline static const QString DB_POSITIONS                            = "positions";
+
+inline static const QString DB_SHORT_QUANTITY                       = "shortQuantity";
+inline static const QString DB_LONG_QUANTITY                        = "longQuantity";
+inline static const QString DB_AGED_QUANTITY                        = "agedQuantity";
+inline static const QString DB_SETTLED_SHORT_QUANTITY               = "settledShortQuantity";
+inline static const QString DB_SETTLED_LONG_QUANTITY                = "settledLongQuantity";
+inline static const QString DB_PREV_SESSION_SHORT_QUANTITY          = "previousSessionShortQuantity";
+inline static const QString DB_PREV_SESSION_LONG_QUANTITY           = "previousSessionLongQuantity";
+
+inline static const QString DB_AVERAGE_PRICE                        = "averagePrice";
+inline static const QString DB_CURRENT_DAY_COST                     = "currentDayCost";
+inline static const QString DB_CURRENT_DAY_PROFIT_LOSS              = "currentDayProfitLoss";
+inline static const QString DB_CURRENT_DAY_PROFIT_LOSS_PERCENT      = "currentDayProfitLossPercentage";
+inline static const QString DB_MARKET_VALUE                         = "marketValue";
+
+inline static const QString DB_INSTRUMENT                           = "instrument";
 
 // Market Hours
 inline static const QString DB_DATE                                 = "date";
@@ -280,7 +302,6 @@ inline static const QString DB_SIGNAL_VALUE                         = "signalVal
 inline static const QString DB_DIFF                                 = "diff";
 
 // Instrument (Fundamental Data)
-inline static const QString DB_DESCRIPTION                          = "description";
 inline static const QString DB_FUNDAMENTAL                          = "fundamental";
 
 inline static const QString DB_HIGH_52                              = "high52";
@@ -331,12 +352,59 @@ inline static const QString DB_VOL_1_DAY_AVG                        = "vol1DayAv
 inline static const QString DB_VOL_10_DAY_AVG                       = "vol10DayAvg";
 inline static const QString DB_VOL_3_MONTH_AVG                      = "vol3MonthAvg";
 
+inline static const QString DB_MATURITY_DATE                        = "maturityDate";
+inline static const QString DB_VARIABLE_RATE                        = "variableRate";
+inline static const QString DB_FACTOR                               = "factor";
+
+inline static const QString DB_UNDERLYING_SYMBOL                    = "underlyingSymbol";
+inline static const QString DB_PUT_CALL                             = "putCall";
+inline static const QString DB_OPTION_MULTIPLIER                    = "optionMultiplier";
+
+// Transaction
+inline static const QString DB_TRANS_ID                             = "transId";
+inline static const QString DB_TRANS_DATE                           = "transDate";
+inline static const QString DB_TRANS_TYPE                           = "transType";
+inline static const QString DB_TRANS_SUB_TYPE                       = "transSubType";
+inline static const QString DB_TRANS_DESC                           = "transDescription";
+inline static const QString DB_CLEARING_REFERENCE_NUM               = "clearingReferenceNumber";
+inline static const QString DB_SUB_ACCOUNT                          = "subAccount";
+inline static const QString DB_SETTLEMENT_DATE                      = "settlementDate";
+inline static const QString DB_NET_AMOUNT                           = "netAmount";
+inline static const QString DB_REQUIREMENT_REALLOC_AMOUNT           = "requirementReallocationAmount";
+inline static const QString DB_DAY_TRADE_BUYING_POWER_EFFECT        = "dayTradeBuyingPowerEffect";
+inline static const QString DB_CASH_BALANCE_EFFECT                  = "cashBalanceEffect";
+inline static const QString DB_ACH_STATUS                           = "achStatus";
+inline static const QString DB_RECONCILED                           = "reconciled";
+
+inline static const QString DB_ORDER_ID                             = "orderId";
+inline static const QString DB_ORDER_DATE                           = "orderDate";
+inline static const QString DB_PARENT_ORDER_KEY                     = "parentOrderKey";
+inline static const QString DB_PARENT_CHILD_INDICATOR               = "parentChildIndicator";
+inline static const QString DB_INSTRUCTION                          = "instruction";
+inline static const QString DB_POSITION_EFFECT                      = "positionEffect";
+inline static const QString DB_AMOUNT                               = "amount";
+inline static const QString DB_PRICE                                = "price";
+inline static const QString DB_COST                                 = "cost";
+
+inline static const QString DB_OPTION_EXPIRY_DATE                   = "optionExpirationDate";
+inline static const QString DB_OPTION_STRIKE_PRICE                  = "optionStrikePrice";
+inline static const QString DB_BOND_MATURITY_DATE                   = "bondMaturityDate";
+inline static const QString DB_BOND_INTEREST_RATE                   = "bondInterestRate";
+
+inline static const QString DB_COMMISSION                           = "commission";
+inline static const QString DB_CDSC_FEE                             = "cdscFee";
+inline static const QString DB_REG_FEE                              = "regFee";
+inline static const QString DB_SEC_FEE                              = "secFee";
+inline static const QString DB_ADDITIONAL_FEE                       = "additionalFee";
+inline static const QString DB_OPT_REG_FEE                          = "optRegFee";
+inline static const QString DB_RFEE                                 = "rFee";
+inline static const QString DB_OTHER_CHARGES                        = "otherCharges";
+
 // Treasury Bill Rates
 inline static const QString DB_UPDATED                              = "updated";
 inline static const QString DB_DATA                                 = "data";
 
 inline static const QString DB_DATA_ID                              = "dataId";
-inline static const QString DB_MATURITY_DATE                        = "maturityDate";
 inline static const QString DB_ROUND_CLOSE                          = "roundClose";
 inline static const QString DB_ROUND_YIELD                          = "roundYield";
 inline static const QString DB_CLOSE_AVG                            = "closeAverage";

@@ -46,6 +46,8 @@ TDAmeritrade::TDAmeritrade( QObject *parent ) :
     endpointNames_[GET_PRICE_HISTORY] = "getPriceHistory";
     endpointNames_[GET_QUOTE] = "getQuote";
     endpointNames_[GET_QUOTES] = "getQuotes";
+    endpointNames_[GET_TRANSACTION] = "getTransaction";
+    endpointNames_[GET_TRANSACTIONS] = "getTransactions";
 
     loadEndpoints();
 
@@ -58,26 +60,58 @@ TDAmeritrade::~TDAmeritrade()
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritrade::getAccount( const QString& id )
+void TDAmeritrade::getAccount( const QString& id, bool fetchPositions, bool fetchOrders )
 {
     if ( id.isEmpty() )
         return;
 
+    QStringList fields;
+
+    if ( fetchPositions )
+        fields.append( "positions" );
+    if ( fetchOrders )
+        fields.append( "orders" );
+
     QString s( endpoints_[GET_ACCOUNT] );
     s.replace( "{accountId}", id );
+
+    QUrl url( s );
+
+    if ( !fields.isEmpty() )
+    {
+        QUrlQuery urlQuery;
+        urlQuery.addQueryItem( "fields", fields.join( ',' ) );
+
+        url.setQuery( urlQuery );
+    }
 
     const QUuid uuid( QUuid::createUuid() );
 
     QMutexLocker guard( &m_ );
 
     pendingRequests_[uuid] = GET_ACCOUNT;
-    send( uuid, s, REQUEST_TIMEOUT, REQUEST_RETRIES );
+    send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
-void TDAmeritrade::getAccounts()
+void TDAmeritrade::getAccounts( bool fetchPositions, bool fetchOrders )
 {
-    const QUrl url( endpoints_[GET_ACCOUNTS] );
+    QStringList fields;
+
+    if ( fetchPositions )
+        fields.append( "positions" );
+    if ( fetchOrders )
+        fields.append( "orders" );
+
+    QUrl url( endpoints_[GET_ACCOUNTS] );
+
+    if ( !fields.isEmpty() )
+    {
+        QUrlQuery urlQuery;
+        urlQuery.addQueryItem( "fields", fields.join( ',' ) );
+
+        url.setQuery( urlQuery );
+    }
 
     const QUuid uuid( QUuid::createUuid() );
 
@@ -303,6 +337,61 @@ void TDAmeritrade::getQuotes( const QStringList& symbols )
 }
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritrade::getTransaction( const QString& accountId, const QString& transactionId )
+{
+    if ( accountId.isEmpty() )
+        return;
+    else if ( transactionId.isEmpty() )
+        return;
+
+    QString s( endpoints_[GET_TRANSACTION] );
+    s.replace( "{accountId}", accountId );
+    s.replace( "{transactionId}", transactionId );
+
+    const QUuid uuid( QUuid::createUuid() );
+
+    QMutexLocker guard( &m_ );
+
+    pendingRequests_[uuid] = GET_TRANSACTION;
+    send( uuid, s, REQUEST_TIMEOUT, REQUEST_RETRIES );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritrade::getTransactions( const QString& accountId, const QString& type, const QString& symbol, const QDate& fromDate, const QDate& toDate )
+{
+    if ( accountId.isEmpty() )
+        return;
+    else if ( type.isEmpty() )
+        return;
+
+    QString s( endpoints_[GET_TRANSACTIONS] );
+    s.replace( "{accountId}", accountId );
+
+    QUrlQuery urlQuery;
+    urlQuery.addQueryItem( "type", type );
+
+    if ( !symbol.isEmpty() )
+        urlQuery.addQueryItem( "symbol", symbol );
+
+    if ( fromDate.isValid() )
+        urlQuery.addQueryItem( "startDate", fromDate.toString( Qt::ISODate ) );
+
+    if ( toDate.isValid() )
+        urlQuery.addQueryItem( "endDate", toDate.toString( Qt::ISODate ) );
+
+    QUrl url( s );
+    url.setQuery( urlQuery );
+
+    const QUuid uuid( QUuid::createUuid() );
+
+    // request!
+    QMutexLocker guard( &m_ );
+
+    pendingRequests_[uuid] = GET_TRANSACTIONS;
+    send( uuid, url, REQUEST_TIMEOUT, REQUEST_RETRIES );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
 #if defined( QT_DEBUG )
 void TDAmeritrade::simulateAccounts( const QJsonDocument& doc )
 {
@@ -347,6 +436,14 @@ void TDAmeritrade::simulatePriceHistory( const QJsonDocument& doc, int period, c
 void TDAmeritrade::simulateQuotes( const QJsonDocument& doc )
 {
     parseQuotesDoc( doc );
+}
+#endif
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+#if defined( QT_DEBUG )
+void TDAmeritrade::simulateTransactions( const QJsonDocument& doc )
+{
+    parseTransactionsDoc( doc );
 }
 #endif
 
@@ -400,6 +497,10 @@ void TDAmeritrade::onProcessDocumentJson( const QUuid& uuid, const QByteArray& r
     case GET_QUOTES:
         parseQuotesDoc( response );
         break;
+    case GET_TRANSACTION:
+    case GET_TRANSACTIONS:
+        parseTransactionsDoc( response );
+        break;
     default:
         LOG_WARN << "unhandled endpoint type " << type;
         break;
@@ -419,7 +520,7 @@ void TDAmeritrade::loadEndpoints()
         const QVariant value( settings.value( prefix + i.value() ) );
 
         if ( !value.isValid() )
-            LOG_WARN << "bad endpoint " << qPrintable( i.value() );
+            LOG_ERROR << "bad endpoint " << qPrintable( i.value() ) << " CHECK YOUR '" << qPrintable( INI_FILE ) << "' FILE";
         else
         {
             const QString v( value.toString() );
@@ -539,4 +640,20 @@ void TDAmeritrade::parseQuotesDoc( const QJsonDocument& doc )
 
     // emit!
     emit quotesReceived( doc.object() );
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////
+void TDAmeritrade::parseTransactionsDoc( const QJsonDocument& doc )
+{
+    if ( doc.isObject() )
+    {
+        QJsonArray a;
+        a.append( doc.object() );
+
+        emit transactionsReceived( a );
+    }
+    else if ( doc.isArray() )
+    {
+        emit transactionsReceived( doc.array() );
+    }
 }

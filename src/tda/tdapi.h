@@ -80,6 +80,12 @@ signals:
      */
     void quotesReceived( const QJsonObject& obj );
 
+    /// Signal for transactions received.
+    /**
+     * @param[in] a  data objects
+     */
+    void transactionsReceived( const QJsonArray& a );
+
 public:
 
     // ========================================================================
@@ -101,12 +107,18 @@ public:
 
     /// Retrieve account.
     /**
-     * @param[in] id  account id
+     * @param[in] accountId  account id
+     * @param[in] fetchPositions  @c true to fetch positions, @c false otherwise
+     * @param[in] fetchOrders  @c true to fetch orders, @c false otherwise
      */
-    virtual void getAccount( const QString& id );
+    virtual void getAccount( const QString& accountId, bool fetchPositions = true, bool fetchOrders = true );
 
     /// Retrieve accounts.
-    virtual void getAccounts();
+    /**
+     * @param[in] fetchPositions  @c true to fetch positions, @c false otherwise
+     * @param[in] fetchOrders  @c true to fetch orders, @c false otherwise
+     */
+    virtual void getAccounts( bool fetchPositions = true, bool fetchOrders = true );
 
     /// Retrieve fundamental data.
     /**
@@ -197,6 +209,23 @@ public:
      */
     virtual void getQuotes( const QStringList& symbols );
 
+    /// Retrieve transaction.
+    /**
+     * @param[in] accountId  account id
+     * @param[in] transactionId  transaction id
+     */
+    virtual void getTransaction( const QString& accountId, const QString& transactionId );
+
+    /// Retrieve transactions.
+    /**
+     * @param[in] accountId  account id
+     * @param[in] type  transaction type of ALL, TRADE, BUY_ONLY, SELL_ONLY, CASH_IN_OR_CASH_OUT, CHECKING, DIVIDEND, INTEREST, OTHER, ADVISOR_FEES
+     * @param[in] symbol  symbols
+     * @param[in] fromDate  start date
+     * @param[in] toDate  end date
+     */
+    virtual void getTransactions( const QString& accountId, const QString& type = "ALL", const QString& symbol = QString(), const QDate& fromDate = QDate(), const QDate& toDate = QDate() );
+
     // ========================================================================
     // Methods
     // ========================================================================
@@ -237,6 +266,12 @@ public:
      * @param[in] doc  document
      */
     virtual void simulateQuotes( const QJsonDocument& doc );
+
+    /// Simulate transactions.
+    /**
+     * @param[in] doc  document
+     */
+    virtual void simulateTransactions( const QJsonDocument& doc );
 #endif
 
 private slots:
@@ -261,6 +296,8 @@ private:
         GET_PRICE_HISTORY,
         GET_QUOTE,
         GET_QUOTES,
+        GET_TRANSACTION,
+        GET_TRANSACTIONS,
     };
 
     using EndpointMap = QMap<Endpoint, QString>;
@@ -308,6 +345,9 @@ private:
 
     /// Parse quotes.
     void parseQuotesDoc( const QJsonDocument& doc );
+
+    /// Parse transactions.
+    void parseTransactionsDoc( const QJsonDocument& doc );
 
     // not implemented
     TDAmeritrade( const _Myt& ) = delete;

@@ -175,7 +175,7 @@ void DeptOfTheTreasury::loadEndpoints()
         const QVariant value( settings.value( prefix + i.value() ) );
 
         if ( !value.isValid() )
-            LOG_WARN << "bad endpoint " << qPrintable( i.value() );
+            LOG_ERROR << "bad endpoint " << qPrintable( i.value() ) << " CHECK YOUR '" << qPrintable( INI_FILE ) << "' FILE";
         else
         {
             const QString v( value.toString() );

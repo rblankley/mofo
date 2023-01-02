@@ -92,6 +92,22 @@ inline static const QString JSON_DAY_TRADING_EQUITY_CALL            = "dayTradin
 inline static const QString JSON_MARGIN                             = "margin";
 inline static const QString JSON_MARGIN_EQUITY                      = "marginEquity";
 
+inline static const QString JSON_SHORT_QUANTITY                     = "shortQuantity";
+inline static const QString JSON_LONG_QUANTITY                      = "longQuantity";
+inline static const QString JSON_AGED_QUANTITY                      = "agedQuantity";
+inline static const QString JSON_SETTLED_SHORT_QUANTITY             = "settledShortQuantity";
+inline static const QString JSON_SETTLED_LONG_QUANTITY              = "settledLongQuantity";
+inline static const QString JSON_PREV_SESSION_SHORT_QUANTITY        = "previousSessionShortQuantity";
+inline static const QString JSON_PREV_SESSION_LONG_QUANTITY         = "previousSessionLongQuantity";
+
+inline static const QString JSON_AVERAGE_PRICE                      = "averagePrice";
+inline static const QString JSON_CURRENT_DAY_COST                   = "currentDayCost";
+inline static const QString JSON_CURRENT_DAY_PROFIT_LOSS            = "currentDayProfitLoss";
+inline static const QString JSON_CURRENT_DAY_PROFIT_LOSS_PERCENT    = "currentDayProfitLossPercentage";
+inline static const QString JSON_MARKET_VALUE                       = "marketValue";
+
+inline static const QString JSON_INSTRUMENT                         = "instrument";
+
 // Market Hours
 inline static const QString JSON_CATEGORY                           = "category";
 inline static const QString JSON_DATE                               = "date";
@@ -273,7 +289,6 @@ inline static const QString JSON_LOW                                = "low";
 inline static const QString JSON_VOLUME                             = "volume";
 
 // Instrument (Fundamental Data)
-inline static const QString JSON_DESCRIPTION                        = "description";
 inline static const QString JSON_FUNDAMENTAL                        = "fundamental";
 
 inline static const QString JSON_HIGH_52                            = "high52";
@@ -327,6 +342,55 @@ inline static const QString JSON_BETA                               = "beta";
 inline static const QString JSON_VOL_1_DAY_AVG                      = "vol1DayAvg";
 inline static const QString JSON_VOL_10_DAY_AVG                     = "vol10DayAvg";
 inline static const QString JSON_VOL_3_MONTH_AVG                    = "vol3MonthAvg";
+
+inline static const QString JSON_MATURITY_DATE                      = "maturityDate";
+inline static const QString JSON_VARIABLE_RATE                      = "variableRate";
+inline static const QString JSON_FACTOR                             = "factor";
+
+inline static const QString JSON_UNDERLYING_SYMBOL                  = "underlyingSymbol";
+inline static const QString JSON_OPTION_MULTIPLIER                  = "optionMultiplier";
+inline static const QString JSON_OPTION_DELIVERABLES                = "optionDeliverables";
+
+// Transaction
+inline static const QString JSON_TRANS_ID                           = "transactionId";
+inline static const QString JSON_TRANS_DATE                         = "transactionDate";
+inline static const QString JSON_TRANS_ITEM                         = "transactionItem";
+inline static const QString JSON_TRANS_SUB_TYPE                     = "transactionSubType";
+
+inline static const QString JSON_AMOUNT                             = "amount";
+inline static const QString JSON_PARENT_ORDER_KEY                   = "parentOrderKey";
+inline static const QString JSON_PARENT_CHILD_INDICATOR             = "parentChildIndicator";
+inline static const QString JSON_COST                               = "cost";
+inline static const QString JSON_INSTRUCTION                        = "instruction";
+inline static const QString JSON_POSITION_EFFECT                    = "positionEffect";
+inline static const QString JSON_PRICE                              = "price";
+
+inline static const QString JSON_BOND_MATURITY_DATE                 = "bondMaturityDate";
+inline static const QString JSON_BOND_INTEREST_RATE                 = "bondInterestRate";
+inline static const QString JSON_OPTION_EXPIRY_DATE                 = "optionExpirationDate";
+inline static const QString JSON_OPTION_STRIKE_PRICE                = "optionStrikePrice";
+
+inline static const QString JSON_ORDER_DATE                         = "orderDate";
+inline static const QString JSON_ORDER_ID                           = "orderId";
+inline static const QString JSON_SETTLEMENT_DATE                    = "settlementDate";
+
+inline static const QString JSON_SUB_ACCOUNT                        = "subAccount";
+inline static const QString JSON_ACH_STATUS                         = "achStatus";
+inline static const QString JSON_CLEARING_REFERENCE_NUM             = "clearingReferenceNumber";
+inline static const QString JSON_DAY_TRADE_BUYING_POWER_EFFECT      = "dayTradeBuyingPowerEffect";
+inline static const QString JSON_REQUIREMENT_REALLOC_AMOUNT         = "requirementReallocationAmount";
+inline static const QString JSON_NET_AMOUNT                         = "netAmount";
+inline static const QString JSON_CASH_BALANCE_EFFECT_FLAG           = "cashBalanceEffectFlag";
+inline static const QString JSON_FEES                               = "fees";
+
+inline static const QString JSON_ADDITIONAL_FEE                     = "additionalFee";
+inline static const QString JSON_CDSC_FEE                           = "cdscFee";
+inline static const QString JSON_COMMISSION                         = "commission";
+inline static const QString JSON_OPT_REG_FEE                        = "optRegFee";
+inline static const QString JSON_OTHER_CHARGES                      = "otherCharges";
+inline static const QString JSON_RFEE                               = "rFee";
+inline static const QString JSON_REG_FEE                            = "regFee";
+inline static const QString JSON_SEC_FEE                            = "secFee";
 
 ///////////////////////////////////////////////////////////////////////////////////////////////////
 

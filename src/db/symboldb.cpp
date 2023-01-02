@@ -1543,7 +1543,7 @@ bool SymbolDatabase::addQuote( const QJsonObject& obj )
     updateDefaultValue( query, obj, DB_ASSET_SUB_TYPE );
     updateDefaultValue( query, obj, DB_ASSET_TYPE );
     updateDefaultValue( query, obj, DB_CUSIP );
-    updateDefaultValue( query, obj, DB_DESCRIPTION );
+    updateDefaultValue( query, obj, DB_DESC );
 
     updateDefaultValue( query, obj, DB_DIV_AMOUNT );
     updateDefaultValue( query, obj, DB_DIV_YIELD );
